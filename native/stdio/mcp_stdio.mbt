@@ -13,6 +13,13 @@ pub suberror McpStdioError {
 } derive(Debug)
 
 ///|
+priv enum StdioConnectionState {
+  Open
+  Poisoned
+  Closed
+} derive(Eq)
+
+///|
 priv struct StdioConnection {
   reader : @process.ReadFromProcess
   _stdout_handle : &@process.ProcessOutput
@@ -20,7 +27,7 @@ priv struct StdioConnection {
   writer : @process.WriteToProcess
   _stdin_handle : &@process.ProcessInput
   process : @process.Process
-  mut closed : Bool
+  mut state : StdioConnectionState
 }
 
 ///|
@@ -535,7 +542,7 @@ async fn[X] spawn_stdio(
     writer,
     _stdin_handle: stdin_handle,
     process,
-    closed: false,
+    state: StdioConnectionState::Open,
   }
 }
 
@@ -544,9 +551,7 @@ async fn write_json_line(
   conn : StdioConnection,
   message : Json,
 ) -> Unit raise McpStdioError {
-  if conn.closed {
-    raise McpStdioError::WriteFailed("stdio connection closed")
-  }
+  ensure_stdio_connection_usable(conn)
   conn.writer.write(message.stringify() + "\n") catch {
     err => raise McpStdioError::WriteFailed(err.to_string())
   }
@@ -554,9 +559,7 @@ async fn write_json_line(
 
 ///|
 async fn read_json_line(conn : StdioConnection) -> Json? raise McpStdioError {
-  if conn.closed {
-    raise McpStdioError::ReadFailed("stdio connection closed")
-  }
+  ensure_stdio_connection_usable(conn)
   let line = conn.reader.read_until("\n") catch {
     err => raise McpStdioError::ReadFailed(err.to_string())
   }
@@ -579,11 +582,11 @@ async fn read_response_for_id_with_timeout(
 ) -> Json raise McpStdioError {
   let started_at = @async.now()
   @async.with_timeout(timeout_ms, () => read_response_for_id(conn, expected_id~)) catch {
-    @async.TimeoutError => raise McpStdioError::Timeout
+    @async.TimeoutError => poison_stdio_after_timeout(conn)
     McpStdioError::ReadFailed(message) => {
       let elapsed = @async.now() - started_at
       if elapsed >= timeout_ms.to_int64() {
-        raise McpStdioError::Timeout
+        poison_stdio_after_timeout(conn)
       }
       raise McpStdioError::ReadFailed(message)
     }
@@ -636,9 +639,32 @@ async fn read_response_for_id_with_skip_limit(
 }
 
 ///|
+fn[T] poison_stdio_after_timeout(
+  conn : StdioConnection,
+) -> T raise McpStdioError {
+  conn.state = StdioConnectionState::Poisoned
+  raise McpStdioError::Timeout
+}
+
+///|
+fn ensure_stdio_connection_usable(
+  conn : StdioConnection,
+) -> Unit raise McpStdioError {
+  match conn.state {
+    StdioConnectionState::Open => ()
+    StdioConnectionState::Poisoned =>
+      raise McpStdioError::Protocol(
+        "stdio connection is unusable after timeout",
+      )
+    StdioConnectionState::Closed =>
+      raise McpStdioError::Protocol("stdio connection is closed")
+  }
+}
+
+///|
 fn close_stdio(conn : StdioConnection) -> Unit {
-  if !conn.closed {
-    conn.closed = true
+  if conn.state != StdioConnectionState::Closed {
+    conn.state = StdioConnectionState::Closed
     conn.writer.close()
     conn.reader.close()
     conn.process.cancel()

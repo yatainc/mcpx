@@ -176,6 +176,53 @@ async test "mcp stdio: times out silent tool operations" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: rejects operations after a response timeout" {
+  let script =
+    #|while IFS= read -r line; do
+    #|  case "$line" in
+    #|    *'"method":"server/discover"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}'
+    #|      ;;
+    #|    *'"method":"tools/list"'*)
+    #|      sleep 1
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[]}}'
+    #|      ;;
+    #|    *'"method":"tools/call"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":3,"result":{"resultType":"complete","content":[]}}'
+    #|      ;;
+    #|  esac
+    #|done
+  @async.with_task_group(group => {
+    let client = stdio_mcp_connect(
+      group,
+      command="/bin/sh",
+      args=["-c", script],
+      env=Map([]),
+      cwd=None,
+      mode=@config.McpConnectionMode::Stateless,
+      response_timeout_ms=50,
+    )
+    try client.list_tools() catch {
+      McpStdioError::Timeout => ()
+      _ => fail("expected timeout")
+    } noraise {
+      _ => fail("expected timeout")
+    }
+    try
+      client.call_tool(tool_name="search", arguments=Json::empty_object())
+    catch {
+      McpStdioError::Protocol(message) =>
+        inspect(message, content="stdio connection is unusable after timeout")
+      _ => fail("expected poisoned connection error")
+    } noraise {
+      _ => fail("expected poisoned connection to reject operation")
+    }
+    client.close()
+  })
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "mcp stdio: bounds stateless tool pagination" {
   let script =
     #|while IFS= read -r line; do
