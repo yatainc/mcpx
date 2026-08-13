@@ -387,6 +387,49 @@ async test "mcp stdio: auto does not fallback on recognized modern errors" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: auto does not fallback on arbitrary remote errors" {
+  for code in [-32602, -32603, -32099] {
+    let marker = "/tmp/mcpx-stdio-remote-error-" + code.to_string() + ".marker"
+    @fs.remove_file(marker) catch {
+      _ => ()
+    }
+    @fs.remove_file(marker + ".fallback") catch {
+      _ => ()
+    }
+    let script =
+      #|if [ ! -f "$MARKER" ]; then
+      #|  touch "$MARKER"
+      #|  read -r line
+      #|  printf '%s\n' '{"jsonrpc":"2.0","id":1,"error":{"code":'"$CODE"',"message":"remote error"}}'
+      #|else
+      #|  touch "$MARKER.fallback"
+      #|fi
+    try
+      stdio_mcp_list_tools(
+        command="/bin/sh",
+        args=["-c", script],
+        env={ "MARKER": marker, "CODE": code.to_string() },
+        cwd=None,
+        mode=@config.McpConnectionMode::Auto,
+      )
+    catch {
+      McpStdioError::Protocol(_) => ()
+      _ => fail("expected protocol error")
+    } noraise {
+      _ => fail("expected remote error")
+    }
+    inspect(@fs.path_exists(marker + ".fallback"), content="false")
+    @fs.remove_file(marker) catch {
+      _ => ()
+    }
+    @fs.remove_file(marker + ".fallback") catch {
+      _ => ()
+    }
+  }
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "mcp stdio: auto does not fallback on malformed modern responses" {
   let marker = "/tmp/mcpx-stdio-malformed-modern.marker"
   @fs.remove_file(marker) catch {

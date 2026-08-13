@@ -30,7 +30,7 @@ pub(all) enum StdioProtocolLifecycle {
 priv enum StdioProbeOutcome {
   Modern
   ModernError(String)
-  Legacy
+  ExplicitLegacy
   TimedOut
 }
 
@@ -105,7 +105,7 @@ pub async fn[X] stdio_mcp_connect(
       close_stdio(probe_conn)
       raise McpStdioError::Protocol(message)
     }
-    StdioProbeOutcome::Legacy | StdioProbeOutcome::TimedOut => {
+    StdioProbeOutcome::ExplicitLegacy | StdioProbeOutcome::TimedOut => {
       close_stdio(probe_conn)
       if mode == @config.McpConnectionMode::Stateless {
         raise McpStdioError::Protocol("stateless MCP is not supported")
@@ -381,13 +381,7 @@ async fn probe_modern_stdio(
         StdioProbeOutcome::ModernError("MCP 2026-07-28 is not supported")
       }
     Err(@mcp_client.McpProtocolError::RemoteError(code, message)) =>
-      if is_recognized_modern_stdio_error(code) {
-        StdioProbeOutcome::ModernError(
-          "modern MCP discovery error " + code.to_string() + ": " + message,
-        )
-      } else {
-        StdioProbeOutcome::Legacy
-      }
+      classify_stdio_discovery_remote_error(code, message)
     Err(@mcp_client.McpProtocolError::UnsupportedProtocolVersion(_, supported)) =>
       StdioProbeOutcome::ModernError(
         "unsupported MCP protocol version; supported: " + supported.join(", "),
@@ -406,8 +400,17 @@ async fn probe_modern_stdio(
 }
 
 ///|
-fn is_recognized_modern_stdio_error(code : Int) -> Bool {
-  code == -32020 || code == -32021 || code == -32022
+fn classify_stdio_discovery_remote_error(
+  code : Int,
+  message : String,
+) -> StdioProbeOutcome {
+  if code == -32601 {
+    StdioProbeOutcome::ExplicitLegacy
+  } else {
+    StdioProbeOutcome::ModernError(
+      "modern MCP discovery error " + code.to_string() + ": " + message,
+    )
+  }
 }
 
 ///|
