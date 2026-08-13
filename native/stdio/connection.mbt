@@ -4,7 +4,7 @@ const MCP_STDIO_MAX_SKIPPED_MESSAGES : Int = 1000
 ///|
 priv enum StdioConnectionState {
   Open
-  Poisoned
+  Poisoned(String)
   Closed
 } derive(Eq)
 
@@ -166,10 +166,14 @@ async fn read_response_for_id_with_skip_limit(
       Some(json) =>
         match @mcp_client.mcp_response_id(json) {
           Some(id) if id == expected_id => break json
+          Some(_) if !is_mcp_request(json) =>
+            poison_stdio_after_desynchronization(
+              conn, "unexpected MCP response id",
+            )
           _ => {
             if skipped >= max_skipped_messages {
-              raise McpStdioError::Protocol(
-                "too many messages while awaiting MCP response",
+              poison_stdio_after_desynchronization(
+                conn, "too many messages while awaiting MCP response",
               )
             }
             skipped = skipped + 1
@@ -181,11 +185,28 @@ async fn read_response_for_id_with_skip_limit(
 }
 
 ///|
+fn is_mcp_request(message : Json) -> Bool {
+  match message {
+    Object(obj) => obj.get("method") is Some(String(_))
+    _ => false
+  }
+}
+
+///|
 fn[T] poison_stdio_after_timeout(
   conn : StdioConnection,
 ) -> T raise McpStdioError {
-  conn.state = StdioConnectionState::Poisoned
+  conn.state = StdioConnectionState::Poisoned("timeout")
   raise McpStdioError::Timeout
+}
+
+///|
+fn[T] poison_stdio_after_desynchronization(
+  conn : StdioConnection,
+  message : String,
+) -> T raise McpStdioError {
+  conn.state = StdioConnectionState::Poisoned("protocol desynchronization")
+  raise McpStdioError::Protocol(message)
 }
 
 ///|
@@ -194,9 +215,9 @@ fn ensure_stdio_connection_usable(
 ) -> Unit raise McpStdioError {
   match conn.state {
     StdioConnectionState::Open => ()
-    StdioConnectionState::Poisoned =>
+    StdioConnectionState::Poisoned(reason) =>
       raise McpStdioError::Protocol(
-        "stdio connection is unusable after timeout",
+        "stdio connection is unusable after " + reason,
       )
     StdioConnectionState::Closed =>
       raise McpStdioError::Protocol("stdio connection is closed")

@@ -121,7 +121,7 @@ async test "mcp stdio: bounds skipped messages while awaiting responses" {
     #|    *'"method":"tools/list"'*)
     #|      i=0
     #|      while [ "$i" -lt 1001 ]; do
-    #|        printf '%s\n' '{"jsonrpc":"2.0","id":999,"result":{}}'
+    #|        printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/progress","params":{}}'
     #|        i=$((i + 1))
     #|      done
     #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[]}}'
@@ -143,6 +143,51 @@ async test "mcp stdio: bounds skipped messages while awaiting responses" {
   } noraise {
     _ => fail("expected skipped message limit")
   }
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: poisons connection after wrong response id" {
+  let script =
+    #|while IFS= read -r line; do
+    #|  case "$line" in
+    #|    *'"method":"server/discover"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}'
+    #|      ;;
+    #|    *'"method":"tools/list"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":999,"result":{"resultType":"complete","tools":[]}}'
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[]}}'
+    #|      ;;
+    #|  esac
+    #|done
+  @async.with_task_group(group => {
+    let client = stdio_mcp_connect(
+      group,
+      command="/bin/sh",
+      args=["-c", script],
+      env=Map([]),
+      cwd=None,
+      mode=@config.McpConnectionMode::Stateless,
+    )
+    defer client.close()
+    try client.list_tools() catch {
+      McpStdioError::Protocol(message) =>
+        inspect(message, content="unexpected MCP response id")
+      _ => fail("expected protocol error")
+    } noraise {
+      _ => fail("expected wrong response id to fail")
+    }
+    try client.list_tools() catch {
+      McpStdioError::Protocol(message) =>
+        inspect(
+          message,
+          content="stdio connection is unusable after protocol desynchronization",
+        )
+      _ => fail("expected poisoned connection error")
+    } noraise {
+      _ => fail("expected poisoned connection to reject operation")
+    }
+  })
 }
 
 ///|
