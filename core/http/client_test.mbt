@@ -36,7 +36,7 @@ async test "core http: auto discovers then lists over MCP 2026" {
 }
 
 ///|
-async test "core http: exposes discovery cache hints with tool list" {
+async test "core http: tool list without cache hints is not cacheable" {
   let result = list_tools_with_cache_hint(
     req => {
       if rpc_method(req.body) == "server/discover" {
@@ -59,8 +59,153 @@ async test "core http: exposes discovery cache hints with tool list" {
     },
     http_endpoint(url="https://mcp.example/mcp"),
   )
+  inspect(result.ttl_ms, content="0")
+  inspect(result.cache_scope, content="private")
+}
+
+///|
+async test "core http: uses tools list cache hints instead of discovery hints" {
+  let result = list_tools_with_cache_hint(
+    req => {
+      if rpc_method(req.body) == "server/discover" {
+        http_response(
+          status_code=200,
+          content_type=Some("application/json"),
+          body=(
+            #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"],"capabilities":{},"ttlMs":1,"cacheScope":"private"}}
+          ),
+        )
+      } else {
+        http_response(
+          status_code=200,
+          content_type=Some("application/json"),
+          body=(
+            #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[],"ttlMs":60000,"cacheScope":"public"}}
+          ),
+        )
+      }
+    },
+    http_endpoint(url="https://mcp.example/tool-cache-hints"),
+  )
   inspect(result.ttl_ms, content="60000")
   inspect(result.cache_scope, content="public")
+}
+
+///|
+async test "core http: combines paginated modern tool lists" {
+  let cursors : Array[String] = []
+  let result = list_tools_with_cache_hint(
+    req => {
+      if rpc_method(req.body) == "server/discover" {
+        return http_response(
+          status_code=200,
+          content_type=Some("application/json"),
+          body=(
+            #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"],"capabilities":{},"ttlMs":100,"cacheScope":"private"}}
+          ),
+        )
+      }
+      let cursor = rpc_cursor(req.body)
+      cursors.push(cursor)
+      if cursor.is_empty() {
+        http_response(
+          status_code=200,
+          content_type=Some("application/json"),
+          body=(
+            #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[{"name":"first","inputSchema":{}}],"nextCursor":"page-2","ttlMs":60000,"cacheScope":"public"}}
+          ),
+        )
+      } else {
+        http_response(
+          status_code=200,
+          content_type=Some("application/json"),
+          body=(
+            #|{"jsonrpc":"2.0","id":3,"result":{"resultType":"complete","tools":[{"name":"second","inputSchema":{}}],"ttlMs":30000,"cacheScope":"public"}}
+          ),
+        )
+      }
+    },
+    http_endpoint(url="https://mcp.example/paginated-tools"),
+  )
+  inspect(result.tools.map(tool => tool.name).join(","), content="first,second")
+  inspect(cursors.join(","), content=",page-2")
+  inspect(result.ttl_ms, content="30000")
+  inspect(result.cache_scope, content="public")
+}
+
+///|
+async test "core http: rejects inconsistent pagination cache scope" {
+  try
+    list_tools_with_cache_hint(
+      req => {
+        if rpc_method(req.body) == "server/discover" {
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"],"capabilities":{}}}
+            ),
+          )
+        } else if rpc_cursor(req.body).is_empty() {
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[],"nextCursor":"next","ttlMs":60000,"cacheScope":"public"}}
+            ),
+          )
+        } else {
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":3,"result":{"resultType":"complete","tools":[],"ttlMs":60000,"cacheScope":"private"}}
+            ),
+          )
+        }
+      },
+      http_endpoint(url="https://mcp.example/inconsistent-scope"),
+    )
+  catch {
+    McpHttpClientError::Protocol(_) => ()
+    _ => fail("expected protocol error")
+  } noraise {
+    _ => fail("expected pagination to fail")
+  }
+}
+
+///|
+async test "core http: rejects repeated pagination cursor" {
+  try
+    list_tools_with_cache_hint(
+      req => {
+        if rpc_method(req.body) == "server/discover" {
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"],"capabilities":{}}}
+            ),
+          )
+        } else {
+          let id = if rpc_cursor(req.body).is_empty() { "2" } else { "3" }
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body="{\"jsonrpc\":\"2.0\",\"id\":" +
+              id +
+              ",\"result\":{\"resultType\":\"complete\",\"tools\":[],\"nextCursor\":\"same\",\"ttlMs\":1,\"cacheScope\":\"private\"}}",
+          )
+        }
+      },
+      http_endpoint(url="https://mcp.example/cursor-loop"),
+    )
+  catch {
+    McpHttpClientError::Protocol(_) => ()
+    _ => fail("expected protocol error")
+  } noraise {
+    _ => fail("expected pagination to fail")
+  }
 }
 
 ///|
@@ -357,6 +502,23 @@ fn rpc_method(body : String) -> String {
     Object(obj) =>
       match obj.get("method") {
         Some(String(value)) => value
+        _ => ""
+      }
+    _ => ""
+  }
+}
+
+///|
+fn rpc_cursor(body : String) -> String {
+  let parsed = @json.parse(body) catch { _ => return "" }
+  match parsed {
+    Object(obj) =>
+      match obj.get("params") {
+        Some(Object(params)) =>
+          match params.get("cursor") {
+            Some(String(value)) => value
+            _ => ""
+          }
         _ => ""
       }
     _ => ""

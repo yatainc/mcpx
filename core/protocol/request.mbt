@@ -61,8 +61,13 @@ pub fn mcp_tools_list_request(
   id~ : Int,
   client_name~ : String,
   client_version~ : String,
+  cursor? : String? = None,
 ) -> Json {
   let params = Map([])
+  match cursor {
+    Some(value) => params["cursor"] = Json::string(value)
+    None => ()
+  }
   params["_meta"] = mcp_request_meta(
     mcp_request_context(
       protocol=McpProtocolVersion::V2026_07_28,

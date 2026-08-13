@@ -3,7 +3,7 @@ const MCPX_CLIENT_VERSION : String = "0.1.4"
 
 ///|
 priv enum Negotiation {
-  Modern(@protocol.McpProtocolVersion, Int, String)
+  Modern(@protocol.McpProtocolVersion)
   InitializeEra(@protocol.McpProtocolVersion)
 }
 
@@ -21,12 +21,7 @@ pub async fn list_tools_with_cache_hint(
   endpoint : Endpoint,
 ) -> McpToolListResult raise McpHttpClientError {
   match negotiate(fetch, endpoint) {
-    Modern(version, ttl_ms, cache_scope) =>
-      mcp_tool_list_result(
-        tools=list_tools_modern(fetch, endpoint, version),
-        ttl_ms~,
-        cache_scope~,
-      )
+    Modern(version) => list_tools_modern(fetch, endpoint, version)
     InitializeEra(version) =>
       mcp_tool_list_result(tools=list_tools_legacy(fetch, endpoint, version))
   }
@@ -40,7 +35,7 @@ pub async fn call_tool(
   arguments~ : Json,
 ) -> Json raise McpHttpClientError {
   match negotiate(fetch, endpoint) {
-    Modern(version, _, _) =>
+    Modern(version) =>
       call_tool_modern(fetch, endpoint, version, tool_name~, arguments~)
     InitializeEra(version) =>
       call_tool_legacy(fetch, endpoint, version, tool_name~, arguments~)
@@ -119,7 +114,7 @@ fn negotiation_from_discover(
           "stateful", "2026-07-28",
         )
       }
-      Negotiation::Modern(selected, discover.ttl_ms, discover.cache_scope)
+      Negotiation::Modern(selected)
     }
     @protocol.McpProtocolFamily::InitializeEra =>
       Negotiation::InitializeEra(selected)
@@ -219,23 +214,74 @@ async fn list_tools_modern(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
   version : @protocol.McpProtocolVersion,
-) -> Array[@protocol.McpToolInfo] raise McpHttpClientError {
-  let request = @protocol.mcp_tools_list_request(
-    id=2,
-    client_name="mcpx",
-    client_version=MCPX_CLIENT_VERSION,
-  )
-  let response = post_json(
-    fetch,
-    endpoint,
-    build_modern_headers(endpoint.headers, version, "tools/list", None),
-    request,
-  )
-  let json = response_json(response)
-  match @protocol.decode_mcp_tool_list_response(json, expected_id=2) {
-    Ok(value) => value
-    Err(error) => raise protocol_error_to_http(error)
+) -> McpToolListResult raise McpHttpClientError {
+  let tools = []
+  let seen_cursors : Array[String] = []
+  let mut cursor : String? = None
+  let mut request_id = 2
+  let mut ttl_ms = 0
+  let mut cache_scope : @protocol.McpCacheScope? = None
+  for ;; {
+    let request = @protocol.mcp_tools_list_request(
+      id=request_id,
+      client_name="mcpx",
+      client_version=MCPX_CLIENT_VERSION,
+      cursor~,
+    )
+    let response = post_json(
+      fetch,
+      endpoint,
+      build_modern_headers(endpoint.headers, version, "tools/list", None),
+      request,
+    )
+    let page = match
+      @protocol.decode_mcp_tool_list_page(
+        response_json(response),
+        expected_id=request_id,
+        require_result_type=false,
+      ) {
+      Ok(value) => value
+      Err(error) => raise protocol_error_to_http(error)
+    }
+    match cache_scope {
+      None => cache_scope = Some(page.cache_scope)
+      Some(value) if value != page.cache_scope =>
+        raise McpHttpClientError::Protocol(
+          "tools/list pagination cacheScope changed",
+        )
+      Some(_) => ()
+    }
+    for tool in page.tools {
+      tools.push(tool)
+    }
+    ttl_ms = if request_id == 2 {
+      page.ttl_ms
+    } else if ttl_ms == 0 || page.ttl_ms == 0 {
+      0
+    } else if page.ttl_ms < ttl_ms {
+      page.ttl_ms
+    } else {
+      ttl_ms
+    }
+    match page.next_cursor {
+      None => break
+      Some(next) => {
+        if seen_cursors.contains(next) {
+          raise McpHttpClientError::Protocol(
+            "tools/list pagination cursor repeated",
+          )
+        }
+        seen_cursors.push(next)
+        cursor = Some(next)
+        request_id = request_id + 1
+      }
+    }
   }
+  let scope_text = match cache_scope {
+    Some(@protocol.McpCacheScope::Public) => "public"
+    _ => "private"
+  }
+  mcp_tool_list_result(tools~, ttl_ms~, cache_scope=scope_text)
 }
 
 ///|

@@ -32,7 +32,7 @@ async test "native http: caches public tool lists across headers" {
             ),
           )
         } else {
-          ignore(conn.write(tool_list_response(id)))
+          ignore(conn.write(tool_list_response(id, cache_scope="public")))
         }
         conn.end_response()
       })
@@ -77,7 +77,7 @@ async test "native http: keeps private tool caches separated by headers" {
             ),
           )
         } else {
-          ignore(conn.write(tool_list_response(id)))
+          ignore(conn.write(tool_list_response(id, cache_scope="private")))
         }
         conn.end_response()
       })
@@ -111,17 +111,20 @@ fn rpc_id_from_json(msg : Json) -> Json {
 }
 
 ///|
-fn tool_list_response(id : Json) -> String {
+fn tool_list_response(id : Json, cache_scope~ : String) -> String {
   Json::object({
     "jsonrpc": Json::string("2.0"),
     "id": id,
     "result": Json::object({
+      "resultType": Json::string("complete"),
       "tools": Json::array([
         Json::object({
           "name": Json::string("search"),
           "inputSchema": Json::empty_object(),
         }),
       ]),
+      "ttlMs": Json::number(60000.0, repr="60000"),
+      "cacheScope": Json::string(cache_scope),
     }),
   }).stringify()
 }
