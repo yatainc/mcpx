@@ -28,7 +28,7 @@ pub async fn call_tool(
   tool_name~ : String,
   arguments~ : Json,
   tool_definition? : @protocol.McpToolInfo? = None,
-  on_catalog? : (McpToolListResult) -> Unit = _ => (),
+  on_catalog_refresh? : (McpToolListResult) -> Unit = _ => (),
 ) -> Json raise McpHttpClientError {
   match negotiate(fetch, endpoint) {
     Modern(version) =>
@@ -39,7 +39,7 @@ pub async fn call_tool(
         tool_name~,
         arguments~,
         tool_definition~,
-        on_catalog~,
+        on_catalog_refresh~,
       )
     InitializeEra(version) =>
       call_tool_legacy(fetch, endpoint, version, tool_name~, arguments~)

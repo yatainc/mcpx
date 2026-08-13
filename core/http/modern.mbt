@@ -175,7 +175,7 @@ async fn call_tool_modern_with_catalog(
   tool_name~ : String,
   arguments~ : Json,
   tool_definition~ : @protocol.McpToolInfo?,
-  on_catalog~ : (McpToolListResult) -> Unit,
+  on_catalog_refresh~ : (McpToolListResult) -> Unit,
 ) -> Json raise McpHttpClientError {
   let (validated_tool, first_call_id) = match tool_definition {
     Some(tool) if tool.name == tool_name => {
@@ -191,7 +191,7 @@ async fn call_tool_modern_with_catalog(
       )
     None => {
       let catalog = fetch_modern_tool_catalog(fetch, endpoint, version)
-      on_catalog(catalog.result)
+      on_catalog_refresh(catalog.result)
       let tool = match
         catalog.validated_tools.search_by(tool => tool.info.name == tool_name) {
         Some(index) => catalog.validated_tools[index]
@@ -249,7 +249,7 @@ async fn call_tool_modern_with_catalog(
         tool_name~,
         arguments~,
       )
-      on_catalog(refreshed.result)
+      on_catalog_refresh(refreshed.result)
       result
     }
     error => raise error

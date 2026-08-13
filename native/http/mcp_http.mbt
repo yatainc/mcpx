@@ -55,7 +55,7 @@ pub async fn http_mcp_call_tool(
     tool_name~,
     arguments~,
     tool_definition~,
-    on_catalog=result => {
+    on_catalog_refresh=result => {
       default_tool_catalog_cache.put(url, headers, mode, result)
     },
   ) catch {
