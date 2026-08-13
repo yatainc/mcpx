@@ -219,6 +219,24 @@ test "mcp response: validates tool schema fields" {
 }
 
 ///|
+test "mcp response: ignores out-of-range cache TTL hints" {
+  let page = decode_mcp_modern_tool_list_page(
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "resultType": "complete",
+        "tools": [],
+        "ttlMs": 2147483648,
+        "cacheScope": "public",
+      },
+    },
+    expected_id=1,
+  ).unwrap()
+  inspect(page.ttl_ms, content="0")
+}
+
+///|
 test "mcp response: validates complete result type" {
   let complete = decode_mcp_complete_result(
     {

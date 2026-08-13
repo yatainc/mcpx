@@ -142,7 +142,7 @@ fn decode_mcp_tool_list_page_inner(
     None => None
   }
   let ttl_ms = match obj.get("ttlMs") {
-    Some(Number(value, ..)) if value.trunc() == value && value >= 0.0 =>
+    Some(Number(value, ..)) if is_supported_json_int(value) && value >= 0.0 =>
       value.to_int()
     _ => 0
   }
