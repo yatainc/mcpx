@@ -106,7 +106,41 @@ async test "mcp stdio: paginates stateless tool lists" {
     cwd=None,
     mode=@config.McpConnectionMode::Stateless,
   )
-  inspect(tools.map(tool => tool.name), content="[first, second]")
+  inspect(tools.map(tool => tool.name).join(","), content="first,second")
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: bounds stateless tool pagination" {
+  let script =
+    #|while IFS= read -r line; do
+    #|  case "$line" in
+    #|    *'"method":"server/discover"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}'
+    #|      ;;
+    #|    *'"id":2'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[],"nextCursor":"two"}}'
+    #|      ;;
+    #|    *'"id":3'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":3,"result":{"resultType":"complete","tools":[],"nextCursor":"three"}}'
+    #|      ;;
+    #|  esac
+    #|done
+  try
+    stdio_mcp_list_tools(
+      command="/bin/sh",
+      args=["-c", script],
+      env=Map([]),
+      cwd=None,
+      mode=@config.McpConnectionMode::Stateless,
+      max_pages=2,
+    )
+  catch {
+    McpStdioError::Protocol(_) => ()
+    _ => fail("expected pagination limit")
+  } noraise {
+    _ => fail("expected pagination limit")
+  }
 }
 
 ///|

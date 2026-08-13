@@ -1,4 +1,10 @@
 ///|
+const MAX_TOOL_LIST_PAGES : Int = 1000
+
+///|
+const MAX_TOOL_LIST_TOOLS : Int = 100000
+
+///|
 pub suberror McpStdioError {
   SpawnFailed(String)
   ReadFailed(String)
@@ -153,6 +159,8 @@ pub async fn StdioMcpClient::call_tool(
 ///|
 pub async fn StdioMcpClient::list_tools(
   self : StdioMcpClient,
+  max_pages? : Int = MAX_TOOL_LIST_PAGES,
+  max_tools? : Int = MAX_TOOL_LIST_TOOLS,
 ) -> Array[@mcp_client.McpToolInfo] raise McpStdioError {
   match self.lifecycle {
     Initialize => {
@@ -170,7 +178,12 @@ pub async fn StdioMcpClient::list_tools(
       let tools = []
       let seen_cursors : Array[String] = []
       let mut cursor : String? = None
+      let mut page_count = 0
       for ;; {
+        if page_count >= max_pages {
+          raise McpStdioError::Protocol("tools/list exceeds maximum page count")
+        }
+        page_count = page_count + 1
         let id = take_modern_request_id(self)
         write_json_line(
           self.conn,
@@ -190,6 +203,9 @@ pub async fn StdioMcpClient::list_tools(
           ) {
           Ok(value) => value
           Err(_) => raise McpStdioError::Protocol("mcp protocol error")
+        }
+        if tools.length() + page.tools.length() > max_tools {
+          raise McpStdioError::Protocol("tools/list exceeds maximum tool count")
         }
         for tool in page.tools {
           tools.push(tool)
@@ -252,6 +268,8 @@ pub async fn stdio_mcp_list_tools(
   cwd~ : String?,
   mode? : @config.McpConnectionMode = @config.McpConnectionMode::Stateful,
   probe_timeout_ms? : Int = 1000,
+  max_pages? : Int = MAX_TOOL_LIST_PAGES,
+  max_tools? : Int = MAX_TOOL_LIST_TOOLS,
 ) -> Array[@mcp_client.McpToolInfo] raise McpStdioError {
   @async.with_task_group(group => {
     let client = stdio_mcp_connect(
@@ -264,7 +282,7 @@ pub async fn stdio_mcp_list_tools(
       probe_timeout_ms~,
     )
     defer client.close()
-    client.list_tools()
+    client.list_tools(max_pages~, max_tools~)
   }) catch {
     err => raise McpStdioError::Protocol(err.to_string())
   }

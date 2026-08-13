@@ -119,6 +119,83 @@ async test "core http: excludes only tools with invalid HTTP header annotations"
 }
 
 ///|
+async test "core http: bounds modern tool pagination" {
+  let pages = Ref(0)
+  try
+    list_tools_with_cache_hint(
+      req => {
+        if rpc_method(req.body) == "server/discover" {
+          return http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}
+            ),
+          )
+        }
+        pages.val = pages.val + 1
+        let id = 1 + pages.val
+        http_response(
+          status_code=200,
+          content_type=Some("application/json"),
+          body="{\"jsonrpc\":\"2.0\",\"id\":" +
+            id.to_string() +
+            ",\"result\":{\"resultType\":\"complete\",\"tools\":[{\"name\":\"tool\",\"inputSchema\":{}}],\"nextCursor\":\"cursor-" +
+            id.to_string() +
+            "\"}}",
+        )
+      },
+      http_endpoint(url="https://mcp.example/bounded-pages"),
+      max_pages=2,
+      max_tools=10,
+    )
+  catch {
+    McpHttpClientError::Protocol(message) =>
+      inspect(message, content="tools/list exceeds maximum page count")
+    _ => fail("expected pagination limit")
+  } noraise {
+    _ => fail("expected pagination limit")
+  }
+  inspect(pages.val, content="2")
+}
+
+///|
+async test "core http: bounds modern tool count" {
+  try
+    list_tools_with_cache_hint(
+      req => {
+        if rpc_method(req.body) == "server/discover" {
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}
+            ),
+          )
+        } else {
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[{"name":"one","inputSchema":{}},{"name":"two","inputSchema":{}}]}}
+            ),
+          )
+        }
+      },
+      http_endpoint(url="https://mcp.example/bounded-tools"),
+      max_pages=2,
+      max_tools=1,
+    )
+  catch {
+    McpHttpClientError::Protocol(message) =>
+      inspect(message, content="tools/list exceeds maximum tool count")
+    _ => fail("expected tool limit")
+  } noraise {
+    _ => fail("expected tool limit")
+  }
+}
+
+///|
 async test "core http: combines paginated modern tool lists" {
   let cursors : Array[String] = []
   let result = list_tools_with_cache_hint(

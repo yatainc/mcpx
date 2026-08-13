@@ -2,6 +2,12 @@
 const MCPX_CLIENT_VERSION : String = "0.1.4"
 
 ///|
+const MAX_TOOL_LIST_PAGES : Int = 1000
+
+///|
+const MAX_TOOL_LIST_TOOLS : Int = 100000
+
+///|
 priv enum Negotiation {
   Modern(@protocol.McpProtocolVersion)
   InitializeEra(@protocol.McpProtocolVersion)
@@ -25,9 +31,12 @@ pub async fn list_tools(
 pub async fn list_tools_with_cache_hint(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
+  max_pages? : Int = MAX_TOOL_LIST_PAGES,
+  max_tools? : Int = MAX_TOOL_LIST_TOOLS,
 ) -> McpToolListResult raise McpHttpClientError {
   match negotiate(fetch, endpoint) {
-    Modern(version) => list_tools_modern(fetch, endpoint, version)
+    Modern(version) =>
+      list_tools_modern(fetch, endpoint, version, max_pages~, max_tools~)
     InitializeEra(version) =>
       mcp_tool_list_result(tools=list_tools_legacy(fetch, endpoint, version))
   }
@@ -298,8 +307,10 @@ async fn list_tools_modern(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
   version : @protocol.McpProtocolVersion,
+  max_pages~ : Int,
+  max_tools~ : Int,
 ) -> McpToolListResult raise McpHttpClientError {
-  fetch_modern_tool_catalog(fetch, endpoint, version).result
+  fetch_modern_tool_catalog(fetch, endpoint, version, max_pages~, max_tools~).result
 }
 
 ///|
@@ -308,6 +319,8 @@ async fn fetch_modern_tool_catalog(
   endpoint : Endpoint,
   version : @protocol.McpProtocolVersion,
   first_request_id? : Int = 2,
+  max_pages? : Int = MAX_TOOL_LIST_PAGES,
+  max_tools? : Int = MAX_TOOL_LIST_TOOLS,
 ) -> ModernToolCatalog raise McpHttpClientError {
   let tools = []
   let seen_cursors : Array[String] = []
@@ -315,7 +328,14 @@ async fn fetch_modern_tool_catalog(
   let mut request_id = first_request_id
   let mut ttl_ms = 0
   let mut cache_scope : @protocol.McpCacheScope? = None
+  let mut page_count = 0
   for ;; {
+    if page_count >= max_pages {
+      raise McpHttpClientError::Protocol(
+        "tools/list exceeds maximum page count",
+      )
+    }
+    page_count = page_count + 1
     let request = @protocol.mcp_tools_list_request(
       id=request_id,
       client_name="mcpx",
@@ -344,6 +364,11 @@ async fn fetch_modern_tool_catalog(
           "tools/list pagination cacheScope changed",
         )
       Some(_) => ()
+    }
+    if tools.length() + page.tools.length() > max_tools {
+      raise McpHttpClientError::Protocol(
+        "tools/list exceeds maximum tool count",
+      )
     }
     for tool in page.tools {
       match inspect_mcp_tool_header_bindings(tool.input_schema) {
