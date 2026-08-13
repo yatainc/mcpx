@@ -246,6 +246,40 @@ async test "core http: modern call sends method name and preserves arguments" {
 }
 
 ///|
+async test "core http: encodes unsafe tool names only in HTTP headers" {
+  let seen : Array[HttpRequest] = []
+  ignore(
+    call_tool(
+      req => {
+        seen.push(req)
+        if rpc_method(req.body) == "server/discover" {
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}
+            ),
+          )
+        } else {
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","content":[]}}
+            ),
+          )
+        }
+      },
+      http_endpoint(url="https://mcp.example/mcp"),
+      tool_name="検索",
+      arguments=Json::empty_object(),
+    ),
+  )
+  inspect(header(seen[1].headers, "Mcp-Name"), content="=?base64?5qSc57Si?=")
+  inspect(seen[1].body.contains("\"name\":\"検索\""), content="true")
+}
+
+///|
 async test "core http: method-not-found identifies a modern server" {
   for status in [200, 400, 404] {
     let seen : Array[String] = []

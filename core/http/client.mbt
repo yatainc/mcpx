@@ -488,7 +488,7 @@ fn build_modern_headers(
   )
   headers["Mcp-Method"] = rpc_method
   match rpc_name {
-    Some(value) => headers["Mcp-Name"] = value
+    Some(value) => headers["Mcp-Name"] = encode_mcp_http_header_value(value)
     None => ()
   }
   headers
