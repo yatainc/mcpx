@@ -21,6 +21,10 @@ pub(all) struct McpToolHeaderBinding {
 pub fn inspect_mcp_tool_header_bindings(
   schema : Json,
 ) -> Result[Array[McpToolHeaderBinding], String] {
+  match schema {
+    Object(_) => ()
+    _ => return Err("tool inputSchema must be an object")
+  }
   let bindings = []
   let names : Map[String, Unit] = Map([])
   validate_header_schema_bounds(schema, depth=0, visited=Ref(0)) catch {

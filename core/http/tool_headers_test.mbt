@@ -158,6 +158,14 @@ test "HTTP tool header schema inspection has resource bounds" {
 }
 
 ///|
+test "HTTP tool headers reject non-object input schemas" {
+  inspect(
+    inspect_mcp_tool_header_bindings(Json::array([])) is Err(_),
+    content="true",
+  )
+}
+
+///|
 test "HTTP tool headers reject case-insensitive duplicates" {
   let schema = @json.parse(
     (

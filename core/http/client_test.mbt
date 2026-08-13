@@ -17,7 +17,7 @@ async test "core http: auto discovers then lists over MCP 2026" {
           status_code=200,
           content_type=Some("application/json"),
           body=(
-            #|{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"search","inputSchema":{"type":"object"}}]}}
+            #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[{"name":"search","inputSchema":{"type":"object"}}]}}
           ),
         )
       }
@@ -52,7 +52,7 @@ async test "core http: tool list without cache hints is not cacheable" {
           status_code=200,
           content_type=Some("application/json"),
           body=(
-            #|{"jsonrpc":"2.0","id":2,"result":{"tools":[]}}
+            #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[]}}
           ),
         )
       }
@@ -688,6 +688,129 @@ async test "core http: explicit stateless preserves modern method-not-found" {
     _ => fail("expected stateless negotiation to fail")
   }
   inspect(methods.join(","), content="server/discover")
+}
+
+///|
+async test "core http: modern tools list requires resultType" {
+  try
+    list_tools(
+      req => {
+        match rpc_method(req.body) {
+          "server/discover" =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}
+              ),
+            )
+          _ =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":2,"result":{"tools":[]}}
+              ),
+            )
+        }
+      },
+      http_endpoint(url="https://mcp.example/result-type"),
+    )
+  catch {
+    McpHttpClientError::Protocol(_) => ()
+    _ => fail("expected protocol error")
+  } noraise {
+    _ => fail("expected missing resultType to fail")
+  }
+}
+
+///|
+async test "core http: modern error must match discovery request id" {
+  let seen : Array[String] = []
+  ignore(
+    list_tools(
+      req => {
+        let rpc_name = rpc_method(req.body)
+        seen.push(rpc_name)
+        match rpc_name {
+          "server/discover" =>
+            http_response(
+              status_code=404,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":999,"error":{"code":-32601,"message":"wrong request"}}
+              ),
+            )
+          "initialize" =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}
+              ),
+            )
+          "notifications/initialized" => http_response(status_code=202, body="")
+          _ =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":2,"result":{"tools":[]}}
+              ),
+            )
+        }
+      },
+      http_endpoint(url="https://mcp.example/wrong-id"),
+    ),
+  )
+  inspect(
+    seen.join(","),
+    content="server/discover,initialize,notifications/initialized,tools/list",
+  )
+}
+
+///|
+async test "core http: removes unannotated user Mcp-Param headers" {
+  let seen : Array[HttpRequest] = []
+  ignore(
+    call_tool(
+      req => {
+        seen.push(req)
+        match rpc_method(req.body) {
+          "server/discover" =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}
+              ),
+            )
+          "tools/list" =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[{"name":"run","inputSchema":{"type":"object"}}]}}
+              ),
+            )
+          _ =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":3,"result":{"resultType":"complete","content":[]}}
+              ),
+            )
+        }
+      },
+      http_endpoint(url="https://mcp.example/param", headers={
+        "mcp-param-admin": "true",
+      }),
+      tool_name="run",
+      arguments=Json::empty_object(),
+    ),
+  )
+  inspect(header(seen[2].headers, "Mcp-Param-Admin"), content="")
 }
 
 ///|

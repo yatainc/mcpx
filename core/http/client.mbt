@@ -40,6 +40,7 @@ pub async fn call_tool(
   tool_name~ : String,
   arguments~ : Json,
   tool_definition? : @protocol.McpToolInfo? = None,
+  on_catalog_refresh? : (McpToolListResult) -> Unit = _ => (),
 ) -> Json raise McpHttpClientError {
   match negotiate(fetch, endpoint) {
     Modern(version) => {
@@ -105,7 +106,7 @@ pub async fn call_tool(
             Ok(value) => value
             Err(message) => raise McpHttpClientError::Protocol(message)
           }
-          call_tool_modern(
+          let result = call_tool_modern(
             fetch,
             endpoint,
             version,
@@ -114,6 +115,8 @@ pub async fn call_tool(
             tool_name~,
             arguments~,
           )
+          on_catalog_refresh(refreshed.result)
+          result
         }
         error => raise error
       }
@@ -135,7 +138,7 @@ async fn negotiate(
   }
   let requested = @protocol.McpProtocolVersion::V2026_07_28
   let response = send_discover(fetch, endpoint, requested)
-  if is_clear_legacy_signal(response) {
+  if is_clear_legacy_signal(response, expected_id=1) {
     if endpoint.mode == @config.McpConnectionMode::Auto {
       return Negotiation::InitializeEra(
         @protocol.McpProtocolVersion::V2025_11_25,
@@ -329,7 +332,7 @@ async fn fetch_modern_tool_catalog(
       @protocol.decode_mcp_tool_list_page(
         response_json(response, expected_id=request_id),
         expected_id=request_id,
-        require_result_type=false,
+        require_result_type=true,
       ) {
       Ok(value) => value
       Err(error) => raise protocol_error_to_http(error)
@@ -404,6 +407,7 @@ async fn call_tool_modern(
     "tools/call",
     Some(tool_name),
   )
+  remove_headers_with_prefix_case_insensitive(headers, "Mcp-Param-")
   for key, value in parameter_headers {
     remove_header_case_insensitive(headers, key)
     headers[key] = value
@@ -602,7 +606,7 @@ fn build_modern_headers(
 }
 
 ///|
-fn is_clear_legacy_signal(response : HttpResponse) -> Bool {
+fn is_clear_legacy_signal(response : HttpResponse, expected_id~ : Int) -> Bool {
   let error_code = if response.body.trim().is_empty() {
     None
   } else {
@@ -612,7 +616,7 @@ fn is_clear_legacy_signal(response : HttpResponse) -> Bool {
           response.status_code == 404 ||
           response.status_code == 405
     }
-    recognized_jsonrpc_error_code(json)
+    recognized_jsonrpc_error_code(json, expected_id~)
   }
   // A valid modern error body identifies a modern server even when the HTTP
   // status is unexpected. In particular, modern unknown methods use -32601.
@@ -636,11 +640,13 @@ fn is_recognized_modern_error_code(code : Int?) -> Bool {
 }
 
 ///|
-fn recognized_jsonrpc_error_code(json : Json) -> Int? {
+fn recognized_jsonrpc_error_code(json : Json, expected_id~ : Int) -> Int? {
   match json {
     Object(obj) => {
       guard obj.get("jsonrpc") == Some(Json::string("2.0")) else { return None }
-      guard obj.get("id") is Some(Number(value, ..)) && value.trunc() == value else {
+      guard obj.get("id") is Some(Number(value, ..)) &&
+        value.trunc() == value &&
+        value == expected_id.to_double() else {
         return None
       }
       match obj.get("error") {
@@ -681,6 +687,23 @@ fn remove_header_case_insensitive(
   let removals = []
   for key, _ in headers {
     if key.equal_ignore_ascii_case(target) {
+      removals.push(key)
+    }
+  }
+  for key in removals {
+    headers.remove(key)
+  }
+}
+
+///|
+fn remove_headers_with_prefix_case_insensitive(
+  headers : Map[String, String],
+  prefix : String,
+) -> Unit {
+  let normalized = prefix.to_lower()
+  let removals = []
+  for key, _ in headers {
+    if key.to_lower().has_prefix(normalized) {
       removals.push(key)
     }
   }

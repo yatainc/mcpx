@@ -53,6 +53,7 @@ pub async fn http_mcp_call_tool(
     tool_name~,
     arguments~,
     tool_definition~,
+    on_catalog_refresh=result => cache_tool_result(url, headers, mode, result),
   ) catch {
     error => raise core_error_to_native(error)
   }
@@ -80,6 +81,21 @@ pub async fn http_mcp_list_tools(
   ) catch {
     error => raise core_error_to_native(error)
   }
+  cache_tool_result(url, headers, mode, result)
+  result.tools.copy()
+}
+
+///|
+fn cache_tool_result(
+  url : String,
+  headers : Map[String, String],
+  mode : @config.McpConnectionMode,
+  result : @core_http.McpToolListResult,
+) -> Unit {
+  let public_key = tool_cache_key(url, mode, Map([]))
+  let private_key = tool_cache_key(url, mode, headers)
+  tool_cache.remove(public_key)
+  tool_cache.remove(private_key)
   if result.ttl_ms > 0 {
     let key = if result.cache_scope == "public" {
       public_key
@@ -87,11 +103,10 @@ pub async fn http_mcp_list_tools(
       private_key
     }
     tool_cache[key] = {
-      tools: result.tools,
+      tools: clone_tool_list(result.tools),
       expires_at_ms: now_ms() + result.ttl_ms.to_int64(),
     }
   }
-  result.tools
 }
 
 ///|
@@ -120,12 +135,42 @@ fn cached_tool_definition(
 ///|
 fn cached_tools(key : String) -> Array[@mcp_client.McpToolInfo]? {
   match tool_cache.get(key) {
-    Some(entry) if entry.expires_at_ms > now_ms() => Some(entry.tools)
+    Some(entry) if entry.expires_at_ms > now_ms() =>
+      Some(clone_tool_list(entry.tools))
     Some(_) => {
       tool_cache.remove(key)
       None
     }
     None => None
+  }
+}
+
+///|
+fn clone_tool_list(
+  tools : Array[@mcp_client.McpToolInfo],
+) -> Array[@mcp_client.McpToolInfo] {
+  tools.map(tool => {
+    @mcp_client.mcp_tool_info(
+      name=tool.name,
+      description=tool.description,
+      input_schema=clone_json(tool.input_schema),
+      output_schema=tool.output_schema.map(clone_json),
+    )
+  })
+}
+
+///|
+fn clone_json(value : Json) -> Json {
+  match value {
+    Object(obj) => {
+      let clone : Map[String, Json] = Map([])
+      for key, child in obj {
+        clone[key] = clone_json(child)
+      }
+      Json::object(clone)
+    }
+    Array(items) => Json::array(items.map(clone_json))
+    _ => value
   }
 }
 
