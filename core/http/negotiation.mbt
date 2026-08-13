@@ -5,6 +5,12 @@ priv enum HttpProtocolLifecycle {
 }
 
 ///|
+priv enum DiscoverHttpOutcome {
+  LegacySignal
+  Discover(@protocol.McpDiscoverInfo)
+}
+
+///|
 async fn negotiate(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
@@ -18,17 +24,7 @@ async fn negotiate(
   }
   let requested = @protocol.McpProtocolVersion::V2026_07_28
   let response = send_discover(fetch, endpoint, requested)
-  if is_clear_legacy_signal(response, expected_id=1) {
-    if endpoint.mode == @config.McpConnectionMode::Auto {
-      return HttpProtocolLifecycle::InitializeEra(
-        @protocol.McpProtocolVersion::V2025_11_25,
-      )
-    }
-    raise McpHttpClientError::ModeProtocolIncompatible(
-      "stateless", "initialize-era",
-    )
-  }
-  let discover = decode_discover_http_response(response) catch {
+  let outcome = parse_discover_http_response(response, expected_id=1) catch {
     McpHttpClientError::UnsupportedProtocolVersion(supported) => {
       let parsed = supported.map(@protocol.parse_mcp_protocol_version)
       match select_compatible_version(endpoint.mode, parsed) {
@@ -58,7 +54,21 @@ async fn negotiate(
     }
     error => raise error
   }
-  negotiation_from_discover(endpoint.mode, discover)
+  match outcome {
+    DiscoverHttpOutcome::LegacySignal => {
+      if endpoint.mode == @config.McpConnectionMode::Auto {
+        HttpProtocolLifecycle::InitializeEra(
+          @protocol.McpProtocolVersion::V2025_11_25,
+        )
+      } else {
+        raise McpHttpClientError::ModeProtocolIncompatible(
+          "stateless", "initialize-era",
+        )
+      }
+    }
+    DiscoverHttpOutcome::Discover(discover) =>
+      negotiation_from_discover(endpoint.mode, discover)
+  }
 }
 
 ///|
@@ -174,37 +184,27 @@ fn decode_discover_http_response(
 }
 
 ///|
-fn is_clear_legacy_signal(response : HttpResponse, expected_id~ : Int) -> Bool {
-  let has_modern_error = if response.body.trim().is_empty() {
-    false
-  } else {
-    let json = @json.parse(response.body) catch {
-      _ =>
-        return response.status_code == 400 ||
-          response.status_code == 404 ||
-          response.status_code == 405
+fn parse_discover_http_response(
+  response : HttpResponse,
+  expected_id~ : Int,
+) -> DiscoverHttpOutcome raise McpHttpClientError {
+  let permits_legacy_signal = response.status_code == 400 ||
+    response.status_code == 404 ||
+    response.status_code == 405
+  if permits_legacy_signal {
+    if response.body.trim().is_empty() {
+      return DiscoverHttpOutcome::LegacySignal
     }
-    is_valid_jsonrpc_response(json, expected_id~)
+    let json = @json.parse(response.body) catch {
+      _ => return DiscoverHttpOutcome::LegacySignal
+    }
+    try @protocol.decode_mcp_result(json, expected_id~) catch {
+      @protocol.McpProtocolError::InvalidResponse(_) =>
+        return DiscoverHttpOutcome::LegacySignal
+      error => raise protocol_error_to_http(error)
+    } noraise {
+      _ => raise McpHttpClientError::HttpStatus(response.status_code)
+    }
   }
-  // Any valid JSON-RPC response identifies a modern server even when the HTTP
-  // status is unexpected.
-  if has_modern_error {
-    return false
-  }
-  if response.status_code != 400 &&
-    response.status_code != 404 &&
-    response.status_code != 405 {
-    return false
-  }
-  true
-}
-
-///|
-fn is_valid_jsonrpc_response(json : Json, expected_id~ : Int) -> Bool {
-  try @protocol.decode_mcp_result(json, expected_id~) catch {
-    @protocol.McpProtocolError::InvalidResponse(_) => false
-    _ => true
-  } noraise {
-    _ => true
-  }
+  DiscoverHttpOutcome::Discover(decode_discover_http_response(response))
 }
