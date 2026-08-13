@@ -194,6 +194,10 @@ async fn read_response_for_id_with_skip_limit(
             poison_stdio_after_desynchronization(
               conn, "unexpected MCP response id",
             )
+          None if !is_mcp_request(json) =>
+            poison_stdio_after_desynchronization(
+              conn, "malformed MCP message while awaiting response",
+            )
           _ => {
             if skipped >= max_skipped_messages {
               poison_stdio_after_desynchronization(
