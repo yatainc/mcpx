@@ -23,10 +23,39 @@ pub fn inspect_mcp_tool_header_bindings(
 ) -> Result[Array[McpToolHeaderBinding], String] {
   let bindings = []
   let names : Map[String, Unit] = Map([])
+  validate_header_schema_bounds(schema, depth=0, visited=Ref(0)) catch {
+    McpToolHeaderError(error) => return Err(error)
+  }
   inspect_header_schema_node(schema, [], true, bindings, names) catch {
     McpToolHeaderError(error) => return Err(error)
   }
   Ok(bindings)
+}
+
+///|
+fn validate_header_schema_bounds(
+  value : Json,
+  depth~ : Int,
+  visited~ : Ref[Int],
+) -> Unit raise McpToolHeaderError {
+  if depth > 64 {
+    raise McpToolHeaderError("tool schema exceeds maximum nesting depth")
+  }
+  visited.val = visited.val + 1
+  if visited.val > 10000 {
+    raise McpToolHeaderError("tool schema exceeds maximum node count")
+  }
+  match value {
+    Object(obj) =>
+      for _, child in obj {
+        validate_header_schema_bounds(child, depth=depth + 1, visited~)
+      }
+    Array(items) =>
+      for child in items {
+        validate_header_schema_bounds(child, depth=depth + 1, visited~)
+      }
+    _ => ()
+  }
 }
 
 ///|

@@ -124,6 +124,40 @@ test "HTTP tool headers reject annotations in malformed properties" {
 }
 
 ///|
+test "HTTP tool header schema inspection has resource bounds" {
+  let mut schema : Json = Json::object({
+    "type": Json::string("string"),
+    "x-mcp-header": Json::string("Deep"),
+  })
+  for i in 0..<80 {
+    let properties : Map[String, Json] = Map([])
+    properties["level" + i.to_string()] = schema
+    schema = Json::object({
+      "type": Json::string("object"),
+      "properties": Json::object(properties),
+    })
+  }
+  inspect(inspect_mcp_tool_header_bindings(schema) is Err(_), content="true")
+
+  let properties : Map[String, Json] = Map([])
+  for i in 0..<12000 {
+    properties["p" + i.to_string()] = Json::object({
+      "type": Json::string("string"),
+    })
+  }
+  inspect(
+    inspect_mcp_tool_header_bindings(
+      Json::object({
+        "type": Json::string("object"),
+        "properties": Json::object(properties),
+      }),
+    )
+    is Err(_),
+    content="true",
+  )
+}
+
+///|
 test "HTTP tool headers reject case-insensitive duplicates" {
   let schema = @json.parse(
     (
