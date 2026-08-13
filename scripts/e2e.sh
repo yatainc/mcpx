@@ -66,11 +66,9 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(data)
 
         if method == "server/discover":
-            send_json({
-                "jsonrpc": "2.0",
-                "id": msg.get("id", 1),
-                "error": {"code": -32000, "message": "Legacy request rejected"},
-            }, code=400)
+            self.send_response(400)
+            self.send_header("content-length", "0")
+            self.end_headers()
             return
 
         if method == "initialize":
