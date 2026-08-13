@@ -38,9 +38,6 @@ test "discovery: builds request and decodes canonical discover result" {
     decoded.response_meta.server_info.unwrap().stringify(),
     content="{\"name\":\"fixture\",\"version\":\"1\"}",
   )
-  inspect(decoded.result_type == McpResultType::Complete, content="true")
-  inspect(decoded.ttl_ms, content="3600000")
-  inspect(decoded.cache_scope == McpCacheScope::Public, content="true")
 }
 
 ///|
@@ -58,8 +55,6 @@ test "discovery: accepts deployed RC serverInfo and cache defaults" {
     },
     expected_id=1,
   ).unwrap()
-  inspect(decoded.ttl_ms, content="0")
-  inspect(decoded.cache_scope == McpCacheScope::Private, content="true")
   inspect(
     decoded.response_meta.server_info.unwrap().stringify(),
     content="{\"name\":\"mcpjam\",\"version\":\"1\"}",
@@ -81,8 +76,7 @@ test "discovery: ignores malformed optional cache hints" {
     },
     expected_id=1,
   ).unwrap()
-  inspect(decoded.ttl_ms, content="0")
-  inspect(decoded.cache_scope == McpCacheScope::Private, content="true")
+  inspect(decoded.protocol_versions.length(), content="1")
 }
 
 ///|

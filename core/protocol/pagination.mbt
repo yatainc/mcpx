@@ -86,11 +86,5 @@ pub fn mcp_tool_list_page(
   ttl_ms? : Int = 0,
   cache_scope? : McpCacheScope = McpCacheScope::Private,
 ) -> McpToolListPage {
-  {
-    result_type: McpResultType::Complete,
-    tools,
-    next_cursor,
-    ttl_ms,
-    cache_scope,
-  }
+  { tools, next_cursor, ttl_ms, cache_scope }
 }

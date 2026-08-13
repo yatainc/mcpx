@@ -10,9 +10,6 @@ pub struct McpDiscoverInfo {
   capabilities : Json
   instructions : String?
   response_meta : McpResponseMeta
-  result_type : McpResultType
-  ttl_ms : Int
-  cache_scope : McpCacheScope
 } derive(Debug)
 
 ///|
@@ -36,8 +33,8 @@ pub fn decode_mcp_discover_response(
     Object(value) => value
     _ => return Err(InvalidResponse("discover result must be object"))
   }
-  let result_type = match result.get("resultType") {
-    Some(String("complete")) => McpResultType::Complete
+  match result.get("resultType") {
+    Some(String("complete")) => ()
     Some(String(value)) =>
       return Err(InvalidResponse("unsupported discover resultType: " + value))
     _ => return Err(InvalidResponse("discover result missing resultType"))
@@ -75,24 +72,10 @@ pub fn decode_mcp_discover_response(
     Some(value) => Some(value)
     None => result.get("serverInfo")
   }
-  // Cache hints do not affect protocol correctness. Ignore malformed or
-  // extension values rather than rejecting an otherwise usable discovery.
-  let ttl_ms = match result.get("ttlMs") {
-    Some(Number(value, ..)) if value.trunc() == value && value >= 0.0 =>
-      value.to_int()
-    _ => 0
-  }
-  let cache_scope = match result.get("cacheScope") {
-    Some(String("public")) => McpCacheScope::Public
-    _ => McpCacheScope::Private
-  }
   Ok({
     protocol_versions: versions,
     capabilities,
     instructions,
     response_meta: { server_info, raw: raw_meta },
-    result_type,
-    ttl_ms,
-    cache_scope,
   })
 }

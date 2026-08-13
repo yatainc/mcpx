@@ -13,7 +13,6 @@ pub(all) enum McpCacheScope {
 
 ///|
 pub struct McpToolListPage {
-  result_type : McpResultType
   tools : Array[McpToolInfo]
   next_cursor : String?
   ttl_ms : Int
@@ -93,8 +92,8 @@ fn decode_mcp_tool_list_page_inner(
         McpProtocolError::InvalidResponse("tools/list result must be object"),
       )
   }
-  let result_type = match decode_result_type(obj.get("resultType")) {
-    Some(McpResultType::Complete) => McpResultType::Complete
+  match decode_result_type(obj.get("resultType")) {
+    Some(McpResultType::Complete) => ()
     Some(McpResultType::InputRequired) =>
       return Err(
         McpProtocolError::InvalidResponse(
@@ -115,7 +114,7 @@ fn decode_mcp_tool_list_page_inner(
           ),
         )
       } else {
-        McpResultType::Complete
+        ()
       }
   }
   let tools_json = match obj.get("tools") {
@@ -151,7 +150,7 @@ fn decode_mcp_tool_list_page_inner(
     Some(String("public")) => McpCacheScope::Public
     _ => McpCacheScope::Private
   }
-  Ok({ result_type, tools, next_cursor, ttl_ms, cache_scope })
+  Ok({ tools, next_cursor, ttl_ms, cache_scope })
 }
 
 ///|

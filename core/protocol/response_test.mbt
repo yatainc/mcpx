@@ -148,7 +148,6 @@ test "mcp response: decodes complete modern tool list page" {
     },
     expected_id=2,
   ).unwrap()
-  inspect(page.result_type == McpResultType::Complete, content="true")
   inspect(page.tools[0].name, content="search")
   @debug.debug_inspect(page.next_cursor, content="Some(\"page-2\")")
   inspect(page.ttl_ms, content="60000")
