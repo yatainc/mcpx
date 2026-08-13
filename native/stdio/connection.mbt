@@ -232,7 +232,9 @@ fn classify_stdio_inbound_message(message : Json) -> StdioInboundMessage {
   let has_result = obj.get("result") is Some(_)
   let has_error = obj.get("error") is Some(_)
   match obj.get("method") {
-    Some(String(_)) if !has_result && !has_error =>
+    Some(String(_)) if !has_result &&
+      !has_error &&
+      has_valid_stdio_message_params(obj.get("params")) =>
       match obj.get("id") {
         None => StdioInboundMessage::RequestOrNotification
         Some(String(_)) => StdioInboundMessage::RequestOrNotification
@@ -250,6 +252,14 @@ fn classify_stdio_inbound_message(message : Json) -> StdioInboundMessage {
         None => StdioInboundMessage::Malformed
       }
     _ => StdioInboundMessage::Malformed
+  }
+}
+
+///|
+fn has_valid_stdio_message_params(value : Json?) -> Bool {
+  match value {
+    None | Some(Object(_)) | Some(Array(_)) => true
+    _ => false
   }
 }
 
