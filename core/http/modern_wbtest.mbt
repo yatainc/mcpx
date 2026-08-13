@@ -6,8 +6,8 @@ test "modern HTTP catalog: retains validated header bindings" {
   })
   let validated = validate_http_tool(tool).unwrap()
   inspect(validated.info.name, content="search")
-  inspect(validated.header_bindings.length(), content="1")
-  inspect(validated.header_bindings[0].header_name, content="Region")
+  let headers = validated.header_plan.build_headers({ "region": "eu" }).unwrap()
+  inspect(headers.get("Mcp-Param-Region").unwrap(), content="eu")
 }
 
 ///|

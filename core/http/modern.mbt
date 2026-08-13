@@ -1,7 +1,7 @@
 ///|
 priv struct ValidatedHttpTool {
   info : @protocol.McpToolInfo
-  header_bindings : Array[McpToolHeaderBinding]
+  header_plan : McpToolHeaderPlan
 }
 
 ///|
@@ -15,8 +15,8 @@ priv struct ModernToolCatalog {
 fn validate_http_tool(
   tool : @protocol.McpToolInfo,
 ) -> Result[ValidatedHttpTool, String] {
-  match inspect_mcp_tool_header_bindings(tool.input_schema) {
-    Ok(header_bindings) => Ok({ info: tool, header_bindings })
+  match parse_mcp_tool_header_plan(tool.input_schema) {
+    Ok(header_plan) => Ok({ info: tool, header_plan })
     Err(message) => Err(message)
   }
 }
@@ -204,7 +204,7 @@ async fn call_tool_modern_with_catalog(
     }
   }
   let parameter_headers = match
-    build_mcp_tool_parameter_headers(validated_tool.header_bindings, arguments) {
+    validated_tool.header_plan.build_headers(arguments) {
     Ok(value) => value
     Err(message) => raise McpHttpClientError::Protocol(message)
   }
@@ -233,10 +233,7 @@ async fn call_tool_modern_with_catalog(
           )
       }
       let refreshed_headers = match
-        build_mcp_tool_parameter_headers(
-          refreshed_tool.header_bindings,
-          arguments,
-        ) {
+        refreshed_tool.header_plan.build_headers(arguments) {
         Ok(value) => value
         Err(message) => raise McpHttpClientError::Protocol(message)
       }

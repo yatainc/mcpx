@@ -4,21 +4,44 @@ priv suberror McpToolHeaderError {
 } derive(Debug)
 
 ///|
-pub(all) enum McpHttpHeaderValueType {
+priv enum McpHttpHeaderValueType {
   StringValue
   IntegerValue
   BooleanValue
-} derive(Debug, Eq)
+}
 
 ///|
-pub(all) struct McpToolHeaderBinding {
+priv struct McpToolHeaderBinding {
   header_name : String
   property_path : Array[String]
   value_type : McpHttpHeaderValueType
-} derive(Debug)
+}
 
 ///|
-pub fn inspect_mcp_tool_header_bindings(
+priv struct McpToolHeaderPlan {
+  bindings : Array[McpToolHeaderBinding]
+}
+
+///|
+fn parse_mcp_tool_header_plan(
+  schema : Json,
+) -> Result[McpToolHeaderPlan, String] {
+  match inspect_mcp_tool_header_bindings(schema) {
+    Ok(bindings) => Ok({ bindings, })
+    Err(message) => Err(message)
+  }
+}
+
+///|
+fn McpToolHeaderPlan::build_headers(
+  self : McpToolHeaderPlan,
+  arguments : Json,
+) -> Result[Map[String, String], String] {
+  build_mcp_tool_parameter_headers(self.bindings, arguments)
+}
+
+///|
+fn inspect_mcp_tool_header_bindings(
   schema : Json,
 ) -> Result[Array[McpToolHeaderBinding], String] {
   match schema {
@@ -124,7 +147,7 @@ fn inspect_header_schema_node(
 }
 
 ///|
-pub fn build_mcp_tool_parameter_headers(
+fn build_mcp_tool_parameter_headers(
   bindings : Array[McpToolHeaderBinding],
   arguments : Json,
 ) -> Result[Map[String, String], String] {
