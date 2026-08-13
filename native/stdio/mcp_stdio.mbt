@@ -31,6 +31,7 @@ priv enum StdioProbeOutcome {
   Modern
   ModernError(String)
   Legacy
+  TimedOut
 }
 
 ///|
@@ -66,14 +67,33 @@ pub async fn[X] stdio_mcp_connect(
     }
   }
   let probe_conn = spawn_stdio(group, command, args, env, cwd)
-  let probe_result : Result[StdioProbeOutcome, Error] = try
-    @async.with_timeout(probe_timeout_ms, () => probe_modern_stdio(probe_conn))
-    |> Ok
-  catch {
-    error => Err(error)
+  let probe_started_at = @async.now()
+  let probe_result = @async.with_timeout(probe_timeout_ms, () => {
+    probe_modern_stdio(probe_conn)
+  }) catch {
+    @async.TimeoutError => StdioProbeOutcome::TimedOut
+    McpStdioError::ReadFailed(message) => {
+      let elapsed = @async.now() - probe_started_at
+      if elapsed >= probe_timeout_ms.to_int64() {
+        StdioProbeOutcome::TimedOut
+      } else {
+        StdioProbeOutcome::ModernError("MCP discovery read failed: " + message)
+      }
+    }
+    McpStdioError::WriteFailed(message) =>
+      StdioProbeOutcome::ModernError("MCP discovery write failed: " + message)
+    McpStdioError::InvalidJson(message) =>
+      StdioProbeOutcome::ModernError("invalid MCP discovery JSON: " + message)
+    McpStdioError::UnexpectedEof =>
+      StdioProbeOutcome::ModernError("MCP discovery ended unexpectedly")
+    McpStdioError::Protocol(message) => StdioProbeOutcome::ModernError(message)
+    McpStdioError::SpawnFailed(message) =>
+      StdioProbeOutcome::ModernError("MCP discovery spawn failed: " + message)
+    McpStdioError::Timeout => StdioProbeOutcome::TimedOut
+    error => StdioProbeOutcome::ModernError(error.to_string())
   }
   match probe_result {
-    Ok(StdioProbeOutcome::Modern) =>
+    StdioProbeOutcome::Modern =>
       {
         conn: probe_conn,
         client,
@@ -81,11 +101,11 @@ pub async fn[X] stdio_mcp_connect(
         next_request_id: Ref(2),
         response_timeout_ms,
       }
-    Ok(StdioProbeOutcome::ModernError(message)) => {
+    StdioProbeOutcome::ModernError(message) => {
       close_stdio(probe_conn)
       raise McpStdioError::Protocol(message)
     }
-    Ok(StdioProbeOutcome::Legacy) | Err(_) => {
+    StdioProbeOutcome::Legacy | StdioProbeOutcome::TimedOut => {
       close_stdio(probe_conn)
       if mode == @config.McpConnectionMode::Stateless {
         raise McpStdioError::Protocol("stateless MCP is not supported")
