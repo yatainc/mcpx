@@ -92,6 +92,33 @@ async test "core http: uses tools list cache hints instead of discovery hints" {
 }
 
 ///|
+async test "core http: excludes only tools with invalid HTTP header annotations" {
+  let tools = list_tools(
+    req => {
+      if rpc_method(req.body) == "server/discover" {
+        http_response(
+          status_code=200,
+          content_type=Some("application/json"),
+          body=(
+            #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}
+          ),
+        )
+      } else {
+        http_response(
+          status_code=200,
+          content_type=Some("application/json"),
+          body=(
+            #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[{"name":"valid","inputSchema":{"type":"object","properties":{"region":{"type":"string","x-mcp-header":"Region"}}}},{"name":"invalid","inputSchema":{"type":"object","properties":{"value":{"type":"number","x-mcp-header":"Value"}}}},{"name":"plain","inputSchema":{"type":"object"}}],"ttlMs":0,"cacheScope":"private"}}
+          ),
+        )
+      }
+    },
+    http_endpoint(url="https://mcp.example/header-tools"),
+  )
+  inspect(tools.map(tool => tool.name).join(","), content="valid,plain")
+}
+
+///|
 async test "core http: combines paginated modern tool lists" {
   let cursors : Array[String] = []
   let result = list_tools_with_cache_hint(

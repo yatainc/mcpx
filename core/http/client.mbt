@@ -252,7 +252,10 @@ async fn list_tools_modern(
       Some(_) => ()
     }
     for tool in page.tools {
-      tools.push(tool)
+      match inspect_mcp_tool_header_bindings(tool.input_schema) {
+        Ok(_) => tools.push(tool)
+        Err(_) => ()
+      }
     }
     ttl_ms = if request_id == 2 {
       page.ttl_ms
