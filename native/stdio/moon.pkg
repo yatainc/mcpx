@@ -2,7 +2,7 @@ import {
   "moonbitlang/async",
   "moonbitlang/async/process",
   "moonbitlang/core/json",
-  "yata-one/mcpx/core/protocol" @mcp_client,
+  "yatainc/mcpx/core/protocol" @mcp_client,
 }
 
 import {

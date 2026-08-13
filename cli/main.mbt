@@ -5,11 +5,11 @@ fn main {
 
 ///|
 async fn run() -> Unit {
-  let argv = @sys.get_cli_args()
+  let argv = @env.args()
   let args = if argv.is_empty() { [] } else { argv[1:].to_owned() }
-  let home = @sys.get_env_var("HOME").unwrap_or(".")
-  let config_home = @sys.get_env_var("XDG_CONFIG_HOME")
-  if @sys.get_env_var("MCPX_INTERNAL_DAEMON") == Some("serve") {
+  let home = @env.get_env_var("HOME").unwrap_or(".")
+  let config_home = @env.get_env_var("XDG_CONFIG_HOME")
+  if @env.get_env_var("MCPX_INTERNAL_DAEMON") == Some("serve") {
     run_internal_daemon_async(home~, config_home~)
     return
   }

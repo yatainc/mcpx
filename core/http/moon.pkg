@@ -1,6 +1,6 @@
 import {
-  "yata-one/mcpx/core/protocol",
-  "yata-one/mcpx/core/config",
+  "yatainc/mcpx/core/protocol",
+  "yatainc/mcpx/core/config",
   "moonbitlang/core/json",
 }
 

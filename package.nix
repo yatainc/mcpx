@@ -2,7 +2,6 @@
   lib,
   stdenv,
   moonPlatform,
-  moonRegistryIndex,
   tinyccForMoonbit ? null,
 }:
 
@@ -10,7 +9,9 @@ moonPlatform.buildMoonPackage {
   name = "mcpx";
   src = ./.;
   moonModJson = ./moon.mod.json;
-  inherit moonRegistryIndex;
+  # Minimal registry snapshot containing only the locked direct dependencies.
+  # It is part of the source tree, so builds never fetch the global registry.
+  moonRegistryIndex = ./nix/moon-registry;
   moonTarget = "native";
   moonFlags = [ "cli" ];
 
@@ -113,7 +114,7 @@ moonPlatform.buildMoonPackage {
 
   meta = {
     description = "Native CLI for MCP servers";
-    homepage = "https://github.com/yata-one/mcpx";
+    homepage = "https://github.com/yatainc/mcpx";
     license = lib.licenses.mit;
     mainProgram = "mcpx";
   };

@@ -3,21 +3,17 @@
 
   nixConfig = {
     extra-substituters = [
-      "https://yata-one.github.io/mcpx"
+      "https://yatainc.github.io/mcpx"
     ];
     extra-trusted-public-keys = [
-      "yata-one-mcpx-1:0GPBIC52/PszrTcDzKJIZ7qMmcRvKAWK2WzZYKskgCs="
+      "yatainc-mcpx-1:vr17tU1/jIMhXnWkl1kAyc1rBFMlo6T9IPDKHhvwbC0="
     ];
   };
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    moonbit-overlay.url = "github:moonbit-community/moonbit-overlay/v0.10.4+2cc641edf+75c7e1f";
-    moon-registry = {
-      url = "git+https://mooncakes.io/git/index";
-      flake = false;
-    };
+    moonbit-overlay.url = "github:moonbit-community/moonbit-overlay/v0.10.7+bc794d341+4da23f8";
   };
 
   outputs = inputs:
@@ -37,7 +33,6 @@
           {
             mcpx = final.callPackage ./package.nix {
               moonPlatform = final.moonPlatform or moonAttrs.moonPlatform;
-              moonRegistryIndex = inputs.moon-registry;
               tinyccForMoonbit = if final.stdenv.hostPlatform.isLinux then final.tinycc else null;
             };
           };
@@ -51,14 +46,13 @@
           };
 
           mcpx = pkgs.callPackage ./package.nix {
-            moonRegistryIndex = inputs.moon-registry;
             tinyccForMoonbit = if pkgs.stdenv.hostPlatform.isLinux then pkgs.tinycc else null;
           };
 
           baseMoonHome = pkgs.moonPlatform.bundleWithRegistry {
             cachedRegistry = pkgs.moonPlatform.buildCachedRegistry {
               moonModJson = ./moon.mod.json;
-              registryIndexSrc = inputs.moon-registry;
+              registryIndexSrc = ./nix/moon-registry;
             };
           };
 

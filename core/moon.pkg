@@ -1,4 +1,4 @@
 import {
-  "yata-one/mcpx/core/http",
-  "yata-one/mcpx/core/protocol",
+  "yatainc/mcpx/core/http",
+  "yatainc/mcpx/core/protocol",
 }

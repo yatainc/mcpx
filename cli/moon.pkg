@@ -5,16 +5,16 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/x/fs",
   "moonbitlang/x/sys",
-  "yata-one/mcpx/core/auth",
-  "yata-one/mcpx/core/config",
-  "yata-one/mcpx/core/protocol" @mcp_client,
-  "yata-one/mcpx/core/search",
-  "yata-one/mcpx/native/paths" @app_paths,
-  "yata-one/mcpx/native/storage",
-  "yata-one/mcpx/cli/daemon" @mcpx_daemon,
-  "yata-one/mcpx/native/http" @mcp_http,
-  "yata-one/mcpx/native/stdio" @mcp_stdio,
-  "yata-one/mcpx/native/oauth",
+  "yatainc/mcpx/core/auth",
+  "yatainc/mcpx/core/config",
+  "yatainc/mcpx/core/protocol" @mcp_client,
+  "yatainc/mcpx/core/search",
+  "yatainc/mcpx/native/paths" @app_paths,
+  "yatainc/mcpx/native/storage",
+  "yatainc/mcpx/cli/daemon" @mcpx_daemon,
+  "yatainc/mcpx/native/http" @mcp_http,
+  "yatainc/mcpx/native/stdio" @mcp_stdio,
+  "yatainc/mcpx/native/oauth",
 }
 
 import {
@@ -26,10 +26,10 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/x/fs",
   "moonbitlang/x/sys",
-  "yata-one/mcpx/core/auth",
-  "yata-one/mcpx/core/config",
-  "yata-one/mcpx/native/storage",
-  "yata-one/mcpx/cli/daemon" @mcpx_daemon,
+  "yatainc/mcpx/core/auth",
+  "yatainc/mcpx/core/config",
+  "yatainc/mcpx/native/storage",
+  "yatainc/mcpx/cli/daemon" @mcpx_daemon,
 } for "wbtest"
 
 supported_targets = "native+llvm"

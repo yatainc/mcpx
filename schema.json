@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/yata-one/mcpx/main/schema.json",
+  "$id": "https://raw.githubusercontent.com/yatainc/mcpx/main/schema.json",
   "title": "mcpx config",
   "description": "Configuration for mcpx — Lightweight CLI / JS Runtime for the Model Context Protocol.",
   "type": "object",

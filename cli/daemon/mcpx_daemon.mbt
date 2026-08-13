@@ -129,7 +129,7 @@ pub async fn ensure_mcpx_daemon_running(
 
 ///|
 async fn start_daemon_process() -> Unit raise McpxDaemonError {
-  let exe = @sys.get_cli_args().get(0).unwrap_or("mcpx")
+  let exe = @env.args().get(0).unwrap_or("mcpx")
   let (stdin, stdin_writer) = @process.write_to_process() catch {
     error => raise McpxDaemonError::ConnectFailed(error.to_string())
   }

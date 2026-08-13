@@ -1,8 +1,8 @@
 import {
   "moonbitlang/core/json",
   "moonbitlang/x/fs",
-  "yata-one/mcpx/core/auth",
-  "yata-one/mcpx/core/config",
+  "yatainc/mcpx/core/auth",
+  "yatainc/mcpx/core/config",
 }
 
 import {
