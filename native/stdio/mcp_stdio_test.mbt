@@ -268,6 +268,42 @@ async test "mcp stdio: rejects operations after a response timeout" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: applies one timeout to complete pagination" {
+  let script =
+    #|while IFS= read -r line; do
+    #|  case "$line" in
+    #|    *'"method":"server/discover"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}'
+    #|      ;;
+    #|    *'"cursor":"next"'*)
+    #|      sleep 0.08
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":3,"result":{"resultType":"complete","tools":[]}}'
+    #|      ;;
+    #|    *'"method":"tools/list"'*)
+    #|      sleep 0.08
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[],"nextCursor":"next"}}'
+    #|      ;;
+    #|  esac
+    #|done
+  try
+    stdio_mcp_list_tools(
+      command="/bin/sh",
+      args=["-c", script],
+      env=Map([]),
+      cwd=None,
+      mode=@config.McpConnectionMode::Stateless,
+      response_timeout_ms=120,
+    )
+  catch {
+    McpStdioError::Timeout => ()
+    _ => fail("expected pagination timeout")
+  } noraise {
+    _ => fail("expected complete pagination to time out")
+  }
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "mcp stdio: bounds stateless tool pagination" {
   let script =
     #|while IFS= read -r line; do

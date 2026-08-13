@@ -117,13 +117,13 @@ async fn read_json_line(conn : StdioConnection) -> Json? raise McpStdioError {
 }
 
 ///|
-async fn read_response_for_id_with_timeout(
+async fn[T] run_stdio_operation_with_timeout(
   conn : StdioConnection,
-  expected_id~ : Int,
-  timeout_ms~ : Int,
-) -> Json raise McpStdioError {
+  timeout_ms : Int,
+  operation : async () -> T,
+) -> T raise McpStdioError {
   let started_at = @async.now()
-  @async.with_timeout(timeout_ms, () => read_response_for_id(conn, expected_id~)) catch {
+  @async.with_timeout(timeout_ms, operation) catch {
     @async.TimeoutError => poison_stdio_after_timeout(conn)
     McpStdioError::ReadFailed(message) => {
       let elapsed = @async.now() - started_at
@@ -132,12 +132,28 @@ async fn read_response_for_id_with_timeout(
       }
       raise McpStdioError::ReadFailed(message)
     }
+    McpStdioError::SpawnFailed(message) =>
+      raise McpStdioError::SpawnFailed(message)
+    McpStdioError::WriteFailed(message) =>
+      raise McpStdioError::WriteFailed(message)
     McpStdioError::InvalidJson(message) =>
       raise McpStdioError::InvalidJson(message)
     McpStdioError::UnexpectedEof => raise McpStdioError::UnexpectedEof
     McpStdioError::Protocol(message) => raise McpStdioError::Protocol(message)
+    McpStdioError::Timeout => raise McpStdioError::Timeout
     error => raise McpStdioError::Protocol(error.to_string())
   }
+}
+
+///|
+async fn read_response_for_id_with_timeout(
+  conn : StdioConnection,
+  expected_id~ : Int,
+  timeout_ms~ : Int,
+) -> Json raise McpStdioError {
+  run_stdio_operation_with_timeout(conn, timeout_ms, () => {
+    read_response_for_id(conn, expected_id~)
+  })
 }
 
 ///|

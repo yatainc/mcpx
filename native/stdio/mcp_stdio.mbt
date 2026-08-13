@@ -138,7 +138,9 @@ pub async fn StdioMcpClient::call_tool(
     error => raise McpStdioError::Protocol(error.to_string())
   }
   defer self.operation_lock.release()
-  self.call_tool_unlocked(tool_name~, arguments~)
+  run_stdio_operation_with_timeout(self.conn, self.response_timeout_ms, () => {
+    self.call_tool_unlocked(tool_name~, arguments~)
+  })
 }
 
 ///|
@@ -154,11 +156,7 @@ async fn StdioMcpClient::call_tool_unlocked(
       let id = request.expected_id() catch {
         error => raise protocol_error_to_stdio(error)
       }
-      let response = read_response_for_id_with_timeout(
-        self.conn,
-        expected_id=id,
-        timeout_ms=self.response_timeout_ms,
-      )
+      let response = read_response_for_id(self.conn, expected_id=id)
       self.client.accept_tool_call_response(request, response) catch {
         error => raise protocol_error_to_stdio(error)
       }
@@ -175,11 +173,7 @@ async fn StdioMcpClient::call_tool_unlocked(
           client_version=@mcp_client.MCPX_CLIENT_VERSION,
         ),
       )
-      let response = read_response_for_id_with_timeout(
-        self.conn,
-        expected_id=id,
-        timeout_ms=self.response_timeout_ms,
-      )
+      let response = read_response_for_id(self.conn, expected_id=id)
       match
         @mcp_client.decode_mcp_modern_complete_result(response, expected_id=id) {
         Ok(value) => value
@@ -199,7 +193,9 @@ pub async fn StdioMcpClient::list_tools(
     error => raise McpStdioError::Protocol(error.to_string())
   }
   defer self.operation_lock.release()
-  self.list_tools_unlocked(max_pages~, max_tools~)
+  run_stdio_operation_with_timeout(self.conn, self.response_timeout_ms, () => {
+    self.list_tools_unlocked(max_pages~, max_tools~)
+  })
 }
 
 ///|
@@ -215,11 +211,7 @@ async fn StdioMcpClient::list_tools_unlocked(
       let id = request.expected_id() catch {
         error => raise protocol_error_to_stdio(error)
       }
-      let response = read_response_for_id_with_timeout(
-        self.conn,
-        expected_id=id,
-        timeout_ms=self.response_timeout_ms,
-      )
+      let response = read_response_for_id(self.conn, expected_id=id)
       self.client.accept_tools_list_response(request, response) catch {
         error => raise protocol_error_to_stdio(error)
       }
@@ -242,11 +234,7 @@ async fn StdioMcpClient::list_tools_unlocked(
             cursor~,
           ),
         )
-        let response = read_response_for_id_with_timeout(
-          self.conn,
-          expected_id=id,
-          timeout_ms=self.response_timeout_ms,
-        )
+        let response = read_response_for_id(self.conn, expected_id=id)
         let page = match
           @mcp_client.decode_mcp_modern_tool_list_page(response, expected_id=id) {
           Ok(value) => value
