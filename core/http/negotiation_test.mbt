@@ -75,6 +75,42 @@ async test "core http: method-not-found identifies a modern server" {
 }
 
 ///|
+async test "core http: arbitrary JSON-RPC errors identify a modern server" {
+  for status in [400, 404, 405] {
+    for code in [-32602, -32603, -32099] {
+      let seen : Array[String] = []
+      try
+        list_tools(
+          req => {
+            seen.push(rpc_method(req.body))
+            http_response(
+              status_code=status,
+              content_type=Some("application/json"),
+              body="{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"code\":" +
+                code.to_string() +
+                ",\"message\":\"modern error\"}}",
+            )
+          },
+          http_endpoint(
+            url="https://mcp.example/arbitrary-error-" +
+              status.to_string() +
+              "-" +
+              code.to_string(),
+          ),
+        )
+      catch {
+        McpHttpClientError::RemoteError(actual, _) =>
+          inspect(actual, content=code.to_string())
+        _ => fail("expected modern JSON-RPC error")
+      } noraise {
+        _ => fail("expected discovery to fail")
+      }
+      inspect(seen.join(","), content="server/discover")
+    }
+  }
+}
+
+///|
 async test "core http: permitted empty 4xx discovery falls back in auto mode" {
   for status in [400, 404, 405] {
     let seen : Array[String] = []

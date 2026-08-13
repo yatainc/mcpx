@@ -34,21 +34,7 @@ async test "mcpx runtime: call uses configured remote HTTP server" {
           _ => Json::number(1.0, repr="1")
         }
         if rpc_method == "server/discover" {
-          conn.send_response(400, "Bad Request", extra_headers={
-            "content-type": "application/json",
-          })
-          conn
-          ..write(
-            Json::object({
-              "jsonrpc": Json::string("2.0"),
-              "id": id,
-              "error": Json::object({
-                "code": Json::number(-32000.0, repr="-32000"),
-                "message": Json::string("Legacy request rejected"),
-              }),
-            }).stringify(),
-          )
-          .end_response()
+          conn..send_response(400, "Bad Request").end_response()
         } else if rpc_method == "initialize" {
           conn.send_response(200, "OK", extra_headers={
             "content-type": "application/json",
@@ -121,21 +107,7 @@ async test "mcpx runtime: call can use direct remote URL without config" {
           _ => Json::number(1.0, repr="1")
         }
         if rpc_method == "server/discover" {
-          conn.send_response(400, "Bad Request", extra_headers={
-            "content-type": "application/json",
-          })
-          conn
-          ..write(
-            Json::object({
-              "jsonrpc": Json::string("2.0"),
-              "id": id,
-              "error": Json::object({
-                "code": Json::number(-32000.0, repr="-32000"),
-                "message": Json::string("Legacy request rejected"),
-              }),
-            }).stringify(),
-          )
-          .end_response()
+          conn..send_response(400, "Bad Request").end_response()
         } else if rpc_method == "initialize" {
           conn.send_response(200, "OK", extra_headers={
             "content-type": "application/json",
@@ -228,21 +200,7 @@ async test "mcpx runtime: call resolves headers from .env before HTTP request" {
           _ => Json::number(1.0, repr="1")
         }
         if rpc_method == "server/discover" {
-          conn.send_response(400, "Bad Request", extra_headers={
-            "content-type": "application/json",
-          })
-          conn
-          ..write(
-            Json::object({
-              "jsonrpc": Json::string("2.0"),
-              "id": id,
-              "error": Json::object({
-                "code": Json::number(-32000.0, repr="-32000"),
-                "message": Json::string("Legacy request rejected"),
-              }),
-            }).stringify(),
-          )
-          .end_response()
+          conn..send_response(400, "Bad Request").end_response()
         } else if rpc_method == "initialize" {
           conn.send_response(200, "OK", extra_headers={
             "content-type": "application/json",
@@ -433,21 +391,7 @@ async test "mcpx runtime: call uses cached OAuth bearer from credentials file" {
           _ => Json::number(1.0, repr="1")
         }
         if rpc_method == "server/discover" {
-          conn.send_response(400, "Bad Request", extra_headers={
-            "content-type": "application/json",
-          })
-          conn
-          ..write(
-            Json::object({
-              "jsonrpc": Json::string("2.0"),
-              "id": id,
-              "error": Json::object({
-                "code": Json::number(-32000.0, repr="-32000"),
-                "message": Json::string("Legacy request rejected"),
-              }),
-            }).stringify(),
-          )
-          .end_response()
+          conn..send_response(400, "Bad Request").end_response()
         } else if rpc_method == "initialize" {
           conn.send_response(200, "OK", extra_headers={
             "content-type": "application/json",
@@ -742,21 +686,7 @@ async test "mcpx runtime: call refreshes near-expiry OAuth token before request"
             _ => Json::number(1.0, repr="1")
           }
           if rpc_method == "server/discover" {
-            conn.send_response(400, "Bad Request", extra_headers={
-              "content-type": "application/json",
-            })
-            conn
-            ..write(
-              Json::object({
-                "jsonrpc": Json::string("2.0"),
-                "id": id,
-                "error": Json::object({
-                  "code": Json::number(-32000.0, repr="-32000"),
-                  "message": Json::string("Legacy request rejected"),
-                }),
-              }).stringify(),
-            )
-            .end_response()
+            conn..send_response(400, "Bad Request").end_response()
           } else if rpc_method == "initialize" {
             conn.send_response(200, "OK", extra_headers={
               "content-type": "application/json",

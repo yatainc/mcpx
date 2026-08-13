@@ -175,8 +175,8 @@ fn decode_discover_http_response(
 
 ///|
 fn is_clear_legacy_signal(response : HttpResponse, expected_id~ : Int) -> Bool {
-  let error_code = if response.body.trim().is_empty() {
-    None
+  let has_modern_error = if response.body.trim().is_empty() {
+    false
   } else {
     let json = @json.parse(response.body) catch {
       _ =>
@@ -184,11 +184,11 @@ fn is_clear_legacy_signal(response : HttpResponse, expected_id~ : Int) -> Bool {
           response.status_code == 404 ||
           response.status_code == 405
     }
-    recognized_jsonrpc_error_code(json, expected_id~)
+    is_valid_jsonrpc_error_response(json, expected_id~)
   }
-  // A valid modern error body identifies a modern server even when the HTTP
-  // status is unexpected. In particular, modern unknown methods use -32601.
-  if is_recognized_modern_error_code(error_code) {
+  // Any valid JSON-RPC error body identifies a modern server even when the
+  // HTTP status is unexpected.
+  if has_modern_error {
     return false
   }
   if response.status_code != 400 &&
@@ -200,33 +200,11 @@ fn is_clear_legacy_signal(response : HttpResponse, expected_id~ : Int) -> Bool {
 }
 
 ///|
-fn is_recognized_modern_error_code(code : Int?) -> Bool {
-  match code {
-    Some(-32601) | Some(-32020) | Some(-32021) | Some(-32022) => true
+fn is_valid_jsonrpc_error_response(json : Json, expected_id~ : Int) -> Bool {
+  try @protocol.decode_mcp_result(json, expected_id~) catch {
+    @protocol.McpProtocolError::InvalidResponse(_) => false
+    _ => true
+  } noraise {
     _ => false
-  }
-}
-
-///|
-fn recognized_jsonrpc_error_code(json : Json, expected_id~ : Int) -> Int? {
-  match json {
-    Object(obj) => {
-      guard obj.get("jsonrpc") == Some(Json::string("2.0")) else { return None }
-      guard obj.get("id") is Some(Number(value, ..)) &&
-        value.trunc() == value &&
-        value == expected_id.to_double() else {
-        return None
-      }
-      match obj.get("error") {
-        Some(Object(error)) =>
-          match (error.get("code"), error.get("message")) {
-            (Some(Number(value, ..)), Some(String(_))) if value.trunc() == value =>
-              Some(value.to_int())
-            _ => None
-          }
-        _ => None
-      }
-    }
-    _ => None
   }
 }
