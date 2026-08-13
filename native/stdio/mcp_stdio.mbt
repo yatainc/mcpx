@@ -10,7 +10,7 @@ pub suberror McpStdioError {
 } derive(Debug)
 
 ///|
-pub(all) enum StdioProtocolLifecycle {
+priv enum StdioProtocolLifecycle {
   Initialize
   Stateless
 }
@@ -18,11 +18,11 @@ pub(all) enum StdioProtocolLifecycle {
 ///|
 pub struct StdioMcpClient {
   priv conn : StdioConnection
-  client : @mcp_client.McpClient
-  lifecycle : StdioProtocolLifecycle
-  next_request_id : Ref[Int]
-  response_timeout_ms : Int
-  operation_lock : @async.Semaphore
+  priv client : @mcp_client.McpClient
+  priv lifecycle : StdioProtocolLifecycle
+  priv next_request_id : Ref[Int]
+  priv response_timeout_ms : Int
+  priv operation_lock : @async.Semaphore
 }
 
 ///|
