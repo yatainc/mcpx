@@ -272,12 +272,18 @@ fn decode_mcp_error(json : Json) -> McpProtocolError {
   match json {
     Object(obj) => {
       let code = match obj.get("code") {
-        Some(Number(value, ..)) => value.to_int()
-        _ => -1
+        Some(Number(value, ..)) if value.trunc() == value => value.to_int()
+        _ =>
+          return McpProtocolError::InvalidResponse(
+            "JSON-RPC error code must be an integer",
+          )
       }
       let message = match obj.get("message") {
         Some(String(value)) => value
-        _ => "unknown error"
+        _ =>
+          return McpProtocolError::InvalidResponse(
+            "JSON-RPC error message must be a string",
+          )
       }
       match code {
         -32020 => McpProtocolError::HeaderMismatch(message)
@@ -291,7 +297,7 @@ fn decode_mcp_error(json : Json) -> McpProtocolError {
         _ => McpProtocolError::RemoteError(code, message)
       }
     }
-    _ => McpProtocolError::RemoteError(-1, "invalid error")
+    _ => McpProtocolError::InvalidResponse("JSON-RPC error must be an object")
   }
 }
 

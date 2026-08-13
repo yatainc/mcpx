@@ -258,6 +258,33 @@ test "mcp response: validates JSON-RPC 2.0 envelope" {
 }
 
 ///|
+test "mcp response: rejects malformed JSON-RPC errors" {
+  let fractional_code =
+    #|{"jsonrpc":"2.0","id":1,"error":{"code":4.2,"message":"bad"}}
+  let string_code =
+    #|{"jsonrpc":"2.0","id":1,"error":{"code":"-32601","message":"bad"}}
+  let missing_message =
+    #|{"jsonrpc":"2.0","id":1,"error":{"code":-32601}}
+  let non_object_error =
+    #|{"jsonrpc":"2.0","id":1,"error":[]}
+  let malformed = [
+    fractional_code, string_code, missing_message, non_object_error,
+  ]
+  for text in malformed {
+    let response = @json.parse(text)
+    let result : Result[Json, McpProtocolError] = try
+      decode_mcp_result(response, expected_id=1) |> Ok
+    catch {
+      error => Err(error)
+    }
+    match result {
+      Err(McpProtocolError::InvalidResponse(_)) => ()
+      _ => fail("expected invalid response")
+    }
+  }
+}
+
+///|
 test "mcp client response: rejects id mismatch and surfaces json-rpc errors" {
   let mismatch = Json::object({
     "jsonrpc": Json::string("2.0"),
