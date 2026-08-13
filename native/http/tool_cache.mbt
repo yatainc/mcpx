@@ -1,5 +1,6 @@
 ///|
 priv struct ToolCacheEntry {
+  catalog_id : String
   tools : Array[@mcp_client.McpToolInfo]
   expires_at_ms : Int64
 }
@@ -54,8 +55,13 @@ fn ToolCatalogCache::put(
 ) -> Unit {
   let public_key = tool_cache_key(url, mode, Map([]))
   let private_key = tool_cache_key(url, mode, headers)
-  self.remove(public_key)
-  self.remove(private_key)
+  let catalog_id = tool_catalog_id(url, mode)
+  if result.cache_scope == @mcp_client.McpCacheScope::Public {
+    self.remove_catalog(catalog_id)
+  } else {
+    self.remove(public_key)
+    self.remove(private_key)
+  }
   if result.ttl_ms > 0 {
     let key = if result.cache_scope == @mcp_client.McpCacheScope::Public {
       public_key
@@ -63,6 +69,7 @@ fn ToolCatalogCache::put(
       private_key
     }
     self.entries[key] = {
+      catalog_id,
       tools: clone_tool_list(result.tools),
       expires_at_ms: (self.clock)() + result.ttl_ms.to_int64(),
     }
@@ -97,6 +104,22 @@ fn ToolCatalogCache::remove(self : ToolCatalogCache, key : String) -> Unit {
       ignore(self.order.remove(i))
       break
     }
+  }
+}
+
+///|
+fn ToolCatalogCache::remove_catalog(
+  self : ToolCatalogCache,
+  catalog_id : String,
+) -> Unit {
+  let removals = []
+  for key, entry in self.entries {
+    if entry.catalog_id == catalog_id {
+      removals.push(key)
+    }
+  }
+  for key in removals {
+    self.remove(key)
   }
 }
 
@@ -150,6 +173,13 @@ fn clone_json(value : Json) -> Json {
 }
 
 ///|
+fn tool_catalog_id(url : String, mode : @config.McpConnectionMode) -> String {
+  hash_tool_cache_material(
+    length_prefixed(url) + length_prefixed(connection_mode_key(mode)),
+  )
+}
+
+///|
 fn tool_cache_key(
   url : String,
   mode : @config.McpConnectionMode,
@@ -160,9 +190,15 @@ fn tool_cache_key(
     pairs.push(length_prefixed(key.to_lower()) + length_prefixed(value))
   }
   pairs.sort()
-  let material = length_prefixed(url) +
+  hash_tool_cache_material(
+    length_prefixed(url) +
     length_prefixed(connection_mode_key(mode)) +
-    pairs.join("")
+    pairs.join(""),
+  )
+}
+
+///|
+fn hash_tool_cache_material(material : String) -> String {
   let bytes = @encoding.encode(@encoding.Encoding::UTF8, material)
   @crypto.sha256(bytes).iter().map(byte => byte.to_hex()).join("")
 }

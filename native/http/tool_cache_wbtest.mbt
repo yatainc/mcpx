@@ -33,6 +33,43 @@ test "native tool cache: expires entries using injected clock" {
 }
 
 ///|
+test "native tool cache: public refresh supersedes private variants" {
+  let now = Ref(1000L)
+  let cache = tool_catalog_cache(max_entries=4, clock=() => now.val)
+  let url = "https://example.test/mcp"
+  cache.put(
+    url,
+    { "Authorization": "Bearer old" },
+    @config.McpConnectionMode::Auto,
+    @core_http.mcp_tool_list_result(
+      tools=[@mcp_client.mcp_tool_info(name="private", input_schema={})],
+      ttl_ms=100,
+      cache_scope=@mcp_client.McpCacheScope::Private,
+    ),
+  )
+  cache.put(
+    url,
+    { "Authorization": "Bearer new" },
+    @config.McpConnectionMode::Auto,
+    @core_http.mcp_tool_list_result(
+      tools=[@mcp_client.mcp_tool_info(name="public", input_schema={})],
+      ttl_ms=10,
+      cache_scope=@mcp_client.McpCacheScope::Public,
+    ),
+  )
+  now.val = 1010L
+  inspect(
+    cache.get(
+      url,
+      { "Authorization": "Bearer old" },
+      @config.McpConnectionMode::Auto,
+    )
+    is None,
+    content="true",
+  )
+}
+
+///|
 test "native tool cache: evicts least recently used entries" {
   let cache = tool_catalog_cache(max_entries=2, clock=() => 1000L)
   for url in ["https://one", "https://two"] {
