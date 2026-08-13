@@ -1,5 +1,5 @@
 import {
-  "yata-one/mcpx/core/host",
+  "yatainc/mcpx/core/host",
 }
 
 import {

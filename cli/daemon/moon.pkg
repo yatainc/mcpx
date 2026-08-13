@@ -6,17 +6,17 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/x/fs",
   "moonbitlang/x/sys",
-  "yata-one/mcpx/core/config",
-  "yata-one/mcpx/core/protocol" @mcp_client,
-  "yata-one/mcpx/native/paths" @app_paths,
-  "yata-one/mcpx/native/stdio" @mcp_stdio,
-  "yata-one/mcpx/native/storage",
+  "yatainc/mcpx/core/config",
+  "yatainc/mcpx/core/protocol" @mcp_client,
+  "yatainc/mcpx/native/paths" @app_paths,
+  "yatainc/mcpx/native/stdio" @mcp_stdio,
+  "yatainc/mcpx/native/storage",
 }
 
 import {
   "moonbitlang/async",
   "moonbitlang/x/fs",
-  "yata-one/mcpx/core/config",
+  "yatainc/mcpx/core/config",
 } for "test"
 
 supported_targets = "native+llvm"

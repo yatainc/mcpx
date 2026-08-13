@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-repo="yata-one/mcpx"
+repo="yatainc/mcpx"
 bin_dir="${MCPX_BIN_DIR:-${HOME}/.local/bin}"
 version=""
 
@@ -11,9 +11,9 @@ Usage:
   install.sh [--version <tag>] [--bin-dir <dir>]
 
 Examples:
-  curl -fsSL https://raw.githubusercontent.com/yata-one/mcpx/main/install.sh | sh
-  curl -fsSL https://raw.githubusercontent.com/yata-one/mcpx/main/install.sh | sh -s -- --version v0.1.4
-  curl -fsSL https://raw.githubusercontent.com/yata-one/mcpx/main/install.sh | sh -s -- --bin-dir /usr/local/bin
+  curl -fsSL https://raw.githubusercontent.com/yatainc/mcpx/main/install.sh | sh
+  curl -fsSL https://raw.githubusercontent.com/yatainc/mcpx/main/install.sh | sh -s -- --version v0.1.4
+  curl -fsSL https://raw.githubusercontent.com/yatainc/mcpx/main/install.sh | sh -s -- --bin-dir /usr/local/bin
 USAGE
 }
 

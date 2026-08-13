@@ -114,7 +114,7 @@ moonPlatform.buildMoonPackage {
 
   meta = {
     description = "Native CLI for MCP servers";
-    homepage = "https://github.com/yata-one/mcpx";
+    homepage = "https://github.com/yatainc/mcpx";
     license = lib.licenses.mit;
     mainProgram = "mcpx";
   };

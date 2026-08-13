@@ -1,5 +1,5 @@
 {
-  "name": "yata-one/mcpx",
+  "name": "yatainc/mcpx",
   "version": "0.1.4",
   "deps": {
     "moonbitlang/x": "0.4.47",

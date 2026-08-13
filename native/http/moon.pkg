@@ -1,7 +1,7 @@
 import {
   "moonbitlang/async/http" @async_http,
-  "yata-one/mcpx/core/http" @core_http,
-  "yata-one/mcpx/core/protocol" @mcp_client,
+  "yatainc/mcpx/core/http" @core_http,
+  "yatainc/mcpx/core/protocol" @mcp_client,
 }
 
 import {
