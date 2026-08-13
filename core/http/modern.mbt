@@ -1,7 +1,24 @@
 ///|
+priv struct ValidatedHttpTool {
+  info : @protocol.McpToolInfo
+  header_bindings : Array[McpToolHeaderBinding]
+}
+
+///|
 priv struct ModernToolCatalog {
   result : McpToolListResult
+  validated_tools : Array[ValidatedHttpTool]
   next_request_id : Int
+}
+
+///|
+fn validate_http_tool(
+  tool : @protocol.McpToolInfo,
+) -> Result[ValidatedHttpTool, String] {
+  match inspect_mcp_tool_header_bindings(tool.input_schema) {
+    Ok(header_bindings) => Ok({ info: tool, header_bindings })
+    Err(message) => Err(message)
+  }
 }
 
 ///|
@@ -27,6 +44,7 @@ async fn fetch_modern_tool_catalog(
   let pagination = @protocol.mcp_tool_pagination()
   let limits = @protocol.mcp_tool_list_limits(max_pages~, max_tools~)
   let accepted_tools : Array[@protocol.McpToolInfo] = []
+  let validated_tools : Array[ValidatedHttpTool] = []
   let mut request_id = first_request_id
   let mut ttl_ms = 0
   let mut cache_scope : @protocol.McpCacheScope? = None
@@ -71,8 +89,11 @@ async fn fetch_modern_tool_catalog(
     let all_tools = pagination.tools()
     for index in previous_tool_count..<all_tools.length() {
       let tool = all_tools[index]
-      match inspect_mcp_tool_header_bindings(tool.input_schema) {
-        Ok(_) => accepted_tools.push(tool)
+      match validate_http_tool(tool) {
+        Ok(validated) => {
+          validated_tools.push(validated)
+          accepted_tools.push(tool)
+        }
         Err(_) => ()
       }
     }
@@ -98,6 +119,7 @@ async fn fetch_modern_tool_catalog(
       ttl_ms~,
       cache_scope=scope,
     ),
+    validated_tools,
     next_request_id: request_id + 1,
   }
 }
@@ -163,8 +185,14 @@ async fn call_tool_modern_with_catalog(
   tool_definition~ : @protocol.McpToolInfo?,
   on_catalog_refresh~ : (McpToolListResult) -> Unit,
 ) -> Json raise McpHttpClientError {
-  let (tool, first_call_id) = match tool_definition {
-    Some(tool) if tool.name == tool_name => (tool, 2)
+  let (validated_tool, first_call_id) = match tool_definition {
+    Some(tool) if tool.name == tool_name => {
+      let validated = match validate_http_tool(tool) {
+        Ok(value) => value
+        Err(message) => raise McpHttpClientError::Protocol(message)
+      }
+      (validated, 2)
+    }
     Some(_) =>
       raise McpHttpClientError::Protocol(
         "cached tool definition name does not match: " + tool_name,
@@ -172,8 +200,8 @@ async fn call_tool_modern_with_catalog(
     None => {
       let catalog = fetch_modern_tool_catalog(fetch, endpoint, version)
       let tool = match
-        catalog.result.tools.search_by(tool => tool.name == tool_name) {
-        Some(index) => catalog.result.tools[index]
+        catalog.validated_tools.search_by(tool => tool.info.name == tool_name) {
+        Some(index) => catalog.validated_tools[index]
         None =>
           raise McpHttpClientError::Protocol(
             "tool not found in validated tools/list: " + tool_name,
@@ -182,12 +210,8 @@ async fn call_tool_modern_with_catalog(
       (tool, catalog.next_request_id)
     }
   }
-  let bindings = match inspect_mcp_tool_header_bindings(tool.input_schema) {
-    Ok(value) => value
-    Err(message) => raise McpHttpClientError::Protocol(message)
-  }
   let parameter_headers = match
-    build_mcp_tool_parameter_headers(bindings, arguments) {
+    build_mcp_tool_parameter_headers(validated_tool.header_bindings, arguments) {
     Ok(value) => value
     Err(message) => raise McpHttpClientError::Protocol(message)
   }
@@ -208,20 +232,18 @@ async fn call_tool_modern_with_catalog(
         first_request_id=first_call_id + 1,
       )
       let refreshed_tool = match
-        refreshed.result.tools.search_by(tool => tool.name == tool_name) {
-        Some(index) => refreshed.result.tools[index]
+        refreshed.validated_tools.search_by(tool => tool.info.name == tool_name) {
+        Some(index) => refreshed.validated_tools[index]
         None =>
           raise McpHttpClientError::Protocol(
             "tool not found after header schema refresh: " + tool_name,
           )
       }
-      let refreshed_bindings = match
-        inspect_mcp_tool_header_bindings(refreshed_tool.input_schema) {
-        Ok(value) => value
-        Err(message) => raise McpHttpClientError::Protocol(message)
-      }
       let refreshed_headers = match
-        build_mcp_tool_parameter_headers(refreshed_bindings, arguments) {
+        build_mcp_tool_parameter_headers(
+          refreshed_tool.header_bindings,
+          arguments,
+        ) {
         Ok(value) => value
         Err(message) => raise McpHttpClientError::Protocol(message)
       }
