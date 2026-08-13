@@ -384,21 +384,40 @@ fn append_schema_argument_lines(lines : Array[String], schema : Json) -> Unit {
 
 ///|
 fn should_display_complete_input_schema(schema : Json) -> Bool {
-  match schema {
-    Object(obj) =>
-      for key, _ in obj {
-        if key != "type" &&
-          key != "properties" &&
-          key != "required" &&
-          key != "description" &&
-          key != "title" {
-          return true
-        }
-      } nobreak {
-        false
-      }
-    _ => true
+  schema_requires_complete_display(schema, depth=0)
+}
+
+///|
+fn schema_requires_complete_display(schema : Json, depth~ : Int) -> Bool {
+  if depth > 64 {
+    return true
   }
+  let obj = match schema {
+    Object(value) => value
+    _ => return true
+  }
+  for key, value in obj {
+    if key == "properties" {
+      match value {
+        Object(properties) =>
+          for _, property_schema in properties {
+            if schema_requires_complete_display(
+                property_schema,
+                depth=depth + 1,
+              ) {
+              return true
+            }
+          }
+        _ => return true
+      }
+    } else if key != "type" &&
+      key != "required" &&
+      key != "description" &&
+      key != "title" {
+      return true
+    }
+  }
+  false
 }
 
 ///|

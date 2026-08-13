@@ -53,6 +53,21 @@ test "mcpx info: displays composition input and primitive output schemas" {
 }
 
 ///|
+test "mcpx info: displays nested JSON Schema constructs without loss" {
+  let output = tool_schema_result(
+    "lookup",
+    @mcp_client.mcp_tool_info(name="find", input_schema={
+      "type": "object",
+      "properties": {
+        "value": { "oneOf": [{ "type": "string" }, { "type": "integer" }] },
+      },
+    }),
+  )
+  inspect(output.contains("Input Schema:"), content="true")
+  inspect(output.contains("\"oneOf\""), content="true")
+}
+
+///|
 test "mcpx info: keeps concise output for basic schemas" {
   let output = tool_schema_result(
     "search",
