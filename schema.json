@@ -108,14 +108,14 @@
     },
     "protocol": {
       "type": "object",
-      "description": "MCP connection handling. Protocol-version negotiation and request routing remain independent of this mode.",
+      "description": "MCP connection lifecycle preference. The selected lifecycle determines protocol-version negotiation and session handling.",
       "required": ["mode"],
       "additionalProperties": false,
       "properties": {
         "mode": {
           "type": "string",
           "enum": ["auto", "stateful", "stateless"],
-          "description": "'auto' detects session handling, 'stateful' retains server-issued session state, and 'stateless' never retains protocol-level session state."
+          "description": "'auto' tries 2026-07-28 discovery with explicit legacy fallback, 'stateful' directly uses initialize-era MCP and retains server-issued sessions, and 'stateless' requires 2026-07-28 without downgrade or session IDs."
         }
       }
     },

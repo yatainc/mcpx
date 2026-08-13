@@ -6,9 +6,9 @@ test "discovery: builds request and decodes canonical discover result" {
     client_version="0.1.4",
   )
   inspect(
-    mcp_discover_request(id=1, context).stringify().contains(
-      "\"method\":\"server/discover\"",
-    ),
+    mcp_discover_request(id=1, context)
+    .stringify()
+    .contains("\"method\":\"server/discover\""),
     content="true",
   )
   let decoded = decode_mcp_discover_response(
@@ -67,6 +67,25 @@ test "discovery: accepts deployed RC serverInfo and cache defaults" {
 }
 
 ///|
+test "discovery: ignores malformed optional cache hints" {
+  let decoded = decode_mcp_discover_response(
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "resultType": "complete",
+        "supportedVersions": ["2026-07-28"],
+        "ttlMs": "later",
+        "cacheScope": "organization",
+      },
+    },
+    expected_id=1,
+  ).unwrap()
+  inspect(decoded.ttl_ms, content="0")
+  inspect(decoded.cache_scope, content="private")
+}
+
+///|
 test "discovery: rejects mismatched id and malformed required fields" {
   inspect(
     decode_mcp_discover_response(
@@ -79,7 +98,8 @@ test "discovery: rejects mismatched id and malformed required fields" {
         },
       },
       expected_id=1,
-    ) is Err(_),
+    )
+    is Err(_),
     content="true",
   )
   inspect(
@@ -87,10 +107,14 @@ test "discovery: rejects mismatched id and malformed required fields" {
       {
         "jsonrpc": "2.0",
         "id": 1,
-        "result": { "resultType": "complete", "protocolVersions": ["2026-07-28"] },
+        "result": {
+          "resultType": "complete",
+          "protocolVersions": ["2026-07-28"],
+        },
       },
       expected_id=1,
-    ) is Err(_),
+    )
+    is Err(_),
     content="true",
   )
   inspect(
@@ -101,7 +125,8 @@ test "discovery: rejects mismatched id and malformed required fields" {
         "result": { "supportedVersions": ["2026-07-28"] },
       },
       expected_id=1,
-    ) is Err(_),
+    )
+    is Err(_),
     content="true",
   )
 }

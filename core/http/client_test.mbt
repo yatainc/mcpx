@@ -119,48 +119,76 @@ async test "core http: method-not-found discovery falls back and reuses session"
 }
 
 ///|
-async test "core http: explicit stateless drops initialize-era session" {
-  let sessions : Array[String] = []
-  ignore(
+async test "core http: explicit stateless rejects initialize-era fallback" {
+  let methods : Array[String] = []
+  try
     list_tools(
       req => {
-        sessions.push(header(req.headers, "Mcp-Session-Id"))
-        match rpc_method(req.body) {
-          "server/discover" =>
-            http_response(
-              status_code=400,
-              content_type=Some("application/json"),
-              body=(
-                #|{"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"not found"}}
-              ),
-            )
-          "initialize" =>
-            http_response(
-              status_code=200,
-              content_type=Some("application/json"),
-              headers={ "Mcp-Session-Id": "must-not-send" },
-              body=(
-                #|{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}
-              ),
-            )
-          "notifications/initialized" => http_response(status_code=202, body="")
-          _ =>
-            http_response(
-              status_code=200,
-              content_type=Some("application/json"),
-              body=(
-                #|{"jsonrpc":"2.0","id":2,"result":{"tools":[]}}
-              ),
-            )
-        }
+        methods.push(rpc_method(req.body))
+        http_response(
+          status_code=400,
+          content_type=Some("application/json"),
+          body=(
+            #|{"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"not found"}}
+          ),
+        )
       },
       http_endpoint(
         url="https://mcp.example/mcp",
         mode=@config.McpConnectionMode::Stateless,
       ),
+    )
+  catch {
+    McpHttpClientError::ModeProtocolIncompatible(mode, era) => {
+      inspect(mode, content="stateless")
+      inspect(era, content="initialize-era")
+    }
+    _ => fail("expected mode/protocol incompatibility")
+  } noraise {
+    _ => fail("expected stateless negotiation to fail")
+  }
+  inspect(methods.join(","), content="server/discover")
+}
+
+///|
+async test "core http: explicit stateful initializes without discovery" {
+  let seen : Array[HttpRequest] = []
+  let tools = list_tools(
+    req => {
+      seen.push(req)
+      match rpc_method(req.body) {
+        "initialize" =>
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            headers={ "Mcp-Session-Id": "sid123" },
+            body=(
+              #|{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}
+            ),
+          )
+        "notifications/initialized" => http_response(status_code=202, body="")
+        _ =>
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":2,"result":{"tools":[]}}
+            ),
+          )
+      }
+    },
+    http_endpoint(
+      url="https://mcp.example/mcp",
+      mode=@config.McpConnectionMode::Stateful,
     ),
   )
-  inspect(sessions.join(","), content=",,,")
+  inspect(tools.length(), content="0")
+  inspect(
+    seen.map(req => rpc_method(req.body)).join(","),
+    content="initialize,notifications/initialized,tools/list",
+  )
+  inspect(header(seen[1].headers, "Mcp-Session-Id"), content="sid123")
+  inspect(header(seen[2].headers, "Mcp-Session-Id"), content="sid123")
 }
 
 ///|

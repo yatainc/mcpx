@@ -122,14 +122,15 @@ Add `"$schema"` for editor autocompletion and validation:
 
 ### MCP protocol modes
 
-`protocol.mode` controls connection and session handling; it does not select the
-wire format. Accepted values are `auto`, `stateful`, and `stateless`. The negotiated
-MCP protocol version determines request encoding.
+`protocol.mode` controls the MCP connection lifecycle. Accepted values are `auto`,
+`stateful`, and `stateless`; the resulting protocol version determines request
+encoding.
 
-HTTP defaults to `auto` and supports discovery, `tools/list`, and `tools/call` over
-MCP `2026-07-28`, with initialize-era fallback for explicit legacy signals.
-`stateless` never sends a server-issued session ID. `stateful` rejects a modern-only
-server that cannot provide protocol-level session state.
+HTTP defaults to `auto`: it tries MCP `2026-07-28` discovery and falls back to the
+initialize lifecycle only for explicit legacy signals. `stateful` selects the
+initialize lifecycle directly and retains a server-issued session ID. `stateless`
+requires MCP `2026-07-28`, never sends a session ID, and does not silently downgrade
+to an initialize-era protocol.
 
 For stdio, omitted mode and explicit `stateful` preserve initialize-era behavior.
 Explicit `auto` and `stateless` are rejected until safe sibling-process probing is

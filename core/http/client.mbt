@@ -38,20 +38,27 @@ async fn negotiate(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
 ) -> Negotiation raise McpHttpClientError {
+  // An explicit stateful preference selects the initialize lifecycle directly.
+  // Only auto mode may downgrade from discovery to initialize-era MCP.
+  if endpoint.mode == @config.McpConnectionMode::Stateful {
+    return Negotiation::InitializeEra(@protocol.McpProtocolVersion::V2025_11_25)
+  }
   let requested = @protocol.McpProtocolVersion::V2026_07_28
   let response = send_discover(fetch, endpoint, requested)
   if is_clear_legacy_signal(response) {
-    return Negotiation::InitializeEra(@protocol.McpProtocolVersion::V2025_11_25)
+    if endpoint.mode == @config.McpConnectionMode::Auto {
+      return Negotiation::InitializeEra(
+        @protocol.McpProtocolVersion::V2025_11_25,
+      )
+    }
+    raise McpHttpClientError::ModeProtocolIncompatible(
+      "stateless", "initialize-era",
+    )
   }
   let discover = decode_discover_http_response(response) catch {
     McpHttpClientError::UnsupportedProtocolVersion(supported) => {
       let parsed = supported.map(@protocol.parse_mcp_protocol_version)
-      let allow_modern = endpoint.mode != @config.McpConnectionMode::Stateful
-      match
-        @protocol.newest_compatible_mcp_protocol_version(
-          parsed,
-          allow_stateless_core=allow_modern,
-        ) {
+      match select_compatible_version(endpoint.mode, parsed) {
         Some(version) if version == requested => {
           let retry = send_discover(fetch, endpoint, version)
           return negotiation_from_discover(
@@ -73,7 +80,7 @@ async fn negotiate(
             @protocol.McpProtocolFamily::Unsupported =>
               raise McpHttpClientError::UnsupportedProtocolVersion(supported)
           }
-        None => raise McpHttpClientError::UnsupportedProtocolVersion(supported)
+        None => raise_incompatible_or_unsupported(endpoint.mode, parsed)
       }
     }
     error => raise error
@@ -86,26 +93,10 @@ fn negotiation_from_discover(
   mode : @config.McpConnectionMode,
   discover : @protocol.McpDiscoverInfo,
 ) -> Negotiation raise McpHttpClientError {
-  let allow_modern = mode != @config.McpConnectionMode::Stateful
   let selected = match
-    @protocol.newest_compatible_mcp_protocol_version(
-      discover.protocol_versions,
-      allow_stateless_core=allow_modern,
-    ) {
+    select_compatible_version(mode, discover.protocol_versions) {
     Some(value) => value
-    None => {
-      if mode == @config.McpConnectionMode::Stateful &&
-        discover.protocol_versions.contains(
-          @protocol.McpProtocolVersion::V2026_07_28,
-        ) {
-        raise McpHttpClientError::ModeProtocolIncompatible(
-          "stateful", "2026-07-28",
-        )
-      }
-      raise McpHttpClientError::UnsupportedProtocolVersion(
-        discover.protocol_versions.map(@protocol.mcp_protocol_version_to_string),
-      )
-    }
+    None => raise_incompatible_or_unsupported(mode, discover.protocol_versions)
   }
   match @protocol.mcp_protocol_family(selected) {
     @protocol.McpProtocolFamily::StatelessCore => {
@@ -122,6 +113,60 @@ fn negotiation_from_discover(
       raise McpHttpClientError::UnsupportedProtocolVersion([
         @protocol.mcp_protocol_version_to_string(selected),
       ])
+  }
+}
+
+///|
+fn select_compatible_version(
+  mode : @config.McpConnectionMode,
+  advertised : Array[@protocol.McpProtocolVersion],
+) -> @protocol.McpProtocolVersion? {
+  match mode {
+    @config.McpConnectionMode::Auto =>
+      @protocol.newest_compatible_mcp_protocol_version(
+        advertised,
+        allow_stateless_core=true,
+      )
+    @config.McpConnectionMode::Stateful =>
+      @protocol.newest_compatible_mcp_protocol_version(
+        advertised,
+        allow_stateless_core=false,
+      )
+    @config.McpConnectionMode::Stateless =>
+      if advertised.contains(@protocol.McpProtocolVersion::V2026_07_28) {
+        Some(@protocol.McpProtocolVersion::V2026_07_28)
+      } else {
+        None
+      }
+  }
+}
+
+///|
+fn[T] raise_incompatible_or_unsupported(
+  mode : @config.McpConnectionMode,
+  advertised : Array[@protocol.McpProtocolVersion],
+) -> T raise McpHttpClientError {
+  let has_modern = advertised.any(version => {
+    @protocol.mcp_protocol_family(version) ==
+    @protocol.McpProtocolFamily::StatelessCore
+  })
+  let has_initialize = advertised.any(version => {
+    @protocol.mcp_protocol_family(version) ==
+    @protocol.McpProtocolFamily::InitializeEra
+  })
+  match mode {
+    @config.McpConnectionMode::Stateful if has_modern =>
+      raise McpHttpClientError::ModeProtocolIncompatible(
+        "stateful", "2026-07-28",
+      )
+    @config.McpConnectionMode::Stateless if has_initialize =>
+      raise McpHttpClientError::ModeProtocolIncompatible(
+        "stateless", "initialize-era",
+      )
+    _ =>
+      raise McpHttpClientError::UnsupportedProtocolVersion(
+        advertised.map(@protocol.mcp_protocol_version_to_string),
+      )
   }
 }
 

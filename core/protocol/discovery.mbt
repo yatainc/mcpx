@@ -44,7 +44,8 @@ pub fn decode_mcp_discover_response(
   }
   let versions_json = match result.get("supportedVersions") {
     Some(Array(value)) => value
-    _ => return Err(InvalidResponse("discover result missing supportedVersions"))
+    _ =>
+      return Err(InvalidResponse("discover result missing supportedVersions"))
   }
   let versions = []
   for value in versions_json {
@@ -60,7 +61,8 @@ pub fn decode_mcp_discover_response(
   let capabilities = result.get("capabilities").unwrap_or(Json::empty_object())
   let instructions = match result.get("instructions") {
     Some(String(value)) => Some(value)
-    Some(_) => return Err(InvalidResponse("discover instructions must be string"))
+    Some(_) =>
+      return Err(InvalidResponse("discover instructions must be string"))
     None => None
   }
   let raw_meta = result.get("_meta").unwrap_or(Json::empty_object())
@@ -73,17 +75,16 @@ pub fn decode_mcp_discover_response(
     Some(value) => Some(value)
     None => result.get("serverInfo")
   }
+  // Cache hints do not affect protocol correctness. Ignore malformed or
+  // extension values rather than rejecting an otherwise usable discovery.
   let ttl_ms = match result.get("ttlMs") {
     Some(Number(value, ..)) if value.trunc() == value && value >= 0.0 =>
       value.to_int()
-    Some(_) => return Err(InvalidResponse("discover ttlMs must be non-negative integer"))
-    None => 0
+    _ => 0
   }
   let cache_scope = match result.get("cacheScope") {
     Some(String("public")) => "public"
-    Some(String("private")) => "private"
-    Some(_) => return Err(InvalidResponse("discover cacheScope must be public or private"))
-    None => "private"
+    _ => "private"
   }
   Ok({
     protocol_versions: versions,
