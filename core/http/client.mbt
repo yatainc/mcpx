@@ -340,10 +340,9 @@ async fn fetch_modern_tool_catalog(
       request,
     )
     let page = match
-      @protocol.decode_mcp_tool_list_page(
+      @protocol.decode_mcp_modern_tool_list_page(
         response_json(response, expected_id=request_id),
         expected_id=request_id,
-        require_result_type=true,
       ) {
       Ok(value) => value
       Err(error) => raise protocol_error_to_http(error)
@@ -428,11 +427,7 @@ async fn call_tool_modern(
   let response = post_json(fetch, endpoint, headers, request)
   let json = response_json(response, expected_id=request_id)
   match
-    @protocol.decode_mcp_complete_result(
-      json,
-      expected_id=request_id,
-      require_result_type=true,
-    ) {
+    @protocol.decode_mcp_modern_complete_result(json, expected_id=request_id) {
     Ok(value) => value
     Err(error) => raise protocol_error_to_http(error)
   }

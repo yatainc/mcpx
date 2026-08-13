@@ -172,11 +172,7 @@ pub async fn StdioMcpClient::call_tool(
         timeout_ms=self.response_timeout_ms,
       )
       match
-        @mcp_client.decode_mcp_complete_result(
-          response,
-          expected_id=id,
-          require_result_type=true,
-        ) {
+        @mcp_client.decode_mcp_modern_complete_result(response, expected_id=id) {
         Ok(value) => value
         Err(_) => raise McpStdioError::Protocol("mcp protocol error")
       }
@@ -232,11 +228,7 @@ pub async fn StdioMcpClient::list_tools(
           timeout_ms=self.response_timeout_ms,
         )
         let page = match
-          @mcp_client.decode_mcp_tool_list_page(
-            response,
-            expected_id=id,
-            require_result_type=true,
-          ) {
+          @mcp_client.decode_mcp_modern_tool_list_page(response, expected_id=id) {
           Ok(value) => value
           Err(_) => raise McpStdioError::Protocol("mcp protocol error")
         }

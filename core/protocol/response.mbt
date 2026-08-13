@@ -63,18 +63,25 @@ pub fn decode_mcp_tool_list_response(
   response : Json,
   expected_id~ : Int,
 ) -> Result[Array[McpToolInfo], McpProtocolError] {
-  match
-    decode_mcp_tool_list_page(response, expected_id~, require_result_type=false) {
+  match decode_mcp_tool_list_page_inner(response, expected_id~, modern=false) {
     Ok(page) => Ok(page.tools)
     Err(error) => Err(error)
   }
 }
 
 ///|
-pub fn decode_mcp_tool_list_page(
+pub fn decode_mcp_modern_tool_list_page(
   response : Json,
   expected_id~ : Int,
-  require_result_type~ : Bool,
+) -> Result[McpToolListPage, McpProtocolError] {
+  decode_mcp_tool_list_page_inner(response, expected_id~, modern=true)
+}
+
+///|
+fn decode_mcp_tool_list_page_inner(
+  response : Json,
+  expected_id~ : Int,
+  modern~ : Bool,
 ) -> Result[McpToolListPage, McpProtocolError] {
   let result = decode_mcp_result(response, expected_id~) catch {
     error => return Err(error)
@@ -101,7 +108,7 @@ pub fn decode_mcp_tool_list_page(
         ),
       )
     None =>
-      if require_result_type {
+      if modern {
         return Err(
           McpProtocolError::InvalidResponse(
             "tools/list result missing resultType",
@@ -161,7 +168,23 @@ fn decode_result_type(value : Json?) -> McpResultType? {
 pub fn decode_mcp_complete_result(
   response : Json,
   expected_id~ : Int,
-  require_result_type? : Bool = false,
+) -> Result[Json, McpProtocolError] {
+  decode_mcp_complete_result_inner(response, expected_id~, modern=false)
+}
+
+///|
+pub fn decode_mcp_modern_complete_result(
+  response : Json,
+  expected_id~ : Int,
+) -> Result[Json, McpProtocolError] {
+  decode_mcp_complete_result_inner(response, expected_id~, modern=true)
+}
+
+///|
+fn decode_mcp_complete_result_inner(
+  response : Json,
+  expected_id~ : Int,
+  modern~ : Bool,
 ) -> Result[Json, McpProtocolError] {
   let result = decode_mcp_result(response, expected_id~) catch {
     error => return Err(error)
@@ -171,7 +194,7 @@ pub fn decode_mcp_complete_result(
     _ => None
   }
   match result_type {
-    None if require_result_type =>
+    None if modern =>
       Err(McpProtocolError::InvalidResponse("result missing resultType"))
     None | Some(McpResultType::Complete) => Ok(result)
     Some(McpResultType::InputRequired) =>

@@ -134,7 +134,7 @@ test "mcp response: preserves arbitrary input and output schemas" {
 
 ///|
 test "mcp response: decodes complete modern tool list page" {
-  let page = decode_mcp_tool_list_page(
+  let page = decode_mcp_modern_tool_list_page(
     {
       "jsonrpc": "2.0",
       "id": 2,
@@ -147,7 +147,6 @@ test "mcp response: decodes complete modern tool list page" {
       },
     },
     expected_id=2,
-    require_result_type=true,
   ).unwrap()
   inspect(page.result_type == McpResultType::Complete, content="true")
   inspect(page.tools[0].name, content="search")
@@ -158,21 +157,18 @@ test "mcp response: decodes complete modern tool list page" {
 
 ///|
 test "mcp response: defaults legacy tool list page metadata" {
-  let page = decode_mcp_tool_list_page(
+  let tools = decode_mcp_tool_list_response(
     { "jsonrpc": "2.0", "id": 2, "result": { "tools": [] } },
     expected_id=2,
-    require_result_type=false,
   ).unwrap()
-  inspect(page.result_type == McpResultType::Complete, content="true")
-  inspect(page.ttl_ms, content="0")
-  inspect(page.cache_scope == McpCacheScope::Private, content="true")
+  inspect(tools.length(), content="0")
 }
 
 ///|
 test "mcp response: rejects invalid modern tool list result types" {
   for result_type in ["input_required", "extension/unknown"] {
     inspect(
-      decode_mcp_tool_list_page(
+      decode_mcp_modern_tool_list_page(
         Json::object({
           "jsonrpc": Json::string("2.0"),
           "id": Json::number(2.0, repr="2"),
@@ -182,17 +178,15 @@ test "mcp response: rejects invalid modern tool list result types" {
           }),
         }),
         expected_id=2,
-        require_result_type=true,
       )
       is Err(_),
       content="true",
     )
   }
   inspect(
-    decode_mcp_tool_list_page(
+    decode_mcp_modern_tool_list_page(
       { "jsonrpc": "2.0", "id": 2, "result": { "tools": [] } },
       expected_id=2,
-      require_result_type=true,
     )
     is Err(_),
     content="true",
