@@ -133,9 +133,9 @@ requires MCP `2026-07-28`, never sends a session ID, and does not silently downg
 to an initialize-era protocol.
 
 For stdio, omitted mode and explicit `stateful` preserve initialize-era behavior.
-Explicit `auto` and `stateless` are rejected until safe sibling-process probing is
-implemented. This is independent of stdio `lifecycle.mode`, which only controls
-process reuse.
+Explicit `auto` tries `server/discover` and falls back on JSON-RPC method-not-found;
+`stateless` requires MCP `2026-07-28`. This is independent of stdio
+`lifecycle.mode`, which only controls process reuse.
 
 ### Environment values
 
@@ -196,7 +196,7 @@ bash scripts/benchmark.sh
 ## Roadmap
 
 - [x] support MCP `2026-07-28` discovery, `tools/list`, and `tools/call` over HTTP
-- [ ] add safe MCP `2026-07-28` stdio negotiation
+- [x] add MCP `2026-07-28` stdio negotiation
 - [ ] publish the JS build as a library package
 - [ ] provide an npm package that downloads/installs the native CLI
 

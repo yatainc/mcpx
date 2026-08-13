@@ -399,6 +399,7 @@ async fn create_entry(
     args=server.args,
     env=server.env,
     cwd=server.cwd,
+    mode=@config.effective_connection_mode(server),
   ) catch {
     _ => raise McpxDaemonError::Stdio("mcp stdio error")
   }

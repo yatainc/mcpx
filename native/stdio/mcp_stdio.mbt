@@ -20,9 +20,17 @@ priv struct StdioConnection {
 }
 
 ///|
+pub(all) enum StdioProtocolLifecycle {
+  Initialize
+  Stateless
+}
+
+///|
 pub struct StdioMcpClient {
   priv conn : StdioConnection
   client : @mcp_client.McpClient
+  lifecycle : StdioProtocolLifecycle
+  next_request_id : Ref[Int]
 }
 
 ///|
@@ -32,14 +40,16 @@ pub async fn[X] stdio_mcp_connect(
   args~ : Array[String],
   env~ : Map[String, String],
   cwd~ : String?,
+  mode? : @config.McpConnectionMode = @config.McpConnectionMode::Stateful,
 ) -> StdioMcpClient raise McpStdioError {
   let conn = spawn_stdio(group, command, args, env, cwd)
   let client = @mcp_client.mcp_client(
     client_name="mcpx",
     client_version="0.1.4",
+    protocol_version=@mcp_client.MCP_PROTOCOL_VERSION_LEGACY,
   )
-  initialize_stdio(conn, client)
-  { conn, client }
+  let lifecycle = negotiate_stdio(conn, client, mode)
+  { conn, client, lifecycle, next_request_id: Ref(2) }
 }
 
 ///|
@@ -48,14 +58,35 @@ pub async fn StdioMcpClient::call_tool(
   tool_name~ : String,
   arguments~ : Json,
 ) -> Json raise McpStdioError {
-  let request = self.client.tool_call_request(name=tool_name, arguments~)
-  write_json_line(self.conn, request.message)
-  let id = request.expected_id() catch {
-    _ => raise McpStdioError::Protocol("mcp protocol error")
-  }
-  let response = read_response_for_id(self.conn, expected_id=id)
-  self.client.accept_tool_call_response(request, response) catch {
-    _ => raise McpStdioError::Protocol("mcp protocol error")
+  match self.lifecycle {
+    Initialize => {
+      let request = self.client.tool_call_request(name=tool_name, arguments~)
+      write_json_line(self.conn, request.message)
+      let id = request.expected_id() catch {
+        _ => raise McpStdioError::Protocol("mcp protocol error")
+      }
+      let response = read_response_for_id(self.conn, expected_id=id)
+      self.client.accept_tool_call_response(request, response) catch {
+        _ => raise McpStdioError::Protocol("mcp protocol error")
+      }
+    }
+    Stateless => {
+      let id = take_modern_request_id(self)
+      write_json_line(
+        self.conn,
+        @mcp_client.mcp_tool_call_request(
+          id~,
+          name=tool_name,
+          arguments~,
+          client_name="mcpx",
+          client_version="0.1.4",
+        ),
+      )
+      let response = read_response_for_id(self.conn, expected_id=id)
+      @mcp_client.decode_mcp_result(response, expected_id=id) catch {
+        _ => raise McpStdioError::Protocol("mcp protocol error")
+      }
+    }
   }
 }
 
@@ -63,14 +94,35 @@ pub async fn StdioMcpClient::call_tool(
 pub async fn StdioMcpClient::list_tools(
   self : StdioMcpClient,
 ) -> Array[@mcp_client.McpToolInfo] raise McpStdioError {
-  let request = self.client.tools_list_request()
-  write_json_line(self.conn, request.message)
-  let id = request.expected_id() catch {
-    _ => raise McpStdioError::Protocol("mcp protocol error")
-  }
-  let response = read_response_for_id(self.conn, expected_id=id)
-  self.client.accept_tools_list_response(request, response) catch {
-    _ => raise McpStdioError::Protocol("mcp protocol error")
+  match self.lifecycle {
+    Initialize => {
+      let request = self.client.tools_list_request()
+      write_json_line(self.conn, request.message)
+      let id = request.expected_id() catch {
+        _ => raise McpStdioError::Protocol("mcp protocol error")
+      }
+      let response = read_response_for_id(self.conn, expected_id=id)
+      self.client.accept_tools_list_response(request, response) catch {
+        _ => raise McpStdioError::Protocol("mcp protocol error")
+      }
+    }
+    Stateless => {
+      let id = take_modern_request_id(self)
+      write_json_line(
+        self.conn,
+        @mcp_client.mcp_tools_list_request(
+          id~,
+          client_name="mcpx",
+          client_version="0.1.4",
+        ),
+      )
+      let response = read_response_for_id(self.conn, expected_id=id)
+      match
+        @mcp_client.decode_mcp_tool_list_response(response, expected_id=id) {
+        Ok(value) => value
+        Err(_) => raise McpStdioError::Protocol("mcp protocol error")
+      }
+    }
   }
 }
 
@@ -87,9 +139,10 @@ pub async fn stdio_mcp_call_tool(
   cwd~ : String?,
   tool_name~ : String,
   arguments~ : Json,
+  mode? : @config.McpConnectionMode = @config.McpConnectionMode::Stateful,
 ) -> Json raise McpStdioError {
   @async.with_task_group(group => {
-    let client = stdio_mcp_connect(group, command~, args~, env~, cwd~)
+    let client = stdio_mcp_connect(group, command~, args~, env~, cwd~, mode~)
     defer client.close()
     client.call_tool(tool_name~, arguments~)
   }) catch {
@@ -103,9 +156,10 @@ pub async fn stdio_mcp_list_tools(
   args~ : Array[String],
   env~ : Map[String, String],
   cwd~ : String?,
+  mode? : @config.McpConnectionMode = @config.McpConnectionMode::Stateful,
 ) -> Array[@mcp_client.McpToolInfo] raise McpStdioError {
   @async.with_task_group(group => {
-    let client = stdio_mcp_connect(group, command~, args~, env~, cwd~)
+    let client = stdio_mcp_connect(group, command~, args~, env~, cwd~, mode~)
     defer client.close()
     client.list_tools()
   }) catch {
@@ -121,6 +175,50 @@ async fn drain_process_stderr(reader : @process.ReadFromProcess) -> Unit {
       Some(_) => ()
       None => break
     }
+  }
+}
+
+///|
+fn take_modern_request_id(client : StdioMcpClient) -> Int {
+  let id = client.next_request_id.val
+  client.next_request_id.val = id + 1
+  id
+}
+
+///|
+async fn negotiate_stdio(
+  conn : StdioConnection,
+  client : @mcp_client.McpClient,
+  mode : @config.McpConnectionMode,
+) -> StdioProtocolLifecycle raise McpStdioError {
+  if mode == @config.McpConnectionMode::Stateful {
+    initialize_stdio(conn, client)
+    return StdioProtocolLifecycle::Initialize
+  }
+  let context = @mcp_client.mcp_request_context(
+    protocol=@mcp_client.McpProtocolVersion::V2026_07_28,
+    client_name="mcpx",
+    client_version="0.1.4",
+  )
+  write_json_line(conn, @mcp_client.mcp_discover_request(id=1, context))
+  let response = read_response_for_id(conn, expected_id=1)
+  match @mcp_client.decode_mcp_discover_response(response, expected_id=1) {
+    Ok(discover) =>
+      if discover.protocol_versions.contains(
+          @mcp_client.McpProtocolVersion::V2026_07_28,
+        ) {
+        StdioProtocolLifecycle::Stateless
+      } else {
+        raise McpStdioError::Protocol("MCP 2026-07-28 is not supported")
+      }
+    Err(@mcp_client.McpProtocolError::RemoteError(-32601, _)) =>
+      if mode == @config.McpConnectionMode::Auto {
+        initialize_stdio(conn, client)
+        StdioProtocolLifecycle::Initialize
+      } else {
+        raise McpStdioError::Protocol("stateless MCP is not supported")
+      }
+    Err(_) => raise McpStdioError::Protocol("MCP discovery failed")
   }
 }
 

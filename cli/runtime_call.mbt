@@ -20,11 +20,7 @@ async fn run_call(
         Err(message) => return error_result(message)
       }
       match resolved_server.transport {
-        @config.ServerTransport::Stdio => {
-          match unsupported_stdio_protocol_mode(resolved_server) {
-            Some(message) => return error_result(message)
-            None => ()
-          }
+        @config.ServerTransport::Stdio =>
           if is_keep_alive_server(resolved_server) {
             run_call_daemon(
               command,
@@ -36,7 +32,6 @@ async fn run_call(
           } else {
             run_call_stdio(command, resolved_server, stdin_json~)
           }
-        }
         @config.ServerTransport::Http =>
           match resolved_server.url {
             None => error_result("server has no url: " + command.server)
@@ -169,6 +164,7 @@ async fn run_call_stdio(
     args=server.args,
     env=server.env,
     cwd=server.cwd,
+    mode=@config.effective_connection_mode(server),
     tool_name=command.tool,
     arguments~,
   ) catch {

@@ -31,11 +31,7 @@ async fn run_info(
         Err(message) => return error_result(message)
       }
       match resolved_server.transport {
-        @config.ServerTransport::Stdio => {
-          match unsupported_stdio_protocol_mode(resolved_server) {
-            Some(message) => return error_result(message)
-            None => ()
-          }
+        @config.ServerTransport::Stdio =>
           if is_keep_alive_server(resolved_server) {
             run_info_daemon(
               target_server,
@@ -47,7 +43,6 @@ async fn run_info(
           } else {
             run_info_stdio(target_server, resolved_server, command.tool)
           }
-        }
         @config.ServerTransport::Http =>
           match resolved_server.url {
             None => error_result("server has no url: " + target_server)
@@ -190,6 +185,7 @@ async fn run_info_stdio(
     args=server.args,
     env=server.env,
     cwd=server.cwd,
+    mode=@config.effective_connection_mode(server),
   ) catch {
     _ => return error_result("mcp stdio error")
   }

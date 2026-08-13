@@ -3,6 +3,7 @@ import {
   "moonbitlang/async/process",
   "moonbitlang/core/json",
   "yatainc/mcpx/core/protocol" @mcp_client,
+  "yatainc/mcpx/core/config",
 }
 
 import {
