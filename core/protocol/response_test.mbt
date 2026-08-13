@@ -101,6 +101,73 @@ test "mcp client response: decodes initialize tool list and call result" {
 }
 
 ///|
+test "mcp response: decodes complete modern tool list page" {
+  let page = decode_mcp_tool_list_page(
+    {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "result": {
+        "resultType": "complete",
+        "tools": [{ "name": "search", "inputSchema": {} }],
+        "nextCursor": "page-2",
+        "ttlMs": 60000,
+        "cacheScope": "public",
+      },
+    },
+    expected_id=2,
+    require_result_type=true,
+  ).unwrap()
+  inspect(page.result_type == McpResultType::Complete, content="true")
+  inspect(page.tools[0].name, content="search")
+  @debug.debug_inspect(page.next_cursor, content="Some(\"page-2\")")
+  inspect(page.ttl_ms, content="60000")
+  inspect(page.cache_scope == McpCacheScope::Public, content="true")
+}
+
+///|
+test "mcp response: defaults legacy tool list page metadata" {
+  let page = decode_mcp_tool_list_page(
+    { "jsonrpc": "2.0", "id": 2, "result": { "tools": [] } },
+    expected_id=2,
+    require_result_type=false,
+  ).unwrap()
+  inspect(page.result_type == McpResultType::Complete, content="true")
+  inspect(page.ttl_ms, content="0")
+  inspect(page.cache_scope == McpCacheScope::Private, content="true")
+}
+
+///|
+test "mcp response: rejects invalid modern tool list result types" {
+  for result_type in ["input_required", "extension/unknown"] {
+    inspect(
+      decode_mcp_tool_list_page(
+        Json::object({
+          "jsonrpc": Json::string("2.0"),
+          "id": Json::number(2.0, repr="2"),
+          "result": Json::object({
+            "resultType": Json::string(result_type),
+            "tools": Json::array([]),
+          }),
+        }),
+        expected_id=2,
+        require_result_type=true,
+      )
+      is Err(_),
+      content="true",
+    )
+  }
+  inspect(
+    decode_mcp_tool_list_page(
+      { "jsonrpc": "2.0", "id": 2, "result": { "tools": [] } },
+      expected_id=2,
+      require_result_type=true,
+    )
+    is Err(_),
+    content="true",
+  )
+}
+
+///|
 test "mcp client response: rejects id mismatch and surfaces json-rpc errors" {
   let mismatch = Json::object({
     "jsonrpc": Json::string("2.0"),

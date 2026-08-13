@@ -1,4 +1,26 @@
 ///|
+pub(all) enum McpResultType {
+  Complete
+  InputRequired
+  Extension(String)
+} derive(Debug, Eq)
+
+///|
+pub(all) enum McpCacheScope {
+  Public
+  Private
+} derive(Debug, Eq)
+
+///|
+pub struct McpToolListPage {
+  result_type : McpResultType
+  tools : Array[McpToolInfo]
+  next_cursor : String?
+  ttl_ms : Int
+  cache_scope : McpCacheScope
+} derive(Debug)
+
+///|
 pub struct McpInitializeInfo {
   protocol_version : String
   server_name : String?
@@ -41,29 +63,97 @@ pub fn decode_mcp_tool_list_response(
   response : Json,
   expected_id~ : Int,
 ) -> Result[Array[McpToolInfo], McpProtocolError] {
+  match
+    decode_mcp_tool_list_page(response, expected_id~, require_result_type=false) {
+    Ok(page) => Ok(page.tools)
+    Err(error) => Err(error)
+  }
+}
+
+///|
+pub fn decode_mcp_tool_list_page(
+  response : Json,
+  expected_id~ : Int,
+  require_result_type~ : Bool,
+) -> Result[McpToolListPage, McpProtocolError] {
   let result = decode_mcp_result(response, expected_id~) catch {
     error => return Err(error)
   }
-  match result {
-    Object(obj) =>
-      match obj.get("tools") {
-        Some(Array(tools)) => {
-          let decoded = []
-          for tool in tools {
-            match decode_mcp_tool(tool) {
-              Ok(value) => decoded.push(value)
-              Err(error) => return Err(error)
-            }
-          }
-          Ok(decoded)
-        }
-        _ =>
-          Err(
-            McpProtocolError::InvalidResponse("tools/list result missing tools"),
-          )
-      }
+  let obj = match result {
+    Object(value) => value
     _ =>
-      Err(McpProtocolError::InvalidResponse("tools/list result must be object"))
+      return Err(
+        McpProtocolError::InvalidResponse("tools/list result must be object"),
+      )
+  }
+  let result_type = match decode_result_type(obj.get("resultType")) {
+    Some(McpResultType::Complete) => McpResultType::Complete
+    Some(McpResultType::InputRequired) =>
+      return Err(
+        McpProtocolError::InvalidResponse(
+          "tools/list resultType input_required is not complete",
+        ),
+      )
+    Some(McpResultType::Extension(value)) =>
+      return Err(
+        McpProtocolError::InvalidResponse(
+          "unsupported tools/list resultType: " + value,
+        ),
+      )
+    None =>
+      if require_result_type {
+        return Err(
+          McpProtocolError::InvalidResponse(
+            "tools/list result missing resultType",
+          ),
+        )
+      } else {
+        McpResultType::Complete
+      }
+  }
+  let tools_json = match obj.get("tools") {
+    Some(Array(value)) => value
+    _ =>
+      return Err(
+        McpProtocolError::InvalidResponse("tools/list result missing tools"),
+      )
+  }
+  let tools = []
+  for tool in tools_json {
+    match decode_mcp_tool(tool) {
+      Ok(value) => tools.push(value)
+      Err(error) => return Err(error)
+    }
+  }
+  let next_cursor = match obj.get("nextCursor") {
+    Some(String(value)) => Some(value)
+    Some(_) =>
+      return Err(
+        McpProtocolError::InvalidResponse(
+          "tools/list nextCursor must be string",
+        ),
+      )
+    None => None
+  }
+  let ttl_ms = match obj.get("ttlMs") {
+    Some(Number(value, ..)) if value.trunc() == value && value >= 0.0 =>
+      value.to_int()
+    _ => 0
+  }
+  let cache_scope = match obj.get("cacheScope") {
+    Some(String("public")) => McpCacheScope::Public
+    _ => McpCacheScope::Private
+  }
+  Ok({ result_type, tools, next_cursor, ttl_ms, cache_scope })
+}
+
+///|
+fn decode_result_type(value : Json?) -> McpResultType? {
+  match value {
+    Some(String("complete")) => Some(McpResultType::Complete)
+    Some(String("input_required")) => Some(McpResultType::InputRequired)
+    Some(String(other)) => Some(McpResultType::Extension(other))
+    _ => None
   }
 }
 
