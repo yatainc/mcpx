@@ -46,11 +46,13 @@ pub async fn http_mcp_call_tool(
   arguments~ : Json,
   mode? : @config.McpConnectionMode = @config.McpConnectionMode::Auto,
 ) -> Json raise McpHttpError {
+  let tool_definition = cached_tool_definition(url, headers, mode, tool_name)
   @core_http.call_tool(
     native_fetch,
     @core_http.http_endpoint(url~, headers~, mode~),
     tool_name~,
     arguments~,
+    tool_definition~,
   ) catch {
     error => raise core_error_to_native(error)
   }
@@ -90,6 +92,29 @@ pub async fn http_mcp_list_tools(
     }
   }
   result.tools
+}
+
+///|
+fn cached_tool_definition(
+  url : String,
+  headers : Map[String, String],
+  mode : @config.McpConnectionMode,
+  tool_name : String,
+) -> @mcp_client.McpToolInfo? {
+  let public_key = tool_cache_key(url, mode, Map([]))
+  let private_key = tool_cache_key(url, mode, headers)
+  let tools = match cached_tools(public_key) {
+    Some(value) => Some(value)
+    None => cached_tools(private_key)
+  }
+  match tools {
+    Some(values) =>
+      match values.search_by(tool => tool.name == tool_name) {
+        Some(index) => Some(values[index])
+        None => None
+      }
+    None => None
+  }
 }
 
 ///|

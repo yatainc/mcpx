@@ -92,6 +92,73 @@ async test "native http: keeps private tool caches separated by headers" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "native http: reuses cached tool schema for calls" {
+  let methods : Array[String] = []
+  @async.with_task_group(group => {
+    let server = @async_http.Server(@socket.Addr::parse("127.0.0.1:0"))
+    defer server.close()
+    let port = server.addr.port()
+    group.spawn_bg(no_wait=true, () => {
+      server.run_forever(allow_failure=true, (_request, body, conn) => {
+        let msg = @json.parse(body.read_all().text())
+        let rpc_method = rpc_method_from_json(msg)
+        methods.push(rpc_method)
+        let id = rpc_id_from_json(msg)
+        conn.send_response(200, "OK", extra_headers={
+          "content-type": "application/json",
+        })
+        let response = if rpc_method == "server/discover" {
+          Json::object({
+            "jsonrpc": Json::string("2.0"),
+            "id": id,
+            "result": Json::object({
+              "resultType": Json::string("complete"),
+              "supportedVersions": Json::array([Json::string("2026-07-28")]),
+            }),
+          }).stringify()
+        } else if rpc_method == "tools/list" {
+          tool_list_response(id, cache_scope="private")
+        } else {
+          Json::object({
+            "jsonrpc": Json::string("2.0"),
+            "id": id,
+            "result": Json::object({
+              "resultType": Json::string("complete"),
+              "content": Json::array([]),
+            }),
+          }).stringify()
+        }
+        ignore(conn.write(response))
+        conn.end_response()
+      })
+    })
+    let url = "http://localhost:\{port}/call-cache"
+    ignore(http_mcp_list_tools(url~, headers=Map([])))
+    ignore(
+      http_mcp_call_tool(
+        url~,
+        headers=Map([]),
+        tool_name="search",
+        arguments=Json::empty_object(),
+      ),
+    )
+    ignore(
+      http_mcp_call_tool(
+        url~,
+        headers=Map([]),
+        tool_name="search",
+        arguments=Json::empty_object(),
+      ),
+    )
+  })
+  inspect(
+    methods.join(","),
+    content="server/discover,tools/list,server/discover,tools/call,server/discover,tools/call",
+  )
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "native http: refreshes tool list after TTL expires" {
   let requests = Ref(0)
   @async.with_task_group(group => {

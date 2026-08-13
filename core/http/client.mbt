@@ -39,17 +39,28 @@ pub async fn call_tool(
   endpoint : Endpoint,
   tool_name~ : String,
   arguments~ : Json,
+  tool_definition? : @protocol.McpToolInfo? = None,
 ) -> Json raise McpHttpClientError {
   match negotiate(fetch, endpoint) {
     Modern(version) => {
-      let catalog = fetch_modern_tool_catalog(fetch, endpoint, version)
-      let tool = match
-        catalog.result.tools.search_by(tool => tool.name == tool_name) {
-        Some(index) => catalog.result.tools[index]
-        None =>
+      let (tool, first_call_id) = match tool_definition {
+        Some(tool) if tool.name == tool_name => (tool, 2)
+        Some(_) =>
           raise McpHttpClientError::Protocol(
-            "tool not found in validated tools/list: " + tool_name,
+            "cached tool definition name does not match: " + tool_name,
           )
+        None => {
+          let catalog = fetch_modern_tool_catalog(fetch, endpoint, version)
+          let tool = match
+            catalog.result.tools.search_by(tool => tool.name == tool_name) {
+            Some(index) => catalog.result.tools[index]
+            None =>
+              raise McpHttpClientError::Protocol(
+                "tool not found in validated tools/list: " + tool_name,
+              )
+          }
+          (tool, catalog.next_request_id)
+        }
       }
       let bindings = match inspect_mcp_tool_header_bindings(tool.input_schema) {
         Ok(value) => value
@@ -64,7 +75,7 @@ pub async fn call_tool(
         fetch,
         endpoint,
         version,
-        request_id=catalog.next_request_id,
+        request_id=first_call_id,
         parameter_headers~,
         tool_name~,
         arguments~,
@@ -74,7 +85,7 @@ pub async fn call_tool(
             fetch,
             endpoint,
             version,
-            first_request_id=catalog.next_request_id + 1,
+            first_request_id=first_call_id + 1,
           )
           let refreshed_tool = match
             refreshed.result.tools.search_by(tool => tool.name == tool_name) {
