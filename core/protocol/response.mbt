@@ -234,10 +234,27 @@ fn decode_mcp_tool(json : Json) -> Result[McpToolInfo, McpProtocolError] {
   }
   let description = match obj.get("description") {
     Some(String(value)) => Some(value)
-    _ => None
+    Some(_) =>
+      return Err(
+        McpProtocolError::InvalidResponse("tool.description must be string"),
+      )
+    None => None
   }
-  let input_schema = obj.get("inputSchema").unwrap_or(Json::object(Map([])))
-  let output_schema = obj.get("outputSchema")
+  let input_schema = match obj.get("inputSchema") {
+    Some(Object(_) as value) => value
+    _ =>
+      return Err(
+        McpProtocolError::InvalidResponse("tool.inputSchema must be object"),
+      )
+  }
+  let output_schema = match obj.get("outputSchema") {
+    Some(Object(_) as value) => Some(value)
+    Some(_) =>
+      return Err(
+        McpProtocolError::InvalidResponse("tool.outputSchema must be object"),
+      )
+    None => None
+  }
   Ok({ name, description, input_schema, output_schema })
 }
 

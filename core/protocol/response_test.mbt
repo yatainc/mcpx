@@ -200,6 +200,32 @@ test "mcp response: rejects invalid modern tool list result types" {
 }
 
 ///|
+test "mcp response: validates tool schema fields" {
+  let missing_schema =
+    #|{"name":"missing"}
+  let invalid_input =
+    #|{"name":"input","inputSchema":[]}
+  let invalid_output =
+    #|{"name":"output","inputSchema":{},"outputSchema":"bad"}
+  let invalid_description =
+    #|{"name":"description","description":42,"inputSchema":{}}
+  let invalid_tools = [
+    missing_schema, invalid_input, invalid_output, invalid_description,
+  ]
+  for tool in invalid_tools {
+    let response = Json::object({
+      "jsonrpc": Json::string("2.0"),
+      "id": Json::number(1.0, repr="1"),
+      "result": Json::object({ "tools": Json::array([@json.parse(tool)]) }),
+    })
+    inspect(
+      decode_mcp_tool_list_response(response, expected_id=1) is Err(_),
+      content="true",
+    )
+  }
+}
+
+///|
 test "mcp response: validates complete result type" {
   let complete = decode_mcp_complete_result(
     {
