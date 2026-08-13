@@ -249,12 +249,20 @@ async test "core http: modern call sends method name and preserves arguments" {
             #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"],"capabilities":{}}}
           ),
         )
+      } else if rpc_method(req.body) == "tools/list" {
+        http_response(
+          status_code=200,
+          content_type=Some("application/json"),
+          body=(
+            #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[{"name":"search","inputSchema":{}}],"ttlMs":0,"cacheScope":"private"}}
+          ),
+        )
       } else {
         http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
-            #|{"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"ok"}]}}
+            #|{"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"ok"}]}}
           ),
         )
       }
@@ -267,9 +275,122 @@ async test "core http: modern call sends method name and preserves arguments" {
     result.stringify(),
     content="{\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]}",
   )
-  inspect(header(seen[1].headers, "Mcp-Method"), content="tools/call")
-  inspect(header(seen[1].headers, "Mcp-Name"), content="search")
-  inspect(seen[1].body.contains("\"q\":\"moonbit\""), content="true")
+  inspect(header(seen[2].headers, "Mcp-Method"), content="tools/call")
+  inspect(header(seen[2].headers, "Mcp-Name"), content="search")
+  inspect(seen[2].body.contains("\"q\":\"moonbit\""), content="true")
+}
+
+///|
+async test "core http: mirrors annotated tool arguments into headers" {
+  let seen : Array[HttpRequest] = []
+  ignore(
+    call_tool(
+      req => {
+        seen.push(req)
+        match rpc_method(req.body) {
+          "server/discover" =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}
+              ),
+            )
+          "tools/list" =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[{"name":"execute_sql","inputSchema":{"type":"object","properties":{"region":{"type":"string","x-mcp-header":"Region"}}}}],"ttlMs":0,"cacheScope":"private"}}
+              ),
+            )
+          _ =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":3,"result":{"resultType":"complete","content":[]}}
+              ),
+            )
+        }
+      },
+      http_endpoint(url="https://mcp.example/mcp"),
+      tool_name="execute_sql",
+      arguments={ "region": "日本", "query": "select 1" },
+    ),
+  )
+  inspect(
+    seen.map(req => rpc_method(req.body)).join(","),
+    content="server/discover,tools/list,tools/call",
+  )
+  inspect(
+    header(seen[2].headers, "Mcp-Param-Region"),
+    content="=?base64?5pel5pys?=",
+  )
+}
+
+///|
+async test "core http: refreshes tool headers once after HeaderMismatch" {
+  let seen : Array[HttpRequest] = []
+  ignore(
+    call_tool(
+      req => {
+        seen.push(req)
+        let index = seen.length()
+        match index {
+          1 =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}
+              ),
+            )
+          2 =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[{"name":"run","inputSchema":{"type":"object","properties":{"region":{"type":"string","x-mcp-header":"Old"}}}}],"ttlMs":0,"cacheScope":"private"}}
+              ),
+            )
+          3 =>
+            http_response(
+              status_code=400,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":3,"error":{"code":-32020,"message":"headers changed"}}
+              ),
+            )
+          4 =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":4,"result":{"resultType":"complete","tools":[{"name":"run","inputSchema":{"type":"object","properties":{"region":{"type":"string","x-mcp-header":"New"}}}}],"ttlMs":0,"cacheScope":"private"}}
+              ),
+            )
+          _ =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":5,"result":{"resultType":"complete","content":[]}}
+              ),
+            )
+        }
+      },
+      http_endpoint(url="https://mcp.example/retry-headers"),
+      tool_name="run",
+      arguments={ "region": "us-west1" },
+    ),
+  )
+  inspect(
+    seen.map(req => rpc_method(req.body)).join(","),
+    content="server/discover,tools/list,tools/call,tools/list,tools/call",
+  )
+  inspect(header(seen[2].headers, "Mcp-Param-Old"), content="us-west1")
+  inspect(header(seen[4].headers, "Mcp-Param-New"), content="us-west1")
 }
 
 ///|
@@ -287,12 +408,20 @@ async test "core http: encodes unsafe tool names only in HTTP headers" {
               #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}
             ),
           )
+        } else if rpc_method(req.body) == "tools/list" {
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[{"name":"検索","inputSchema":{}}],"ttlMs":0,"cacheScope":"private"}}
+            ),
+          )
         } else {
           http_response(
             status_code=200,
             content_type=Some("application/json"),
             body=(
-              #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","content":[]}}
+              #|{"jsonrpc":"2.0","id":3,"result":{"resultType":"complete","content":[]}}
             ),
           )
         }
@@ -302,8 +431,8 @@ async test "core http: encodes unsafe tool names only in HTTP headers" {
       arguments=Json::empty_object(),
     ),
   )
-  inspect(header(seen[1].headers, "Mcp-Name"), content="=?base64?5qSc57Si?=")
-  inspect(seen[1].body.contains("\"name\":\"検索\""), content="true")
+  inspect(header(seen[2].headers, "Mcp-Name"), content="=?base64?5qSc57Si?=")
+  inspect(seen[2].body.contains("\"name\":\"検索\""), content="true")
 }
 
 ///|

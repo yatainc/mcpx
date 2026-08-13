@@ -88,6 +88,52 @@ fn inspect_header_schema_node(
 }
 
 ///|
+pub fn build_mcp_tool_parameter_headers(
+  bindings : Array[McpToolHeaderBinding],
+  arguments : Json,
+) -> Result[Map[String, String], String] {
+  let headers : Map[String, String] = Map([])
+  for binding in bindings {
+    match json_value_at_path(arguments, binding.property_path) {
+      None => ()
+      Some(value) => {
+        let text = match (binding.value_type, value) {
+          (McpHttpHeaderValueType::StringValue, String(text)) => text
+          (McpHttpHeaderValueType::BooleanValue, True) => "true"
+          (McpHttpHeaderValueType::BooleanValue, False) => "false"
+          (McpHttpHeaderValueType::IntegerValue, Number(value, repr~)) if value.trunc() ==
+            value &&
+            value >= -9007199254740991.0 &&
+            value <= 9007199254740991.0 =>
+            repr.unwrap_or(value.to_int64().to_string())
+          _ => return Err("tool header argument type mismatch")
+        }
+        headers["Mcp-Param-" + binding.header_name] = encode_mcp_http_header_value(
+          text,
+        )
+      }
+    }
+  }
+  Ok(headers)
+}
+
+///|
+fn json_value_at_path(value : Json, path : Array[String]) -> Json? {
+  let mut current = value
+  for segment in path {
+    match current {
+      Object(obj) =>
+        match obj.get(segment) {
+          Some(next) => current = next
+          None => return None
+        }
+      _ => return None
+    }
+  }
+  Some(current)
+}
+
+///|
 fn contains_mcp_header_annotation(value : Json) -> Bool {
   match value {
     Object(obj) => {

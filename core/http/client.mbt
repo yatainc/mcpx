@@ -8,6 +8,12 @@ priv enum Negotiation {
 }
 
 ///|
+priv struct ModernToolCatalog {
+  result : McpToolListResult
+  next_request_id : Int
+}
+
+///|
 pub async fn list_tools(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
@@ -35,8 +41,72 @@ pub async fn call_tool(
   arguments~ : Json,
 ) -> Json raise McpHttpClientError {
   match negotiate(fetch, endpoint) {
-    Modern(version) =>
-      call_tool_modern(fetch, endpoint, version, tool_name~, arguments~)
+    Modern(version) => {
+      let catalog = fetch_modern_tool_catalog(fetch, endpoint, version)
+      let tool = match
+        catalog.result.tools.search_by(tool => tool.name == tool_name) {
+        Some(index) => catalog.result.tools[index]
+        None =>
+          raise McpHttpClientError::Protocol(
+            "tool not found in validated tools/list: " + tool_name,
+          )
+      }
+      let bindings = match inspect_mcp_tool_header_bindings(tool.input_schema) {
+        Ok(value) => value
+        Err(message) => raise McpHttpClientError::Protocol(message)
+      }
+      let parameter_headers = match
+        build_mcp_tool_parameter_headers(bindings, arguments) {
+        Ok(value) => value
+        Err(message) => raise McpHttpClientError::Protocol(message)
+      }
+      call_tool_modern(
+        fetch,
+        endpoint,
+        version,
+        request_id=catalog.next_request_id,
+        parameter_headers~,
+        tool_name~,
+        arguments~,
+      ) catch {
+        McpHttpClientError::HeaderMismatch(_) => {
+          let refreshed = fetch_modern_tool_catalog(
+            fetch,
+            endpoint,
+            version,
+            first_request_id=catalog.next_request_id + 1,
+          )
+          let refreshed_tool = match
+            refreshed.result.tools.search_by(tool => tool.name == tool_name) {
+            Some(index) => refreshed.result.tools[index]
+            None =>
+              raise McpHttpClientError::Protocol(
+                "tool not found after header schema refresh: " + tool_name,
+              )
+          }
+          let refreshed_bindings = match
+            inspect_mcp_tool_header_bindings(refreshed_tool.input_schema) {
+            Ok(value) => value
+            Err(message) => raise McpHttpClientError::Protocol(message)
+          }
+          let refreshed_headers = match
+            build_mcp_tool_parameter_headers(refreshed_bindings, arguments) {
+            Ok(value) => value
+            Err(message) => raise McpHttpClientError::Protocol(message)
+          }
+          call_tool_modern(
+            fetch,
+            endpoint,
+            version,
+            request_id=refreshed.next_request_id,
+            parameter_headers=refreshed_headers,
+            tool_name~,
+            arguments~,
+          )
+        }
+        error => raise error
+      }
+    }
     InitializeEra(version) =>
       call_tool_legacy(fetch, endpoint, version, tool_name~, arguments~)
   }
@@ -215,10 +285,20 @@ async fn list_tools_modern(
   endpoint : Endpoint,
   version : @protocol.McpProtocolVersion,
 ) -> McpToolListResult raise McpHttpClientError {
+  fetch_modern_tool_catalog(fetch, endpoint, version).result
+}
+
+///|
+async fn fetch_modern_tool_catalog(
+  fetch : async (HttpRequest) -> HttpResponse,
+  endpoint : Endpoint,
+  version : @protocol.McpProtocolVersion,
+  first_request_id? : Int = 2,
+) -> ModernToolCatalog raise McpHttpClientError {
   let tools = []
   let seen_cursors : Array[String] = []
   let mut cursor : String? = None
-  let mut request_id = 2
+  let mut request_id = first_request_id
   let mut ttl_ms = 0
   let mut cache_scope : @protocol.McpCacheScope? = None
   for ;; {
@@ -236,7 +316,7 @@ async fn list_tools_modern(
     )
     let page = match
       @protocol.decode_mcp_tool_list_page(
-        response_json(response),
+        response_json(response, expected_id=request_id),
         expected_id=request_id,
         require_result_type=false,
       ) {
@@ -257,7 +337,7 @@ async fn list_tools_modern(
         Err(_) => ()
       }
     }
-    ttl_ms = if request_id == 2 {
+    ttl_ms = if request_id == first_request_id {
       page.ttl_ms
     } else if ttl_ms == 0 || page.ttl_ms == 0 {
       0
@@ -284,7 +364,10 @@ async fn list_tools_modern(
     Some(@protocol.McpCacheScope::Public) => "public"
     _ => "private"
   }
-  mcp_tool_list_result(tools~, ttl_ms~, cache_scope=scope_text)
+  {
+    result: mcp_tool_list_result(tools~, ttl_ms~, cache_scope=scope_text),
+    next_request_id: request_id + 1,
+  }
 }
 
 ///|
@@ -292,29 +375,30 @@ async fn call_tool_modern(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
   version : @protocol.McpProtocolVersion,
+  request_id~ : Int,
+  parameter_headers~ : Map[String, String],
   tool_name~ : String,
   arguments~ : Json,
 ) -> Json raise McpHttpClientError {
   let request = @protocol.mcp_tool_call_request(
-    id=2,
+    id=request_id,
     name=tool_name,
     arguments~,
     client_name="mcpx",
     client_version=MCPX_CLIENT_VERSION,
   )
-  let response = post_json(
-    fetch,
-    endpoint,
-    build_modern_headers(
-      endpoint.headers,
-      version,
-      "tools/call",
-      Some(tool_name),
-    ),
-    request,
+  let headers = build_modern_headers(
+    endpoint.headers,
+    version,
+    "tools/call",
+    Some(tool_name),
   )
-  let json = response_json(response)
-  match @protocol.decode_mcp_complete_result(json, expected_id=2) {
+  for key, value in parameter_headers {
+    headers[key] = value
+  }
+  let response = post_json(fetch, endpoint, headers, request)
+  let json = response_json(response, expected_id=request_id)
+  match @protocol.decode_mcp_complete_result(json, expected_id=request_id) {
     Ok(value) => value
     Err(error) => raise protocol_error_to_http(error)
   }
@@ -419,13 +503,17 @@ async fn post_json(
 }
 
 ///|
-fn response_json(response : HttpResponse) -> Json raise McpHttpClientError {
-  payload_json(response_payload(response))
+fn response_json(
+  response : HttpResponse,
+  expected_id? : Int = 1,
+) -> Json raise McpHttpClientError {
+  payload_json(response_payload(response, expected_id~))
 }
 
 ///|
 fn response_payload(
   response : HttpResponse,
+  expected_id? : Int = 1,
 ) -> @protocol.McpTransportPayload raise McpHttpClientError {
   if response.status_code != 200 && response.status_code != 202 {
     let json = @json.parse(response.body) catch {
@@ -435,7 +523,7 @@ fn response_payload(
       raise McpHttpClientError::HttpStatus(response.status_code)
     }
     ignore(
-      @protocol.decode_mcp_result(json, expected_id=1) catch {
+      @protocol.decode_mcp_result(json, expected_id~) catch {
         error => raise protocol_error_to_http(error)
       },
     )
