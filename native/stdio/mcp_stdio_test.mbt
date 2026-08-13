@@ -111,6 +111,42 @@ async test "mcp stdio: paginates stateless tool lists" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: bounds skipped messages while awaiting responses" {
+  let script =
+    #|while IFS= read -r line; do
+    #|  case "$line" in
+    #|    *'"method":"server/discover"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}'
+    #|      ;;
+    #|    *'"method":"tools/list"'*)
+    #|      i=0
+    #|      while [ "$i" -lt 1001 ]; do
+    #|        printf '%s\n' '{"jsonrpc":"2.0","id":999,"result":{}}'
+    #|        i=$((i + 1))
+    #|      done
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[]}}'
+    #|      ;;
+    #|  esac
+    #|done
+  try
+    stdio_mcp_list_tools(
+      command="/bin/sh",
+      args=["-c", script],
+      env=Map([]),
+      cwd=None,
+      mode=@config.McpConnectionMode::Stateless,
+    )
+  catch {
+    McpStdioError::Protocol(message) =>
+      inspect(message, content="too many messages while awaiting MCP response")
+    _ => fail("expected protocol error")
+  } noraise {
+    _ => fail("expected skipped message limit")
+  }
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "mcp stdio: times out silent tool operations" {
   let script =
     #|while IFS= read -r line; do

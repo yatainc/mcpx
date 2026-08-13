@@ -1,4 +1,7 @@
 ///|
+const MCP_STDIO_MAX_SKIPPED_MESSAGES : Int = 1000
+
+///|
 pub suberror McpStdioError {
   SpawnFailed(String)
   ReadFailed(String)
@@ -587,6 +590,7 @@ async fn read_response_for_id_with_timeout(
     McpStdioError::InvalidJson(message) =>
       raise McpStdioError::InvalidJson(message)
     McpStdioError::UnexpectedEof => raise McpStdioError::UnexpectedEof
+    McpStdioError::Protocol(message) => raise McpStdioError::Protocol(message)
     error => raise McpStdioError::Protocol(error.to_string())
   }
 }
@@ -596,6 +600,20 @@ async fn read_response_for_id(
   conn : StdioConnection,
   expected_id~ : Int,
 ) -> Json raise McpStdioError {
+  read_response_for_id_with_skip_limit(
+    conn,
+    expected_id~,
+    max_skipped_messages=MCP_STDIO_MAX_SKIPPED_MESSAGES,
+  )
+}
+
+///|
+async fn read_response_for_id_with_skip_limit(
+  conn : StdioConnection,
+  expected_id~ : Int,
+  max_skipped_messages~ : Int,
+) -> Json raise McpStdioError {
+  let mut skipped = 0
   for ;; {
     let message = read_json_line(conn)
     match message {
@@ -603,7 +621,15 @@ async fn read_response_for_id(
       Some(json) =>
         match @mcp_client.mcp_response_id(json) {
           Some(id) if id == expected_id => break json
-          _ => continue
+          _ => {
+            if skipped >= max_skipped_messages {
+              raise McpStdioError::Protocol(
+                "too many messages while awaiting MCP response",
+              )
+            }
+            skipped = skipped + 1
+            continue
+          }
         }
     }
   }
