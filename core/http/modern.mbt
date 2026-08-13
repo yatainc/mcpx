@@ -80,15 +80,15 @@ async fn fetch_modern_tool_catalog(
         )
       Some(_) => ()
     }
+    let has_next = match pagination.accept_page(page, limits) {
+      Ok(value) => value
+      Err(error) => raise pagination_error_to_http(error)
+    }
     for tool in page.tools {
       match validate_http_tool(tool) {
         Ok(validated) => validated_tools.push(validated)
         Err(_) => ()
       }
-    }
-    let has_next = match pagination.accept_page(page, limits) {
-      Ok(value) => value
-      Err(error) => raise pagination_error_to_http(error)
     }
     ttl_ms = if request_id == first_request_id {
       page.ttl_ms
