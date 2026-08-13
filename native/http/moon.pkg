@@ -1,5 +1,6 @@
 import {
   "moonbitlang/async/http" @async_http,
+  "moonbitlang/core/env",
   "yatainc/mcpx/core/http" @core_http,
   "yatainc/mcpx/core/config",
   "yatainc/mcpx/core/protocol" @mcp_client,
@@ -19,5 +20,6 @@ options(
   targets: {
     "mcp_http.mbt": [ "native", "llvm" ],
     "mcp_http_test.mbt": [ "native", "llvm" ],
+    "mcp_http_cache_test.mbt": [ "native", "llvm" ],
   },
 )

@@ -3,7 +3,7 @@ const MCPX_CLIENT_VERSION : String = "0.1.4"
 
 ///|
 priv enum Negotiation {
-  Modern(@protocol.McpProtocolVersion)
+  Modern(@protocol.McpProtocolVersion, Int, String)
   InitializeEra(@protocol.McpProtocolVersion)
 }
 
@@ -12,9 +12,23 @@ pub async fn list_tools(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
 ) -> Array[@protocol.McpToolInfo] raise McpHttpClientError {
+  list_tools_with_cache_hint(fetch, endpoint).tools
+}
+
+///|
+pub async fn list_tools_with_cache_hint(
+  fetch : async (HttpRequest) -> HttpResponse,
+  endpoint : Endpoint,
+) -> McpToolListResult raise McpHttpClientError {
   match negotiate(fetch, endpoint) {
-    Modern(version) => list_tools_modern(fetch, endpoint, version)
-    InitializeEra(version) => list_tools_legacy(fetch, endpoint, version)
+    Modern(version, ttl_ms, cache_scope) =>
+      mcp_tool_list_result(
+        tools=list_tools_modern(fetch, endpoint, version),
+        ttl_ms~,
+        cache_scope~,
+      )
+    InitializeEra(version) =>
+      mcp_tool_list_result(tools=list_tools_legacy(fetch, endpoint, version))
   }
 }
 
@@ -26,7 +40,7 @@ pub async fn call_tool(
   arguments~ : Json,
 ) -> Json raise McpHttpClientError {
   match negotiate(fetch, endpoint) {
-    Modern(version) =>
+    Modern(version, _, _) =>
       call_tool_modern(fetch, endpoint, version, tool_name~, arguments~)
     InitializeEra(version) =>
       call_tool_legacy(fetch, endpoint, version, tool_name~, arguments~)
@@ -105,7 +119,7 @@ fn negotiation_from_discover(
           "stateful", "2026-07-28",
         )
       }
-      Negotiation::Modern(selected)
+      Negotiation::Modern(selected, discover.ttl_ms, discover.cache_scope)
     }
     @protocol.McpProtocolFamily::InitializeEra =>
       Negotiation::InitializeEra(selected)

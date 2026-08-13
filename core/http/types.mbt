@@ -22,6 +22,22 @@ pub struct Endpoint {
 }
 
 ///|
+pub struct McpToolListResult {
+  tools : Array[@protocol.McpToolInfo]
+  ttl_ms : Int
+  cache_scope : String
+}
+
+///|
+pub fn mcp_tool_list_result(
+  tools~ : Array[@protocol.McpToolInfo],
+  ttl_ms? : Int = 0,
+  cache_scope? : String = "private",
+) -> McpToolListResult {
+  { tools, ttl_ms, cache_scope }
+}
+
+///|
 pub fn http_endpoint(
   url~ : String,
   headers? : Map[String, String] = Map([]),

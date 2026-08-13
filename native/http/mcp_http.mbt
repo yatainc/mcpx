@@ -1,4 +1,13 @@
 ///|
+priv struct ToolCacheEntry {
+  tools : Array[@mcp_client.McpToolInfo]
+  expires_at_ms : Int64
+}
+
+///|
+let tool_cache : Map[String, ToolCacheEntry] = Map([])
+
+///|
 suberror McpHttpError {
   HttpStatus(Int)
   Protocol(String)
@@ -53,12 +62,74 @@ pub async fn http_mcp_list_tools(
   headers~ : Map[String, String],
   mode? : @config.McpConnectionMode = @config.McpConnectionMode::Auto,
 ) -> Array[@mcp_client.McpToolInfo] raise McpHttpError {
-  @core_http.list_tools(
+  let public_key = tool_cache_key(url, mode, Map([]))
+  let private_key = tool_cache_key(url, mode, headers)
+  match cached_tools(public_key) {
+    Some(value) => return value
+    None =>
+      match cached_tools(private_key) {
+        Some(value) => return value
+        None => ()
+      }
+  }
+  let result = @core_http.list_tools_with_cache_hint(
     native_fetch,
     @core_http.http_endpoint(url~, headers~, mode~),
   ) catch {
     error => raise core_error_to_native(error)
   }
+  if result.ttl_ms > 0 {
+    let key = if result.cache_scope == "public" {
+      public_key
+    } else {
+      private_key
+    }
+    tool_cache[key] = {
+      tools: result.tools,
+      expires_at_ms: now_ms() + result.ttl_ms.to_int64(),
+    }
+  }
+  result.tools
+}
+
+///|
+fn cached_tools(key : String) -> Array[@mcp_client.McpToolInfo]? {
+  match tool_cache.get(key) {
+    Some(entry) if entry.expires_at_ms > now_ms() => Some(entry.tools)
+    Some(_) => {
+      tool_cache.remove(key)
+      None
+    }
+    None => None
+  }
+}
+
+///|
+fn tool_cache_key(
+  url : String,
+  mode : @config.McpConnectionMode,
+  headers : Map[String, String],
+) -> String {
+  let pairs = []
+  for key, value in headers {
+    pairs.push(key.to_lower() + "=" + value)
+  }
+  pairs.sort()
+  url + "\n" + connection_mode_key(mode) + "\n" + pairs.join("\n")
+}
+
+///|
+fn connection_mode_key(mode : @config.McpConnectionMode) -> String {
+  match mode {
+    Auto => "auto"
+    Stateful => "stateful"
+    Stateless => "stateless"
+  }
+}
+
+///|
+fn now_ms() -> Int64 {
+  @env.now().reinterpret_as_int64()
 }
 
 ///|

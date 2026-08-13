@@ -36,6 +36,34 @@ async test "core http: auto discovers then lists over MCP 2026" {
 }
 
 ///|
+async test "core http: exposes discovery cache hints with tool list" {
+  let result = list_tools_with_cache_hint(
+    req => {
+      if rpc_method(req.body) == "server/discover" {
+        http_response(
+          status_code=200,
+          content_type=Some("application/json"),
+          body=(
+            #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"],"capabilities":{},"ttlMs":60000,"cacheScope":"public"}}
+          ),
+        )
+      } else {
+        http_response(
+          status_code=200,
+          content_type=Some("application/json"),
+          body=(
+            #|{"jsonrpc":"2.0","id":2,"result":{"tools":[]}}
+          ),
+        )
+      }
+    },
+    http_endpoint(url="https://mcp.example/mcp"),
+  )
+  inspect(result.ttl_ms, content="60000")
+  inspect(result.cache_scope, content="public")
+}
+
+///|
 async test "core http: modern call sends method name and preserves arguments" {
   let seen : Array[HttpRequest] = []
   let result = call_tool(
