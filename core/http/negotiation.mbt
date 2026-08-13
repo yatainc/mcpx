@@ -184,10 +184,10 @@ fn is_clear_legacy_signal(response : HttpResponse, expected_id~ : Int) -> Bool {
           response.status_code == 404 ||
           response.status_code == 405
     }
-    is_valid_jsonrpc_error_response(json, expected_id~)
+    is_valid_jsonrpc_response(json, expected_id~)
   }
-  // Any valid JSON-RPC error body identifies a modern server even when the
-  // HTTP status is unexpected.
+  // Any valid JSON-RPC response identifies a modern server even when the HTTP
+  // status is unexpected.
   if has_modern_error {
     return false
   }
@@ -200,11 +200,11 @@ fn is_clear_legacy_signal(response : HttpResponse, expected_id~ : Int) -> Bool {
 }
 
 ///|
-fn is_valid_jsonrpc_error_response(json : Json, expected_id~ : Int) -> Bool {
+fn is_valid_jsonrpc_response(json : Json, expected_id~ : Int) -> Bool {
   try @protocol.decode_mcp_result(json, expected_id~) catch {
     @protocol.McpProtocolError::InvalidResponse(_) => false
     _ => true
   } noraise {
-    _ => false
+    _ => true
   }
 }

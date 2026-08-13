@@ -111,6 +111,37 @@ async test "core http: arbitrary JSON-RPC errors identify a modern server" {
 }
 
 ///|
+async test "core http: JSON-RPC results on error statuses do not fall back" {
+  for status in [400, 404, 405] {
+    let seen : Array[String] = []
+    try
+      list_tools(
+        req => {
+          seen.push(rpc_method(req.body))
+          http_response(
+            status_code=status,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}
+            ),
+          )
+        },
+        http_endpoint(
+          url="https://mcp.example/result-on-error-" + status.to_string(),
+        ),
+      )
+    catch {
+      McpHttpClientError::HttpStatus(actual) =>
+        inspect(actual, content=status.to_string())
+      _ => fail("expected HTTP status error")
+    } noraise {
+      _ => fail("expected discovery to fail")
+    }
+    inspect(seen.join(","), content="server/discover")
+  }
+}
+
+///|
 async test "core http: permitted empty 4xx discovery falls back in auto mode" {
   for status in [400, 404, 405] {
     let seen : Array[String] = []
