@@ -126,33 +126,29 @@ fn query_pair(key : String, value : String) -> String {
 ///|
 fn url_encode_component(value : String) -> String {
   let out = StringBuilder::new(size_hint=value.length())
-  for c in value.to_array() {
-    if is_unreserved_url_char(c) {
-      out.write_char(c)
+  let bytes = @utf8.encode(value.to_string_view(), bom=false)
+  for byte in bytes {
+    let value = byte.to_int()
+    if is_unreserved_url_byte(value) {
+      out.write_char(value.unsafe_to_char())
     } else {
-      write_percent_encoded_ascii(out, c)
+      out.write_char('%')
+      out.write_char(hex_digit(value / 16 % 16))
+      out.write_char(hex_digit(value % 16))
     }
   }
   out.to_string()
 }
 
 ///|
-fn is_unreserved_url_char(c : Char) -> Bool {
-  (c >= 'a' && c <= 'z') ||
-  (c >= 'A' && c <= 'Z') ||
-  (c >= '0' && c <= '9') ||
-  c == '-' ||
-  c == '_' ||
-  c == '.' ||
-  c == '~'
-}
-
-///|
-fn write_percent_encoded_ascii(out : StringBuilder, c : Char) -> Unit {
-  let code = c.to_int()
-  out.write_char('%')
-  out.write_char(hex_digit(code / 16 % 16))
-  out.write_char(hex_digit(code % 16))
+fn is_unreserved_url_byte(value : Int) -> Bool {
+  (value >= 0x61 && value <= 0x7a) ||
+  (value >= 0x41 && value <= 0x5a) ||
+  (value >= 0x30 && value <= 0x39) ||
+  value == 0x2d ||
+  value == 0x5f ||
+  value == 0x2e ||
+  value == 0x7e
 }
 
 ///|

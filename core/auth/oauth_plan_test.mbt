@@ -45,6 +45,28 @@ test "oauth plan: builds PKCE authorization URL" {
 }
 
 ///|
+test "oauth plan: percent-encodes UTF-8 authorization parameters" {
+  let metadata = oauth_metadata(
+    authorization_endpoint="https://auth.example/authorize",
+    token_endpoint="https://auth.example/token",
+  )
+  let url = oauth_authorization_url(
+    metadata,
+    client_id="検索",
+    redirect_uri="http://localhost/callback",
+    state="状態",
+    code_challenge="challenge",
+    scopes=["読み取り"],
+  )
+  inspect(url.contains("client_id=%E6%A4%9C%E7%B4%A2"), content="true")
+  inspect(url.contains("state=%E7%8A%B6%E6%85%8B"), content="true")
+  inspect(
+    url.contains("scope=%E8%AA%AD%E3%81%BF%E5%8F%96%E3%82%8A"),
+    content="true",
+  )
+}
+
+///|
 test "oauth plan: omits scope parameter when scopes are empty" {
   let metadata = oauth_metadata(
     authorization_endpoint="https://auth.example/authorize",
