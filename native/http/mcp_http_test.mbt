@@ -32,8 +32,8 @@ async test "mcp http: falls back to initialize then call tool with session" {
               "jsonrpc": Json::string("2.0"),
               "id": id,
               "error": Json::object({
-                "code": Json::number(-32601.0, repr="-32601"),
-                "message": Json::string("Method not found"),
+                "code": Json::number(-32000.0, repr="-32000"),
+                "message": Json::string("Legacy request rejected"),
               }),
             }).stringify(),
           )
@@ -144,8 +144,8 @@ async test "mcp http: decodes text event stream JSON-RPC response" {
               "jsonrpc": Json::string("2.0"),
               "id": id,
               "error": Json::object({
-                "code": Json::number(-32601.0, repr="-32601"),
-                "message": Json::string("Method not found"),
+                "code": Json::number(-32000.0, repr="-32000"),
+                "message": Json::string("Legacy request rejected"),
               }),
             }).stringify(),
           )
@@ -231,8 +231,8 @@ async test "mcp http: lists tools with stateless request" {
               "jsonrpc": Json::string("2.0"),
               "id": id,
               "error": Json::object({
-                "code": Json::number(-32601.0, repr="-32601"),
-                "message": Json::string("Method not found"),
+                "code": Json::number(-32000.0, repr="-32000"),
+                "message": Json::string("Legacy request rejected"),
               }),
             }).stringify(),
           )

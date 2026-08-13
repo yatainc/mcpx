@@ -43,8 +43,8 @@ async test "mcpx runtime: call uses configured remote HTTP server" {
               "jsonrpc": Json::string("2.0"),
               "id": id,
               "error": Json::object({
-                "code": Json::number(-32601.0, repr="-32601"),
-                "message": Json::string("Method not found"),
+                "code": Json::number(-32000.0, repr="-32000"),
+                "message": Json::string("Legacy request rejected"),
               }),
             }).stringify(),
           )
@@ -130,8 +130,8 @@ async test "mcpx runtime: call can use direct remote URL without config" {
               "jsonrpc": Json::string("2.0"),
               "id": id,
               "error": Json::object({
-                "code": Json::number(-32601.0, repr="-32601"),
-                "message": Json::string("Method not found"),
+                "code": Json::number(-32000.0, repr="-32000"),
+                "message": Json::string("Legacy request rejected"),
               }),
             }).stringify(),
           )
@@ -237,8 +237,8 @@ async test "mcpx runtime: call resolves headers from .env before HTTP request" {
               "jsonrpc": Json::string("2.0"),
               "id": id,
               "error": Json::object({
-                "code": Json::number(-32601.0, repr="-32601"),
-                "message": Json::string("Method not found"),
+                "code": Json::number(-32000.0, repr="-32000"),
+                "message": Json::string("Legacy request rejected"),
               }),
             }).stringify(),
           )
@@ -442,8 +442,8 @@ async test "mcpx runtime: call uses cached OAuth bearer from credentials file" {
               "jsonrpc": Json::string("2.0"),
               "id": id,
               "error": Json::object({
-                "code": Json::number(-32601.0, repr="-32601"),
-                "message": Json::string("Method not found"),
+                "code": Json::number(-32000.0, repr="-32000"),
+                "message": Json::string("Legacy request rejected"),
               }),
             }).stringify(),
           )
@@ -751,8 +751,8 @@ async test "mcpx runtime: call refreshes near-expiry OAuth token before request"
                 "jsonrpc": Json::string("2.0"),
                 "id": id,
                 "error": Json::object({
-                  "code": Json::number(-32601.0, repr="-32601"),
-                  "message": Json::string("Method not found"),
+                  "code": Json::number(-32000.0, repr="-32000"),
+                  "message": Json::string("Legacy request rejected"),
                 }),
               }).stringify(),
             )

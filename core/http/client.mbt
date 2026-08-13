@@ -507,19 +507,24 @@ fn is_clear_legacy_signal(response : HttpResponse) -> Bool {
     }
     jsonrpc_error_code(json)
   }
-  // JSON-RPC method-not-found is a legacy signal regardless of HTTP status.
-  if error_code == Some(-32601) {
-    return true
+  // A valid modern error body identifies a modern server even when the HTTP
+  // status is unexpected. In particular, modern unknown methods use -32601.
+  if is_recognized_modern_error_code(error_code) {
+    return false
   }
   if response.status_code != 400 &&
     response.status_code != 404 &&
     response.status_code != 405 {
     return false
   }
-  // These errors prove that the peer understood the modern request.
-  match error_code {
-    Some(-32020) | Some(-32021) | Some(-32022) => false
-    _ => true
+  true
+}
+
+///|
+fn is_recognized_modern_error_code(code : Int?) -> Bool {
+  match code {
+    Some(-32601) | Some(-32020) | Some(-32021) | Some(-32022) => true
+    _ => false
   }
 }
 
