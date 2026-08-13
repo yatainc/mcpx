@@ -159,6 +159,59 @@ async test "native http: reuses cached tool schema for calls" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "native http: caches catalogs discovered by direct calls" {
+  let methods : Array[String] = []
+  @async.with_task_group(group => {
+    let server = @async_http.Server(@socket.Addr::parse("127.0.0.1:0"))
+    defer server.close()
+    let port = server.addr.port()
+    group.spawn_bg(no_wait=true, () => {
+      server.run_forever(allow_failure=true, (_request, body, conn) => {
+        let msg = @json.parse(body.read_all().text())
+        let rpc_method = rpc_method_from_json(msg)
+        methods.push(rpc_method)
+        let id = rpc_id_from_json(msg)
+        conn.send_response(200, "OK", extra_headers={
+          "content-type": "application/json",
+        })
+        let response = if rpc_method == "server/discover" {
+          discover_response(id)
+        } else if rpc_method == "tools/list" {
+          tool_list_response(id, cache_scope="private")
+        } else {
+          Json::object({
+            "jsonrpc": Json::string("2.0"),
+            "id": id,
+            "result": Json::object({
+              "resultType": Json::string("complete"),
+              "content": Json::array([]),
+            }),
+          }).stringify()
+        }
+        ignore(conn.write(response))
+        conn.end_response()
+      })
+    })
+    let url = "http://localhost:\{port}/direct-call-cache"
+    for _ in 0..<2 {
+      ignore(
+        http_mcp_call_tool(
+          url~,
+          headers=Map([]),
+          tool_name="search",
+          arguments=Json::empty_object(),
+        ),
+      )
+    }
+  })
+  inspect(
+    methods.join(","),
+    content="server/discover,tools/list,tools/call,server/discover,tools/call",
+  )
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "native http: cached tool arrays are isolated from callers" {
   let requests = Ref(0)
   @async.with_task_group(group => {
