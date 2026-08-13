@@ -109,8 +109,8 @@ fn cache_tool_result(
 ) -> Unit {
   let public_key = tool_cache_key(url, mode, Map([]))
   let private_key = tool_cache_key(url, mode, headers)
-  tool_cache.remove(public_key)
-  tool_cache.remove(private_key)
+  remove_cache_entry(public_key)
+  remove_cache_entry(private_key)
   if result.ttl_ms > 0 {
     let key = if result.cache_scope == @mcp_client.McpCacheScope::Public {
       public_key
@@ -157,7 +157,7 @@ fn cached_tools(key : String) -> Array[@mcp_client.McpToolInfo]? {
       Some(clone_tool_list(entry.tools))
     }
     Some(_) => {
-      tool_cache.remove(key)
+      remove_cache_entry(key)
       None
     }
     None => None
@@ -194,7 +194,7 @@ fn clone_json(value : Json) -> Json {
 }
 
 ///|
-fn tool_cache_key(
+pub fn tool_cache_key(
   url : String,
   mode : @config.McpConnectionMode,
   headers : Map[String, String],
@@ -214,6 +214,17 @@ fn tool_cache_key(
 ///|
 fn length_prefixed(value : String) -> String {
   value.length().to_string() + ":" + value
+}
+
+///|
+fn remove_cache_entry(key : String) -> Unit {
+  tool_cache.remove(key)
+  for i, value in tool_cache_order {
+    if value == key {
+      ignore(tool_cache_order.remove(i))
+      break
+    }
+  }
 }
 
 ///|
