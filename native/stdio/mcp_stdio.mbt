@@ -41,15 +41,58 @@ pub async fn[X] stdio_mcp_connect(
   env~ : Map[String, String],
   cwd~ : String?,
   mode? : @config.McpConnectionMode = @config.McpConnectionMode::Stateful,
+  probe_timeout_ms? : Int = 1000,
 ) -> StdioMcpClient raise McpStdioError {
-  let conn = spawn_stdio(group, command, args, env, cwd)
-  let client = @mcp_client.mcp_client(
+  let client = new_legacy_client()
+  if mode == @config.McpConnectionMode::Stateful {
+    let conn = spawn_stdio(group, command, args, env, cwd)
+    initialize_stdio(conn, client)
+    return {
+      conn,
+      client,
+      lifecycle: StdioProtocolLifecycle::Initialize,
+      next_request_id: Ref(2),
+    }
+  }
+  let probe_conn = spawn_stdio(group, command, args, env, cwd)
+  let probe_result : Result[Unit, Error] = try
+    @async.with_timeout(probe_timeout_ms, () => probe_modern_stdio(probe_conn))
+    |> Ok
+  catch {
+    error => Err(error)
+  }
+  match probe_result {
+    Ok(_) =>
+      {
+        conn: probe_conn,
+        client,
+        lifecycle: StdioProtocolLifecycle::Stateless,
+        next_request_id: Ref(2),
+      }
+    Err(_) => {
+      close_stdio(probe_conn)
+      if mode == @config.McpConnectionMode::Stateless {
+        raise McpStdioError::Protocol("stateless MCP is not supported")
+      }
+      let legacy_conn = spawn_stdio(group, command, args, env, cwd)
+      initialize_stdio(legacy_conn, client)
+      {
+        conn: legacy_conn,
+        client,
+        lifecycle: StdioProtocolLifecycle::Initialize,
+        next_request_id: Ref(2),
+      }
+    }
+  }
+}
+
+///|
+fn new_legacy_client() -> @mcp_client.McpClient {
+  @mcp_client.mcp_client(
     client_name="mcpx",
     client_version="0.1.4",
     protocol_version=@mcp_client.MCP_PROTOCOL_VERSION_LEGACY,
   )
-  let lifecycle = negotiate_stdio(conn, client, mode)
-  { conn, client, lifecycle, next_request_id: Ref(2) }
 }
 
 ///|
@@ -140,9 +183,18 @@ pub async fn stdio_mcp_call_tool(
   tool_name~ : String,
   arguments~ : Json,
   mode? : @config.McpConnectionMode = @config.McpConnectionMode::Stateful,
+  probe_timeout_ms? : Int = 1000,
 ) -> Json raise McpStdioError {
   @async.with_task_group(group => {
-    let client = stdio_mcp_connect(group, command~, args~, env~, cwd~, mode~)
+    let client = stdio_mcp_connect(
+      group,
+      command~,
+      args~,
+      env~,
+      cwd~,
+      mode~,
+      probe_timeout_ms~,
+    )
     defer client.close()
     client.call_tool(tool_name~, arguments~)
   }) catch {
@@ -157,9 +209,18 @@ pub async fn stdio_mcp_list_tools(
   env~ : Map[String, String],
   cwd~ : String?,
   mode? : @config.McpConnectionMode = @config.McpConnectionMode::Stateful,
+  probe_timeout_ms? : Int = 1000,
 ) -> Array[@mcp_client.McpToolInfo] raise McpStdioError {
   @async.with_task_group(group => {
-    let client = stdio_mcp_connect(group, command~, args~, env~, cwd~, mode~)
+    let client = stdio_mcp_connect(
+      group,
+      command~,
+      args~,
+      env~,
+      cwd~,
+      mode~,
+      probe_timeout_ms~,
+    )
     defer client.close()
     client.list_tools()
   }) catch {
@@ -186,15 +247,7 @@ fn take_modern_request_id(client : StdioMcpClient) -> Int {
 }
 
 ///|
-async fn negotiate_stdio(
-  conn : StdioConnection,
-  client : @mcp_client.McpClient,
-  mode : @config.McpConnectionMode,
-) -> StdioProtocolLifecycle raise McpStdioError {
-  if mode == @config.McpConnectionMode::Stateful {
-    initialize_stdio(conn, client)
-    return StdioProtocolLifecycle::Initialize
-  }
+async fn probe_modern_stdio(conn : StdioConnection) -> Unit raise McpStdioError {
   let context = @mcp_client.mcp_request_context(
     protocol=@mcp_client.McpProtocolVersion::V2026_07_28,
     client_name="mcpx",
@@ -207,17 +260,12 @@ async fn negotiate_stdio(
       if discover.protocol_versions.contains(
           @mcp_client.McpProtocolVersion::V2026_07_28,
         ) {
-        StdioProtocolLifecycle::Stateless
+        ()
       } else {
         raise McpStdioError::Protocol("MCP 2026-07-28 is not supported")
       }
     Err(@mcp_client.McpProtocolError::RemoteError(-32601, _)) =>
-      if mode == @config.McpConnectionMode::Auto {
-        initialize_stdio(conn, client)
-        StdioProtocolLifecycle::Initialize
-      } else {
-        raise McpStdioError::Protocol("stateless MCP is not supported")
-      }
+      raise McpStdioError::Protocol("legacy MCP server")
     Err(_) => raise McpStdioError::Protocol("MCP discovery failed")
   }
 }

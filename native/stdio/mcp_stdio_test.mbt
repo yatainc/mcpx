@@ -85,26 +85,110 @@ async test "mcp stdio: auto discovers stateless MCP 2026" {
 ///|
 #cfg(all(target="native", not(platform="windows")))
 async test "mcp stdio: auto falls back after method not found" {
+  let marker = "/tmp/mcpx-stdio-method-not-found.marker"
+  @fs.remove_file(marker) catch {
+    _ => ()
+  }
   let script =
-    #|i=0
-    #|while IFS= read -r line; do
-    #|  i=$((i + 1))
-    #|  if [ "$i" = "1" ]; then
-    #|    printf '%s\n' '{"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"not found"}}'
-    #|  elif [ "$i" = "2" ]; then
-    #|    printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}'
-    #|  elif [ "$i" = "4" ]; then
-    #|    printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"legacy","inputSchema":{}}]}}'
-    #|  fi
-    #|done
+    #|if [ ! -f "$MARKER" ]; then
+    #|  touch "$MARKER"
+    #|  read -r line
+    #|  printf '%s\n' '{"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"not found"}}'
+    #|else
+    #|  i=0
+    #|  while IFS= read -r line; do
+    #|    i=$((i + 1))
+    #|    if [ "$i" = "1" ]; then
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}'
+    #|    elif [ "$i" = "3" ]; then
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"legacy","inputSchema":{}}]}}'
+    #|    fi
+    #|  done
+    #|fi
   let tools = stdio_mcp_list_tools(
     command="/bin/sh",
     args=["-c", script],
-    env=Map([]),
+    env={ "MARKER": marker },
     cwd=None,
     mode=@config.McpConnectionMode::Auto,
   )
   inspect(tools[0].name, content="legacy")
+  @fs.remove_file(marker) catch {
+    _ => ()
+  }
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: auto restarts process after legacy probe" {
+  let marker = "/tmp/mcpx-stdio-probe-restart.marker"
+  @fs.remove_file(marker) catch {
+    _ => ()
+  }
+  let script =
+    #|if [ ! -f "$MARKER" ]; then
+    #|  touch "$MARKER"
+    #|  while IFS= read -r line; do
+    #|    printf '%s\n' '{"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"not found"}}'
+    #|  done
+    #|else
+    #|  i=0
+    #|  while IFS= read -r line; do
+    #|    i=$((i + 1))
+    #|    if [ "$i" = "1" ]; then
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}'
+    #|    elif [ "$i" = "3" ]; then
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"restarted","inputSchema":{}}]}}'
+    #|    fi
+    #|  done
+    #|fi
+  let tools = stdio_mcp_list_tools(
+    command="/bin/sh",
+    args=["-c", script],
+    env={ "MARKER": marker },
+    cwd=None,
+    mode=@config.McpConnectionMode::Auto,
+  )
+  inspect(tools[0].name, content="restarted")
+  @fs.remove_file(marker) catch {
+    _ => ()
+  }
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: auto times out silent probe and restarts" {
+  let marker = "/tmp/mcpx-stdio-probe-timeout.marker"
+  @fs.remove_file(marker) catch {
+    _ => ()
+  }
+  let script =
+    #|if [ ! -f "$MARKER" ]; then
+    #|  touch "$MARKER"
+    #|  while IFS= read -r line; do sleep 10; done
+    #|else
+    #|  i=0
+    #|  while IFS= read -r line; do
+    #|    i=$((i + 1))
+    #|    if [ "$i" = "1" ]; then
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}'
+    #|    elif [ "$i" = "3" ]; then
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"timeout-restarted","inputSchema":{}}]}}'
+    #|    fi
+    #|  done
+    #|fi
+  let tools = stdio_mcp_list_tools(
+    command="/bin/sh",
+    args=["-c", script],
+    env={ "MARKER": marker },
+    cwd=None,
+    mode=@config.McpConnectionMode::Auto,
+    probe_timeout_ms=50,
+  )
+  inspect(tools[0].name, content="timeout-restarted")
+  @fs.remove_file(marker) catch {
+    _ => ()
+  }
 }
 
 ///|
