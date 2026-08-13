@@ -84,6 +84,33 @@ async test "mcp stdio: auto discovers stateless MCP 2026" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: paginates stateless tool lists" {
+  let script =
+    #|while IFS= read -r line; do
+    #|  case "$line" in
+    #|    *'"method":"server/discover"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}'
+    #|      ;;
+    #|    *'"cursor":"next"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":3,"result":{"resultType":"complete","tools":[{"name":"second","inputSchema":{}}]}}'
+    #|      ;;
+    #|    *'"method":"tools/list"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[{"name":"first","inputSchema":{}}],"nextCursor":"next"}}'
+    #|      ;;
+    #|  esac
+    #|done
+  let tools = stdio_mcp_list_tools(
+    command="/bin/sh",
+    args=["-c", script],
+    env=Map([]),
+    cwd=None,
+    mode=@config.McpConnectionMode::Stateless,
+  )
+  inspect(tools.map(tool => tool.name), content="[first, second]")
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "mcp stdio: modern tool results require resultType" {
   for rpc_name in ["tools/list", "tools/call"] {
     let script =

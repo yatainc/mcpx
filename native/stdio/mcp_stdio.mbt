@@ -167,24 +167,45 @@ pub async fn StdioMcpClient::list_tools(
       }
     }
     Stateless => {
-      let id = take_modern_request_id(self)
-      write_json_line(
-        self.conn,
-        @mcp_client.mcp_tools_list_request(
-          id~,
-          client_name="mcpx",
-          client_version="0.1.4",
-        ),
-      )
-      let response = read_response_for_id(self.conn, expected_id=id)
-      match
-        @mcp_client.decode_mcp_tool_list_page(
-          response,
-          expected_id=id,
-          require_result_type=true,
-        ) {
-        Ok(value) => value.tools
-        Err(_) => raise McpStdioError::Protocol("mcp protocol error")
+      let tools = []
+      let seen_cursors : Array[String] = []
+      let mut cursor : String? = None
+      for ;; {
+        let id = take_modern_request_id(self)
+        write_json_line(
+          self.conn,
+          @mcp_client.mcp_tools_list_request(
+            id~,
+            client_name="mcpx",
+            client_version="0.1.4",
+            cursor~,
+          ),
+        )
+        let response = read_response_for_id(self.conn, expected_id=id)
+        let page = match
+          @mcp_client.decode_mcp_tool_list_page(
+            response,
+            expected_id=id,
+            require_result_type=true,
+          ) {
+          Ok(value) => value
+          Err(_) => raise McpStdioError::Protocol("mcp protocol error")
+        }
+        for tool in page.tools {
+          tools.push(tool)
+        }
+        match page.next_cursor {
+          None => break tools
+          Some(next) => {
+            if seen_cursors.contains(next) {
+              raise McpStdioError::Protocol(
+                "tools/list pagination cursor repeated",
+              )
+            }
+            seen_cursors.push(next)
+            cursor = Some(next)
+          }
+        }
       }
     }
   }
