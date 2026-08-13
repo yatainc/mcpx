@@ -1,7 +1,6 @@
 name: Release
 
 on:
-  workflow_dispatch:
   push:
     tags: ["v*"]
 
@@ -45,8 +44,18 @@ jobs:
       - name: Verify
         run: |
           set -euxo pipefail
-          nix develop --command moon check --target native --deny-warn
+          test "${GITHUB_REF_TYPE}" = "tag"
+          manifest_version="$(sed -n 's/^version = "\([^"]*\)"$/\1/p' moon.mod)"
+          test -n "$manifest_version"
+          test "${GITHUB_REF_NAME}" = "v${manifest_version}"
+          test -f ".github/release-notes/${GITHUB_REF_NAME}.md"
+          nix develop --command moon fmt --check
+          nix develop --command moon check --target native --warn-list +73 --deny-warn
+          nix develop --command moon check --target wasm-gc --warn-list +73 --deny-warn
+          nix develop --command moon check --target js --warn-list +73 --deny-warn
           nix develop --command moon test --target native --no-render
+          nix develop --command moon test --target wasm-gc --no-render
+          nix develop --command moon test --target js --no-render
           nix develop --command bash scripts/e2e.sh
           nix develop --command env MCPX_BENCH_ENFORCE=1 MCPX_BENCH_CLI_RUNS=5 MCPX_BENCH_MEMORY_RUNS=3 bash scripts/benchmark.sh
 
@@ -59,6 +68,7 @@ jobs:
         run: |
           set -euxo pipefail
           version="${GITHUB_REF_NAME}"
+          test "$(result/bin/mcpx --version)" = "mcpx ${version#v}"
           asset="mcpx-${version}-${{ matrix.asset_suffix }}.tar.gz"
           mkdir -p dist
           cp result/bin/mcpx dist/mcpx
@@ -73,6 +83,7 @@ jobs:
 
   release:
     name: GitHub Release
+    if: github.ref_type == 'tag'
     needs: build
     runs-on: ubuntu-22.04
     timeout-minutes: 10
@@ -91,13 +102,18 @@ jobs:
           cd artifacts
           sha256sum *.tar.gz > SHA256SUMS
 
+      - name: Checkout release notes
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           files: |
             artifacts/*.tar.gz
             artifacts/SHA256SUMS
-          generate_release_notes: true
+          body_path: .github/release-notes/${{ github.ref_name }}.md
 
   action-timeline:
     name: Show workflow timeline
@@ -109,4 +125,4 @@ jobs:
       actions: read
     steps:
       - name: actions-timeline
-        uses: Kesin11/actions-timeline@a7eaabf426cdae26c3582c3fa674b897170dec8f # v2.2.4
+        uses: Kesin11/actions-timeline@44c9c178ffb2fb1d9859614a3ffa79ccfb77565e # v3.1.0

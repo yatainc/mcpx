@@ -2,7 +2,7 @@
 pub fn render_mcpx_command(command : McpxCommand) -> String {
   match command {
     Help => mcpx_help_text()
-    Version => "mcpx 0.1.4"
+    Version => "mcpx " + @mcp_client.MCPX_CLIENT_VERSION
     CallHelp => call_help_text()
     Call(command) => render_call_command(command)
     Info(command) => render_info_command(command)

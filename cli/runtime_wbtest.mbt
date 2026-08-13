@@ -14,7 +14,7 @@ test "mcpx runtime: no args and --help return help text" {
 test "mcpx runtime: --version returns text version" {
   inspect(
     run_mcpx_args(["--version"], home="/tmp/mcpx-runtime-test/home"),
-    content="mcpx 0.1.4",
+    content="mcpx 0.2.0",
   )
 }
 

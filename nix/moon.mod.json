@@ -1,6 +1,6 @@
 {
   "name": "yatainc/mcpx",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "deps": {
     "moonbitlang/x": "0.4.49",
     "moonbitlang/async": "0.20.5"

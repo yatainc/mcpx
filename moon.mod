@@ -1,6 +1,6 @@
 name = "yatainc/mcpx"
 
-version = "0.1.4"
+version = "0.2.0"
 
 import {
   "moonbitlang/x@0.4.49",

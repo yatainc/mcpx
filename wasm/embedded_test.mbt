@@ -67,7 +67,7 @@ test "wasm: run can plan MCP initialize over host HTTP using core client" {
   inspect(
     mcpx_tool_run(input),
     content=(
-      #|{"status":"needs_host","state":{"phase":"mcp_http_initialize","url":"http://localhost:3000/mcp","requestId":1},"actions":[{"kind":"http_request","method":"POST","url":"http://localhost:3000/mcp","headers":{"content-type":"application/json","accept":"application/json, text/event-stream"},"body":"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2026-07-28\",\"capabilities\":{},\"clientInfo\":{\"name\":\"mcpx\",\"version\":\"0.1.4\"}}}"}]}
+      #|{"status":"needs_host","state":{"phase":"mcp_http_initialize","url":"http://localhost:3000/mcp","requestId":1},"actions":[{"kind":"http_request","method":"POST","url":"http://localhost:3000/mcp","headers":{"content-type":"application/json","accept":"application/json, text/event-stream"},"body":"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2026-07-28\",\"capabilities\":{},\"clientInfo\":{\"name\":\"mcpx\",\"version\":\"0.2.0\"}}}"}]}
     ),
   )
 }
