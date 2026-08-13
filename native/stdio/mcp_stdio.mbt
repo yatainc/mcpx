@@ -344,7 +344,10 @@ async fn probe_modern_stdio(
       StdioProbeOutcome::ModernError(
         "missing required client capability: " + message,
       )
-    Err(_) => StdioProbeOutcome::Legacy
+    Err(@mcp_client.McpProtocolError::InvalidResponse(message)) =>
+      StdioProbeOutcome::ModernError(
+        "invalid MCP discovery response: " + message,
+      )
   }
 }
 
