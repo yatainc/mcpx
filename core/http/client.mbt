@@ -394,6 +394,7 @@ async fn call_tool_modern(
     Some(tool_name),
   )
   for key, value in parameter_headers {
+    remove_header_case_insensitive(headers, key)
     headers[key] = value
   }
   let response = post_json(fetch, endpoint, headers, request)
@@ -574,6 +575,10 @@ fn build_modern_headers(
   rpc_name : String?,
 ) -> Map[String, String] {
   let headers = build_headers_legacy(base_headers, None)
+  for
+    key in ["Mcp-Session-Id", "MCP-Protocol-Version", "Mcp-Method", "Mcp-Name"] {
+    remove_header_case_insensitive(headers, key)
+  }
   headers["MCP-Protocol-Version"] = @protocol.mcp_protocol_version_to_string(
     version,
   )
@@ -596,7 +601,7 @@ fn is_clear_legacy_signal(response : HttpResponse) -> Bool {
           response.status_code == 404 ||
           response.status_code == 405
     }
-    jsonrpc_error_code(json)
+    recognized_jsonrpc_error_code(json)
   }
   // A valid modern error body identifies a modern server even when the HTTP
   // status is unexpected. In particular, modern unknown methods use -32601.
@@ -620,6 +625,28 @@ fn is_recognized_modern_error_code(code : Int?) -> Bool {
 }
 
 ///|
+fn recognized_jsonrpc_error_code(json : Json) -> Int? {
+  match json {
+    Object(obj) => {
+      guard obj.get("jsonrpc") == Some(Json::string("2.0")) else { return None }
+      guard obj.get("id") is Some(Number(value, ..)) && value.trunc() == value else {
+        return None
+      }
+      match obj.get("error") {
+        Some(Object(error)) =>
+          match (error.get("code"), error.get("message")) {
+            (Some(Number(value, ..)), Some(String(_))) if value.trunc() == value =>
+              Some(value.to_int())
+            _ => None
+          }
+        _ => None
+      }
+    }
+    _ => None
+  }
+}
+
+///|
 fn jsonrpc_error_code(json : Json) -> Int? {
   match json {
     Object(obj) =>
@@ -632,6 +659,22 @@ fn jsonrpc_error_code(json : Json) -> Int? {
         _ => None
       }
     _ => None
+  }
+}
+
+///|
+fn remove_header_case_insensitive(
+  headers : Map[String, String],
+  target : String,
+) -> Unit {
+  let removals = []
+  for key, _ in headers {
+    if key.equal_ignore_ascii_case(target) {
+      removals.push(key)
+    }
+  }
+  for key in removals {
+    headers.remove(key)
   }
 }
 

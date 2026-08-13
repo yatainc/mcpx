@@ -79,7 +79,10 @@ fn inspect_header_schema_node(
               property_schema, child_path, true, bindings, names,
             )
           }
-        _ => ()
+        _ =>
+          if contains_mcp_header_annotation(value) {
+            raise McpToolHeaderError("x-mcp-header is not statically reachable")
+          }
       }
     } else if key != "x-mcp-header" && contains_mcp_header_annotation(value) {
       raise McpToolHeaderError("x-mcp-header is not statically reachable")
@@ -101,11 +104,10 @@ pub fn build_mcp_tool_parameter_headers(
           (McpHttpHeaderValueType::StringValue, String(text)) => text
           (McpHttpHeaderValueType::BooleanValue, True) => "true"
           (McpHttpHeaderValueType::BooleanValue, False) => "false"
-          (McpHttpHeaderValueType::IntegerValue, Number(value, repr~)) if value.trunc() ==
+          (McpHttpHeaderValueType::IntegerValue, Number(value, ..)) if value.trunc() ==
             value &&
             value >= -9007199254740991.0 &&
-            value <= 9007199254740991.0 =>
-            repr.unwrap_or(value.to_int64().to_string())
+            value <= 9007199254740991.0 => value.to_int64().to_string()
           _ => return Err("tool header argument type mismatch")
         }
         headers["Mcp-Param-" + binding.header_name] = encode_mcp_http_header_value(

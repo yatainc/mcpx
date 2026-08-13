@@ -90,6 +90,40 @@ test "HTTP tool headers omit missing values and reject type mismatches" {
 }
 
 ///|
+test "HTTP tool headers canonicalize integer values" {
+  let bindings = inspect_mcp_tool_header_bindings(
+    Json::object({
+      "type": Json::string("object"),
+      "properties": Json::object({
+        "n": Json::object({
+          "type": Json::string("integer"),
+          "x-mcp-header": Json::string("N"),
+        }),
+      }),
+    }),
+  ).unwrap()
+  let headers = build_mcp_tool_parameter_headers(
+    bindings,
+    Json::object({ "n": Json::number(42.0, repr="4.2e1") }),
+  ).unwrap()
+  inspect(headers["Mcp-Param-N"], content="42")
+}
+
+///|
+test "HTTP tool headers reject annotations in malformed properties" {
+  let schema = Json::object({
+    "type": Json::string("object"),
+    "properties": Json::array([
+      Json::object({
+        "type": Json::string("string"),
+        "x-mcp-header": Json::string("Hidden"),
+      }),
+    ]),
+  })
+  inspect(inspect_mcp_tool_header_bindings(schema) is Err(_), content="true")
+}
+
+///|
 test "HTTP tool headers reject case-insensitive duplicates" {
   let schema = @json.parse(
     (

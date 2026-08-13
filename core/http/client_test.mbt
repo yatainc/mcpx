@@ -436,6 +436,114 @@ async test "core http: encodes unsafe tool names only in HTTP headers" {
 }
 
 ///|
+async test "core http: generated headers replace user headers case-insensitively" {
+  let seen : Array[HttpRequest] = []
+  ignore(
+    call_tool(
+      req => {
+        seen.push(req)
+        match rpc_method(req.body) {
+          "server/discover" =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}
+              ),
+            )
+          "tools/list" =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[{"name":"run","inputSchema":{"type":"object","properties":{"region":{"type":"string","x-mcp-header":"Region"}}}}],"ttlMs":0,"cacheScope":"private"}}
+              ),
+            )
+          _ =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":3,"result":{"resultType":"complete","content":[]}}
+              ),
+            )
+        }
+      },
+      http_endpoint(url="https://mcp.example/header-sanitizer", headers={
+        "mcp-protocol-version": "attacker",
+        "mcp-method": "attacker",
+        "mcp-name": "attacker",
+        "mcp-param-region": "attacker",
+        "mcp-session-id": "legacy-session",
+      }),
+      tool_name="run",
+      arguments={ "region": "safe" },
+    ),
+  )
+  for
+    expected in [
+      "mcp-protocol-version", "mcp-method", "mcp-name", "mcp-param-region",
+    ] {
+    let mut count = 0
+    for key, _ in seen[2].headers {
+      if key.equal_ignore_ascii_case(expected) {
+        count = count + 1
+      }
+    }
+    inspect(count, content="1")
+  }
+  inspect(header(seen[2].headers, "Mcp-Method"), content="tools/call")
+  inspect(header(seen[2].headers, "Mcp-Name"), content="run")
+  inspect(header(seen[2].headers, "Mcp-Param-Region"), content="safe")
+  inspect(header(seen[2].headers, "Mcp-Session-Id"), content="")
+}
+
+///|
+async test "core http: malformed error body does not prove modern MCP" {
+  let seen : Array[String] = []
+  ignore(
+    list_tools(
+      req => {
+        let rpc_name = rpc_method(req.body)
+        seen.push(rpc_name)
+        match rpc_name {
+          "server/discover" =>
+            http_response(
+              status_code=404,
+              content_type=Some("application/json"),
+              body=(
+                #|{"error":{"code":-32601}}
+              ),
+            )
+          "initialize" =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}
+              ),
+            )
+          "notifications/initialized" => http_response(status_code=202, body="")
+          _ =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":2,"result":{"tools":[]}}
+              ),
+            )
+        }
+      },
+      http_endpoint(url="https://mcp.example/malformed-modern-error"),
+    ),
+  )
+  inspect(
+    seen.join(","),
+    content="server/discover,initialize,notifications/initialized,tools/list",
+  )
+}
+
+///|
 async test "core http: method-not-found identifies a modern server" {
   for status in [200, 400, 404] {
     let seen : Array[String] = []
