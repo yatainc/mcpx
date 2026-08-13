@@ -156,7 +156,7 @@ fn render_auth_command(command : AuthCommand) -> String {
 ///|
 fn render_daemon_command(command : DaemonCommand) -> String {
   match command.mode {
-    DaemonMode::Help => return daemon_help_text()
+    Help => return daemon_help_text()
     _ => ()
   }
   let obj = Map([])

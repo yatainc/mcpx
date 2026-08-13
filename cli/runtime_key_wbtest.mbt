@@ -2,7 +2,7 @@
 test "mcpx runtime: daemon key is secret-free" {
   let server = @config.mcp_server_config(
     name="github",
-    transport=@config.ServerTransport::Http,
+    transport=Http,
     url=Some(
       "https://user-secret@mcp.github.com/mcp?access_token=url-secret#frag",
     ),

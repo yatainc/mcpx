@@ -27,7 +27,7 @@ test "server config encode: OAuth static client remains env-templated" {
     empty_mcpx_config(),
     mcp_server_config(
       name="github",
-      transport=ServerTransport::Http,
+      transport=Http,
       url=Some("https://mcp.github.com/mcp"),
       auth=Some(
         oauth_server_auth(
@@ -51,7 +51,7 @@ test "server config encode: stdio env and cwd" {
     empty_mcpx_config(),
     mcp_server_config(
       name="local",
-      transport=ServerTransport::Stdio,
+      transport=Stdio,
       command=Some("node"),
       args=["server.js"],
       env={ "API_TOKEN": "${API_TOKEN}" },
@@ -72,10 +72,10 @@ test "server config encode: lifecycle keep-alive shorthand" {
     empty_mcpx_config(),
     mcp_server_config(
       name="playwright",
-      transport=ServerTransport::Stdio,
+      transport=Stdio,
       command=Some("npx"),
       args=["@playwright/mcp"],
-      lifecycle=Some(server_lifecycle(ServerLifecycleMode::KeepAlive)),
+      lifecycle=Some(server_lifecycle(KeepAlive)),
     ),
   )
   inspect(
@@ -92,7 +92,7 @@ test "server config encode: tool filters" {
     empty_mcpx_config(),
     mcp_server_config(
       name="github",
-      transport=ServerTransport::Http,
+      transport=Http,
       url=Some("https://mcp.github.com/mcp"),
       allowed_tools=["read_*", "list_*"],
       disabled_tools=["delete_*"],

@@ -8,7 +8,9 @@
 moonPlatform.buildMoonPackage {
   name = "mcpx";
   src = ./.;
-  moonModJson = ./moon.mod.json;
+  # Compatibility metadata for moonbit-overlay's registry builder. The
+  # canonical project manifest is the root moon.mod DSL file.
+  moonModJson = ./nix/moon.mod.json;
   # Minimal registry snapshot containing only the locked direct dependencies.
   # It is part of the source tree, so builds never fetch the global registry.
   moonRegistryIndex = ./nix/moon-registry;

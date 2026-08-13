@@ -32,7 +32,7 @@ pub struct McpToolListResult {
 pub fn mcp_tool_list_result(
   tools~ : Array[@protocol.McpToolInfo],
   ttl_ms? : Int = 0,
-  cache_scope? : @protocol.McpCacheScope = @protocol.McpCacheScope::Private,
+  cache_scope? : @protocol.McpCacheScope = Private,
 ) -> McpToolListResult {
   { tools, ttl_ms, cache_scope }
 }
@@ -41,7 +41,7 @@ pub fn mcp_tool_list_result(
 pub fn http_endpoint(
   url~ : String,
   headers? : Map[String, String] = Map([]),
-  mode? : @config.McpConnectionMode = @config.McpConnectionMode::Auto,
+  mode? : @config.McpConnectionMode = Auto,
 ) -> Endpoint {
   { url, headers, mode }
 }

@@ -15,7 +15,7 @@ pub fn parse_dotenv(text : String) -> Result[Map[String, String], DotenvError] {
     }
     match parse_dotenv_line(line) {
       Some((key, value)) => env[key] = value
-      None => return Err(DotenvError::InvalidDotenvLine(line_number, line))
+      None => return Err(InvalidDotenvLine(line_number, line))
     }
     line_number = line_number + 1
   }

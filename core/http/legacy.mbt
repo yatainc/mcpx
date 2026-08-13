@@ -68,7 +68,7 @@ async fn send_json_legacy(
   session_id : Ref[String?],
   message : Json,
 ) -> @protocol.McpTransportPayload raise McpHttpClientError {
-  let retain_session = endpoint.mode != @config.McpConnectionMode::Stateless
+  let retain_session = endpoint.mode != Stateless
   let active_session = if retain_session { session_id.val } else { None }
   let response = post_json(
     fetch,

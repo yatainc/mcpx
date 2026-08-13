@@ -1,0 +1,57 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/core/host"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn host_http_request(http_method~ : String, url~ : String, headers? : Map[String, String], body? : String?) -> HostAction
+
+pub fn host_open_browser(url~ : String) -> HostAction
+
+pub fn host_read_text_file(path~ : String) -> HostAction
+
+pub fn host_write_private_text_file(path~ : String, contents~ : String) -> HostAction
+
+// Errors
+
+// Types and methods
+pub enum HostAction {
+  ReadTextFile(HostReadTextFile)
+  WriteTextFile(HostWriteTextFile)
+  OpenBrowser(HostOpenBrowser)
+  HttpRequest(HostHttpRequest)
+} derive(@debug.Debug)
+pub impl ToJson for HostAction
+
+pub struct HostHttpRequest {
+  http_method : String
+  url : String
+  headers : Map[String, String]
+  body : String?
+} derive(@debug.Debug)
+pub impl ToJson for HostHttpRequest
+
+pub struct HostOpenBrowser {
+  url : String
+} derive(@debug.Debug)
+pub impl ToJson for HostOpenBrowser
+
+pub struct HostReadTextFile {
+  path : String
+} derive(@debug.Debug)
+pub impl ToJson for HostReadTextFile
+
+pub struct HostWriteTextFile {
+  path : String
+  contents : String
+  mode : Int
+  atomic_write : Bool
+  create_parent_dirs : Bool
+} derive(@debug.Debug)
+pub impl ToJson for HostWriteTextFile
+
+// Type aliases
+
+// Traits

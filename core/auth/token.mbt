@@ -33,14 +33,14 @@ pub fn decide_token_refresh(
   skew_seconds? : Int = 300,
 ) -> TokenRefreshDecision {
   match tokens.expires_at {
-    None => TokenRefreshDecision::UseCached
+    None => UseCached
     Some(expires_at) =>
       if expires_at > now_seconds + skew_seconds {
-        TokenRefreshDecision::UseCached
+        UseCached
       } else {
         match tokens.refresh_token {
-          Some(_) => TokenRefreshDecision::Refresh
-          None => TokenRefreshDecision::ReauthRequired
+          Some(_) => Refresh
+          None => ReauthRequired
         }
       }
   }

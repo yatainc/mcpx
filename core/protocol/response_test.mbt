@@ -151,7 +151,7 @@ test "mcp response: decodes complete modern tool list page" {
   inspect(page.tools[0].name, content="search")
   @debug.debug_inspect(page.next_cursor, content="Some(\"page-2\")")
   inspect(page.ttl_ms, content="60000")
-  inspect(page.cache_scope == McpCacheScope::Public, content="true")
+  inspect(page.cache_scope == Public, content="true")
 }
 
 ///|
@@ -306,10 +306,7 @@ test "mcp response: rejects integers outside the supported range" {
   catch {
     error => Err(error)
   }
-  inspect(
-    id_result is Err(McpProtocolError::InvalidResponse(_)),
-    content="true",
-  )
+  inspect(id_result is Err(InvalidResponse(_)), content="true")
   let oversized_code = @json.parse(
     (
       #|{"jsonrpc":"2.0","id":1,"error":{"code":2147483648,"message":"bad"}}
@@ -320,10 +317,7 @@ test "mcp response: rejects integers outside the supported range" {
   catch {
     error => Err(error)
   }
-  inspect(
-    code_result is Err(McpProtocolError::InvalidResponse(_)),
-    content="true",
-  )
+  inspect(code_result is Err(InvalidResponse(_)), content="true")
 }
 
 ///|
@@ -347,7 +341,7 @@ test "mcp response: rejects malformed JSON-RPC errors" {
       error => Err(error)
     }
     match result {
-      Err(McpProtocolError::InvalidResponse(_)) => ()
+      Err(InvalidResponse(_)) => ()
       _ => fail("expected invalid response")
     }
   }

@@ -29,11 +29,11 @@ pub(all) enum McpProtocolFamily {
 ///|
 pub fn parse_mcp_protocol_version(value : String) -> McpProtocolVersion {
   match value {
-    "2025-03-26" => McpProtocolVersion::V2025_03_26
-    "2025-06-18" => McpProtocolVersion::V2025_06_18
-    "2025-11-25" => McpProtocolVersion::V2025_11_25
-    "2026-07-28" => McpProtocolVersion::V2026_07_28
-    other => McpProtocolVersion::Unknown(other)
+    "2025-03-26" => V2025_03_26
+    "2025-06-18" => V2025_06_18
+    "2025-11-25" => V2025_11_25
+    "2026-07-28" => V2026_07_28
+    other => Unknown(other)
   }
 }
 
@@ -69,8 +69,8 @@ pub fn newest_compatible_mcp_protocol_version(
 ///|
 pub fn mcp_protocol_family(version : McpProtocolVersion) -> McpProtocolFamily {
   match version {
-    V2025_03_26 | V2025_06_18 | V2025_11_25 => McpProtocolFamily::InitializeEra
-    V2026_07_28 => McpProtocolFamily::StatelessCore
-    Unknown(_) => McpProtocolFamily::Unsupported
+    V2025_03_26 | V2025_06_18 | V2025_11_25 => InitializeEra
+    V2026_07_28 => StatelessCore
+    Unknown(_) => Unsupported
   }
 }

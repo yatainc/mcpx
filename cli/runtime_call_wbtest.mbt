@@ -176,7 +176,7 @@ async test "mcpx runtime: call resolves headers from .env before HTTP request" {
         @config.empty_mcpx_config(),
         @config.mcp_server_config(
           name="github",
-          transport=@config.ServerTransport::Http,
+          transport=Http,
           url=Some("http://localhost:\{port}/mcp"),
           headers={ "Authorization": "Bearer ${GITHUB_TOKEN}" },
         ),
@@ -266,7 +266,7 @@ async test "mcpx runtime: call rejects disabled configured tools before connect"
       @config.empty_mcpx_config(),
       @config.mcp_server_config(
         name="github",
-        transport=@config.ServerTransport::Http,
+        transport=Http,
         url=Some("http://127.0.0.1:1/mcp"),
         allowed_tools=["*"],
         disabled_tools=["delete_*"],
@@ -285,7 +285,7 @@ async test "mcpx runtime: call rejects disabled configured tools before connect"
 #cfg(all(target="native", not(platform="windows")))
 test "mcpx runtime: call arguments can come from stdin when JSON arg omitted" {
   match parse_mcpx_args(["call", "github", "search"]) {
-    Ok(McpxCommand::Call(command)) =>
+    Ok(Call(command)) =>
       inspect(
         resolve_call_arguments_for_test(
           command,
@@ -296,7 +296,7 @@ test "mcpx runtime: call arguments can come from stdin when JSON arg omitted" {
     other => @debug.debug_inspect(other, content="UNREACHABLE")
   }
   match parse_mcpx_args(["call", "github", "search", "{\"q\":\"argv\"}"]) {
-    Ok(McpxCommand::Call(command)) =>
+    Ok(Call(command)) =>
       inspect(
         resolve_call_arguments_for_test(
           command,
@@ -330,7 +330,7 @@ async test "mcpx runtime: call uses cached OAuth bearer from credentials file" {
         @config.empty_mcpx_config(),
         @config.mcp_server_config(
           name="github",
-          transport=@config.ServerTransport::Http,
+          transport=Http,
           url=Some(url),
           auth=Some(@config.oauth_server_auth()),
         ),
@@ -600,7 +600,7 @@ async test "mcpx runtime: call refreshes near-expiry OAuth token before request"
         @config.empty_mcpx_config(),
         @config.mcp_server_config(
           name="github",
-          transport=@config.ServerTransport::Http,
+          transport=Http,
           url=Some(mcp_url),
           auth=Some(
             @config.oauth_server_auth(

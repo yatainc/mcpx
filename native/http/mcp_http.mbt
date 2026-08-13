@@ -44,7 +44,7 @@ pub async fn http_mcp_call_tool(
   headers~ : Map[String, String],
   tool_name~ : String,
   arguments~ : Json,
-  mode? : @config.McpConnectionMode = @config.McpConnectionMode::Auto,
+  mode? : @config.McpConnectionMode = Auto,
 ) -> Json raise McpHttpError {
   let tool_definition = default_tool_catalog_cache.find_tool(
     url, headers, mode, tool_name,
@@ -67,7 +67,7 @@ pub async fn http_mcp_call_tool(
 pub async fn http_mcp_list_tools(
   url~ : String,
   headers~ : Map[String, String],
-  mode? : @config.McpConnectionMode = @config.McpConnectionMode::Auto,
+  mode? : @config.McpConnectionMode = Auto,
 ) -> Array[@mcp_client.McpToolInfo] raise McpHttpError {
   match default_tool_catalog_cache.get(url, headers, mode) {
     Some(value) => return value
@@ -86,29 +86,21 @@ pub async fn http_mcp_list_tools(
 ///|
 fn core_error_to_native(error : @core_http.McpHttpClientError) -> McpHttpError {
   match error {
-    @core_http.McpHttpClientError::HttpStatus(code) =>
-      McpHttpError::HttpStatus(code)
-    @core_http.McpHttpClientError::Protocol(message) =>
-      McpHttpError::Protocol(message)
-    @core_http.McpHttpClientError::Network(message) =>
-      McpHttpError::Network(message)
-    @core_http.McpHttpClientError::HeaderMismatch(message) =>
-      McpHttpError::Negotiation("header mismatch: " + message)
-    @core_http.McpHttpClientError::MissingRequiredClientCapability(message) =>
-      McpHttpError::Negotiation(
-        "missing required client capability: " + message,
-      )
-    @core_http.McpHttpClientError::UnsupportedProtocolVersion(supported) =>
-      McpHttpError::Negotiation(
+    HttpStatus(code) => HttpStatus(code)
+    Protocol(message) => Protocol(message)
+    Network(message) => Network(message)
+    HeaderMismatch(message) => Negotiation("header mismatch: " + message)
+    MissingRequiredClientCapability(message) =>
+      Negotiation("missing required client capability: " + message)
+    UnsupportedProtocolVersion(supported) =>
+      Negotiation(
         "unsupported MCP protocol version; supported: " + supported.join(", "),
       )
-    @core_http.McpHttpClientError::ModeProtocolIncompatible(mode, protocol) =>
-      McpHttpError::Negotiation(
+    ModeProtocolIncompatible(mode, protocol) =>
+      Negotiation(
         "protocol mode " + mode + " is incompatible with MCP " + protocol,
       )
-    @core_http.McpHttpClientError::RemoteError(code, message) =>
-      McpHttpError::Protocol(
-        "json-rpc error " + code.to_string() + ": " + message,
-      )
+    RemoteError(code, message) =>
+      Protocol("json-rpc error " + code.to_string() + ": " + message)
   }
 }

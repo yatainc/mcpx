@@ -25,27 +25,27 @@ pub fn decode_mcp_transport_payload(
   response : McpTransportResponse,
 ) -> Result[McpTransportPayload, McpProtocolError] {
   if response.status_code == 202 {
-    return Ok(McpTransportPayload::AcceptedNoContent)
+    return Ok(AcceptedNoContent)
   }
   if response.status_code != 200 {
-    return Err(McpProtocolError::InvalidResponse("unexpected transport status"))
+    return Err(InvalidResponse("unexpected transport status"))
   }
   let content_type = response.content_type.unwrap_or_default().to_lower()
   if content_type.contains("text/event-stream") {
     match decode_sse_data(response.body).get(0) {
       Some(payload) => {
         let json = @json.parse(payload) catch {
-          _ => return Err(McpProtocolError::InvalidResponse("invalid sse json"))
+          _ => return Err(InvalidResponse("invalid sse json"))
         }
-        Ok(McpTransportPayload::JsonPayload(json))
+        Ok(JsonPayload(json))
       }
-      None => Err(McpProtocolError::InvalidResponse("missing sse data"))
+      None => Err(InvalidResponse("missing sse data"))
     }
   } else {
     let json = @json.parse(response.body) catch {
-      _ => return Err(McpProtocolError::InvalidResponse("invalid json body"))
+      _ => return Err(InvalidResponse("invalid json body"))
     }
-    Ok(McpTransportPayload::JsonPayload(json))
+    Ok(JsonPayload(json))
   }
 }
 
@@ -55,7 +55,6 @@ pub fn expect_json_payload(
 ) -> Json raise McpProtocolError {
   match payload {
     JsonPayload(json) => json
-    AcceptedNoContent =>
-      raise McpProtocolError::InvalidResponse("expected json payload")
+    AcceptedNoContent => raise InvalidResponse("expected json payload")
   }
 }

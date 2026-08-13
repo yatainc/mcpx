@@ -11,12 +11,10 @@ async test "mcpx daemon: reuses keep-alive stdio client" {
     inspect(port > 0, content="true")
     let server = @config.mcp_server_config(
       name="local",
-      transport=@config.ServerTransport::Stdio,
+      transport=Stdio,
       command=Some("/bin/sh"),
       args=["-c", daemon_reuse_script()],
-      lifecycle=Some(
-        @config.server_lifecycle(@config.ServerLifecycleMode::KeepAlive),
-      ),
+      lifecycle=Some(@config.server_lifecycle(KeepAlive)),
     )
     let first = daemon_call_tool(
       home~,
@@ -53,14 +51,11 @@ async test "mcpx daemon: idle timeout evicts stale stdio client" {
     inspect(port > 0, content="true")
     let server = @config.mcp_server_config(
       name="local",
-      transport=@config.ServerTransport::Stdio,
+      transport=Stdio,
       command=Some("/bin/sh"),
       args=["-c", daemon_reuse_script()],
       lifecycle=Some(
-        @config.server_lifecycle(
-          @config.ServerLifecycleMode::KeepAlive,
-          idle_timeout_ms=Some(50),
-        ),
+        @config.server_lifecycle(KeepAlive, idle_timeout_ms=Some(50)),
       ),
     )
     let first = daemon_call_tool(
@@ -127,12 +122,10 @@ async test "mcpx daemon: stop closes keep-alive stdio pool" {
     inspect(port > 0, content="true")
     let server = @config.mcp_server_config(
       name="local",
-      transport=@config.ServerTransport::Stdio,
+      transport=Stdio,
       command=Some("/bin/sh"),
       args=["-c", daemon_shutdown_marker_script(marker)],
-      lifecycle=Some(
-        @config.server_lifecycle(@config.ServerLifecycleMode::KeepAlive),
-      ),
+      lifecycle=Some(@config.server_lifecycle(KeepAlive)),
     )
     let result = daemon_call_tool(
       home~,
@@ -214,12 +207,10 @@ async test "mcpx daemon: stop while concurrent call_tool is in-flight" {
     inspect(port > 0, content="true")
     let server = @config.mcp_server_config(
       name="local",
-      transport=@config.ServerTransport::Stdio,
+      transport=Stdio,
       command=Some("/bin/sh"),
       args=["-c", daemon_reuse_script()],
-      lifecycle=Some(
-        @config.server_lifecycle(@config.ServerLifecycleMode::KeepAlive),
-      ),
+      lifecycle=Some(@config.server_lifecycle(KeepAlive)),
     )
     let first = daemon_call_tool(
       home~,

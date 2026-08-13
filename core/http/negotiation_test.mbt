@@ -64,8 +64,7 @@ async test "core http: method-not-found identifies a modern server" {
         ),
       )
     catch {
-      McpHttpClientError::RemoteError(code, _) =>
-        inspect(code, content="-32601")
+      RemoteError(code, _) => inspect(code, content="-32601")
       _ => fail("expected modern method-not-found error")
     } noraise {
       _ => fail("expected discovery to fail")
@@ -99,8 +98,7 @@ async test "core http: arbitrary JSON-RPC errors identify a modern server" {
           ),
         )
       catch {
-        McpHttpClientError::RemoteError(actual, _) =>
-          inspect(actual, content=code.to_string())
+        RemoteError(actual, _) => inspect(actual, content=code.to_string())
         _ => fail("expected modern JSON-RPC error")
       } noraise {
         _ => fail("expected discovery to fail")
@@ -131,8 +129,7 @@ async test "core http: JSON-RPC results on error statuses do not fall back" {
         ),
       )
     catch {
-      McpHttpClientError::HttpStatus(actual) =>
-        inspect(actual, content=status.to_string())
+      HttpStatus(actual) => inspect(actual, content=status.to_string())
       _ => fail("expected HTTP status error")
     } noraise {
       _ => fail("expected discovery to fail")
@@ -194,8 +191,7 @@ async test "core http: authentication and server errors do not fall back" {
         ),
       )
     catch {
-      McpHttpClientError::HttpStatus(actual) =>
-        inspect(actual, content=status.to_string())
+      HttpStatus(actual) => inspect(actual, content=status.to_string())
       _ => fail("expected HTTP status error")
     } noraise {
       _ => fail("expected discovery to fail")
@@ -220,7 +216,7 @@ async test "core http: malformed successful discovery does not fall back" {
       http_endpoint(url="https://mcp.example/malformed-discovery"),
     )
   catch {
-    McpHttpClientError::Protocol(_) => ()
+    Protocol(_) => ()
     _ => fail("expected protocol error")
   } noraise {
     _ => fail("expected discovery to fail")
@@ -243,13 +239,10 @@ async test "core http: explicit stateless preserves modern method-not-found" {
           ),
         )
       },
-      http_endpoint(
-        url="https://mcp.example/mcp",
-        mode=@config.McpConnectionMode::Stateless,
-      ),
+      http_endpoint(url="https://mcp.example/mcp", mode=Stateless),
     )
   catch {
-    McpHttpClientError::RemoteError(code, _) => inspect(code, content="-32601")
+    RemoteError(code, _) => inspect(code, content="-32601")
     _ => fail("expected modern method-not-found error")
   } noraise {
     _ => fail("expected stateless negotiation to fail")

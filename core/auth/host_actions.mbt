@@ -30,21 +30,16 @@ pub fn decide_auth_cache(
   skew_seconds? : Int = 300,
 ) -> CachedAuthDecision {
   match entry {
-    None => CachedAuthDecision::ReauthRequired
+    None => ReauthRequired
     Some(entry) =>
       match decide_token_refresh(entry.tokens, now_seconds~, skew_seconds~) {
-        TokenRefreshDecision::UseCached =>
-          CachedAuthDecision::UseBearerHeader(
-            "Bearer " + entry.tokens.access_token,
-          )
-        TokenRefreshDecision::Refresh =>
+        UseCached => UseBearerHeader("Bearer " + entry.tokens.access_token)
+        Refresh =>
           match entry.tokens.refresh_token {
-            Some(refresh_token) =>
-              CachedAuthDecision::RefreshWithToken(refresh_token)
-            None => CachedAuthDecision::ReauthRequired
+            Some(refresh_token) => RefreshWithToken(refresh_token)
+            None => ReauthRequired
           }
-        TokenRefreshDecision::ReauthRequired =>
-          CachedAuthDecision::ReauthRequired
+        ReauthRequired => ReauthRequired
       }
   }
 }

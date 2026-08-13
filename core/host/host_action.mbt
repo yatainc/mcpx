@@ -35,7 +35,7 @@ pub struct HostHttpRequest {
 
 ///|
 pub fn host_read_text_file(path~ : String) -> HostAction {
-  HostAction::ReadTextFile({ path, })
+  ReadTextFile({ path, })
 }
 
 ///|
@@ -43,7 +43,7 @@ pub fn host_write_private_text_file(
   path~ : String,
   contents~ : String,
 ) -> HostAction {
-  HostAction::WriteTextFile({
+  WriteTextFile({
     path,
     contents,
     mode: 384,
@@ -54,7 +54,7 @@ pub fn host_write_private_text_file(
 
 ///|
 pub fn host_open_browser(url~ : String) -> HostAction {
-  HostAction::OpenBrowser({ url, })
+  OpenBrowser({ url, })
 }
 
 ///|
@@ -64,7 +64,7 @@ pub fn host_http_request(
   headers? : Map[String, String] = Map([]),
   body? : String? = None,
 ) -> HostAction {
-  HostAction::HttpRequest({ http_method, url, headers, body })
+  HttpRequest({ http_method, url, headers, body })
 }
 
 ///|

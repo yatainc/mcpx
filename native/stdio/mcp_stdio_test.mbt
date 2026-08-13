@@ -77,7 +77,7 @@ async test "mcp stdio: auto discovers stateless MCP 2026" {
     args=["-c", script],
     env=Map([]),
     cwd=None,
-    mode=@config.McpConnectionMode::Auto,
+    mode=Auto,
   )
   inspect(tools[0].name, content="modern")
 }
@@ -104,7 +104,7 @@ async test "mcp stdio: paginates stateless tool lists" {
     args=["-c", script],
     env=Map([]),
     cwd=None,
-    mode=@config.McpConnectionMode::Stateless,
+    mode=Stateless,
   )
   inspect(tools.map(tool => tool.name).join(","), content="first,second")
 }
@@ -134,10 +134,10 @@ async test "mcp stdio: bounds skipped messages while awaiting responses" {
       args=["-c", script],
       env=Map([]),
       cwd=None,
-      mode=@config.McpConnectionMode::Stateless,
+      mode=Stateless,
     )
   catch {
-    McpStdioError::Protocol(message) =>
+    Protocol(message) =>
       inspect(message, content="too many messages while awaiting MCP response")
     _ => fail("expected protocol error")
   } noraise {
@@ -165,7 +165,7 @@ async test "mcp stdio: skips server requests with the expected response id" {
     args=["-c", script],
     env=Map([]),
     cwd=None,
-    mode=@config.McpConnectionMode::Stateless,
+    mode=Stateless,
   )
   inspect(tools.length(), content="0")
 }
@@ -192,11 +192,11 @@ async test "mcp stdio: poisons connection after matching malformed response" {
       args=["-c", script],
       env=Map([]),
       cwd=None,
-      mode=@config.McpConnectionMode::Stateless,
+      mode=Stateless,
     )
     defer client.close()
     try client.list_tools() catch {
-      McpStdioError::Protocol(message) =>
+      Protocol(message) =>
         inspect(
           message,
           content="malformed MCP message while awaiting response",
@@ -206,7 +206,7 @@ async test "mcp stdio: poisons connection after matching malformed response" {
       _ => fail("expected malformed response to fail")
     }
     try client.list_tools() catch {
-      McpStdioError::Protocol(message) =>
+      Protocol(message) =>
         inspect(
           message,
           content="stdio connection is unusable after protocol desynchronization",
@@ -240,18 +240,18 @@ async test "mcp stdio: poisons connection after wrong response id" {
       args=["-c", script],
       env=Map([]),
       cwd=None,
-      mode=@config.McpConnectionMode::Stateless,
+      mode=Stateless,
     )
     defer client.close()
     try client.list_tools() catch {
-      McpStdioError::Protocol(message) =>
+      Protocol(message) =>
         inspect(message, content="unexpected MCP response id")
       _ => fail("expected protocol error")
     } noraise {
       _ => fail("expected wrong response id to fail")
     }
     try client.list_tools() catch {
-      McpStdioError::Protocol(message) =>
+      Protocol(message) =>
         inspect(
           message,
           content="stdio connection is unusable after protocol desynchronization",
@@ -284,10 +284,10 @@ async test "mcp stdio: rejects malformed JSON-RPC messages while waiting" {
       args=["-c", script],
       env=Map([]),
       cwd=None,
-      mode=@config.McpConnectionMode::Stateless,
+      mode=Stateless,
     )
   catch {
-    McpStdioError::Protocol(message) =>
+    Protocol(message) =>
       inspect(message, content="malformed MCP message while awaiting response")
     _ => fail("expected protocol error")
   } noraise {
@@ -316,10 +316,10 @@ async test "mcp stdio: rejects requests with scalar params" {
       args=["-c", script],
       env=Map([]),
       cwd=None,
-      mode=@config.McpConnectionMode::Stateless,
+      mode=Stateless,
     )
   catch {
-    McpStdioError::Protocol(message) =>
+    Protocol(message) =>
       inspect(message, content="malformed MCP message while awaiting response")
     _ => fail("expected protocol error")
   } noraise {
@@ -348,10 +348,10 @@ async test "mcp stdio: rejects requests without JSON-RPC version" {
       args=["-c", script],
       env=Map([]),
       cwd=None,
-      mode=@config.McpConnectionMode::Stateless,
+      mode=Stateless,
     )
   catch {
-    McpStdioError::Protocol(message) =>
+    Protocol(message) =>
       inspect(message, content="malformed MCP message while awaiting response")
     _ => fail("expected protocol error")
   } noraise {
@@ -380,17 +380,17 @@ async test "mcp stdio: poisons connection after malformed operation JSON" {
       args=["-c", script],
       env=Map([]),
       cwd=None,
-      mode=@config.McpConnectionMode::Stateless,
+      mode=Stateless,
     )
     defer client.close()
     try client.list_tools() catch {
-      McpStdioError::InvalidJson(_) => ()
+      InvalidJson(_) => ()
       _ => fail("expected invalid JSON error")
     } noraise {
       _ => fail("expected malformed operation response to fail")
     }
     try client.list_tools() catch {
-      McpStdioError::Protocol(message) =>
+      Protocol(message) =>
         inspect(
           message,
           content="stdio connection is unusable after transport desynchronization",
@@ -420,11 +420,11 @@ async test "mcp stdio: times out silent tool operations" {
       args=["-c", script],
       env=Map([]),
       cwd=None,
-      mode=@config.McpConnectionMode::Stateless,
+      mode=Stateless,
       response_timeout_ms=50,
     )
   catch {
-    McpStdioError::Timeout => ()
+    Timeout => ()
     _ => fail("expected timeout error")
   } noraise {
     _ => fail("expected operation timeout")
@@ -456,11 +456,11 @@ async test "mcp stdio: rejects operations after a response timeout" {
       args=["-c", script],
       env=Map([]),
       cwd=None,
-      mode=@config.McpConnectionMode::Stateless,
+      mode=Stateless,
       response_timeout_ms=50,
     )
     try client.list_tools() catch {
-      McpStdioError::Timeout => ()
+      Timeout => ()
       _ => fail("expected timeout")
     } noraise {
       _ => fail("expected timeout")
@@ -468,7 +468,7 @@ async test "mcp stdio: rejects operations after a response timeout" {
     try
       client.call_tool(tool_name="search", arguments=Json::empty_object())
     catch {
-      McpStdioError::Protocol(message) =>
+      Protocol(message) =>
         inspect(message, content="stdio connection is unusable after timeout")
       _ => fail("expected poisoned connection error")
     } noraise {
@@ -503,11 +503,11 @@ async test "mcp stdio: applies one timeout to complete pagination" {
       args=["-c", script],
       env=Map([]),
       cwd=None,
-      mode=@config.McpConnectionMode::Stateless,
+      mode=Stateless,
       response_timeout_ms=120,
     )
   catch {
-    McpStdioError::Timeout => ()
+    Timeout => ()
     _ => fail("expected pagination timeout")
   } noraise {
     _ => fail("expected complete pagination to time out")
@@ -537,11 +537,11 @@ async test "mcp stdio: bounds stateless tool pagination" {
       args=["-c", script],
       env=Map([]),
       cwd=None,
-      mode=@config.McpConnectionMode::Stateless,
+      mode=Stateless,
       max_pages=2,
     )
   catch {
-    McpStdioError::Protocol(_) => ()
+    Protocol(_) => ()
     _ => fail("expected pagination limit")
   } noraise {
     _ => fail("expected pagination limit")
@@ -568,10 +568,10 @@ async test "mcp stdio: preserves modern protocol diagnostics" {
       args=["-c", script],
       env=Map([]),
       cwd=None,
-      mode=@config.McpConnectionMode::Stateless,
+      mode=Stateless,
     )
   catch {
-    McpStdioError::Protocol(message) =>
+    Protocol(message) =>
       inspect(message, content="tools/list result missing resultType")
     _ => fail("expected protocol error")
   } noraise {
@@ -606,7 +606,7 @@ async test "mcp stdio: modern tool results require resultType" {
             args=["-c", script],
             env={ "RPC_NAME": rpc_name },
             cwd=None,
-            mode=@config.McpConnectionMode::Stateless,
+            mode=Stateless,
           ),
         )
       } else {
@@ -618,12 +618,12 @@ async test "mcp stdio: modern tool results require resultType" {
             cwd=None,
             tool_name="run",
             arguments=Json::empty_object(),
-            mode=@config.McpConnectionMode::Stateless,
+            mode=Stateless,
           ),
         )
       }
     } catch {
-      McpStdioError::Protocol(_) => ()
+      Protocol(_) => ()
       _ => fail("expected protocol error")
     } noraise {
       _ => fail("expected missing resultType to fail")
@@ -659,7 +659,7 @@ async test "mcp stdio: auto falls back after method not found" {
     args=["-c", script],
     env={ "MARKER": marker },
     cwd=None,
-    mode=@config.McpConnectionMode::Auto,
+    mode=Auto,
   )
   inspect(tools[0].name, content="legacy")
   @fs.remove_file(marker) catch {
@@ -696,7 +696,7 @@ async test "mcp stdio: auto restarts process after legacy probe" {
     args=["-c", script],
     env={ "MARKER": marker },
     cwd=None,
-    mode=@config.McpConnectionMode::Auto,
+    mode=Auto,
   )
   inspect(tools[0].name, content="restarted")
   @fs.remove_file(marker) catch {
@@ -731,7 +731,7 @@ async test "mcp stdio: auto times out silent probe and restarts" {
     args=["-c", script],
     env={ "MARKER": marker },
     cwd=None,
-    mode=@config.McpConnectionMode::Auto,
+    mode=Auto,
     probe_timeout_ms=50,
   )
   inspect(tools[0].name, content="timeout-restarted")
@@ -774,10 +774,10 @@ async test "mcp stdio: auto does not fallback on recognized modern errors" {
         args=["-c", script],
         env={ "MARKER": marker, "CODE": code.to_string() },
         cwd=None,
-        mode=@config.McpConnectionMode::Auto,
+        mode=Auto,
       )
     catch {
-      McpStdioError::Protocol(_) => ()
+      Protocol(_) => ()
       _ => fail("expected protocol error")
     } noraise {
       _ => fail("expected recognized modern error")
@@ -817,10 +817,10 @@ async test "mcp stdio: auto does not fallback on arbitrary remote errors" {
         args=["-c", script],
         env={ "MARKER": marker, "CODE": code.to_string() },
         cwd=None,
-        mode=@config.McpConnectionMode::Auto,
+        mode=Auto,
       )
     catch {
-      McpStdioError::Protocol(_) => ()
+      Protocol(_) => ()
       _ => fail("expected protocol error")
     } noraise {
       _ => fail("expected remote error")
@@ -859,10 +859,10 @@ async test "mcp stdio: auto does not fallback on malformed modern responses" {
       args=["-c", script],
       env={ "MARKER": marker },
       cwd=None,
-      mode=@config.McpConnectionMode::Auto,
+      mode=Auto,
     )
   catch {
-    McpStdioError::Protocol(_) => ()
+    Protocol(_) => ()
     _ => fail("expected protocol error")
   } noraise {
     _ => fail("expected malformed response to fail")
@@ -889,10 +889,10 @@ async test "mcp stdio: stateless rejects method not found" {
       args=["-c", script],
       env=Map([]),
       cwd=None,
-      mode=@config.McpConnectionMode::Stateless,
+      mode=Stateless,
     )
   catch {
-    McpStdioError::Protocol(_) => ()
+    Protocol(_) => ()
     _ => fail("expected protocol error")
   } noraise {
     _ => fail("expected stateless negotiation to fail")

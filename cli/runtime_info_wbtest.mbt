@@ -121,7 +121,7 @@ async test "mcpx runtime: info without target lists configured servers" {
     @config.empty_mcpx_config(),
     @config.mcp_server_config(
       name="github",
-      transport=@config.ServerTransport::Http,
+      transport=Http,
       url=Some("https://mcp.github.com/mcp"),
       description=Some("GitHub Issues, PRs, and code search\nMore details"),
     ),
@@ -132,7 +132,7 @@ async test "mcpx runtime: info without target lists configured servers" {
       config,
       @config.mcp_server_config(
         name="very-long-server-name",
-        transport=@config.ServerTransport::Http,
+        transport=Http,
         url=Some("https://example.com/mcp"),
         description=Some(
           "This description is intentionally longer than sixty characters total",

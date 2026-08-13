@@ -35,7 +35,6 @@ test "server config: decodes remote OAuth server shape" {
       #|    },
       #|  },
       #|}
-
     ),
   )
 }
@@ -43,22 +42,14 @@ test "server config: decodes remote OAuth server shape" {
 ///|
 test "server config: decodes protocol connection modes" {
   let decode_mode = mode_text => {
-    let text =
-      "{\"mcpServers\":{\"server\":{\"transport\":\"http\",\"protocol\":{\"mode\":\"" +
-      mode_text + "\"}}}}"
-    decode_mcpx_config(@json.parse(text)).servers.get(
-      "server",
-    ).unwrap().protocol_mode
+    let text = "{\"mcpServers\":{\"server\":{\"transport\":\"http\",\"protocol\":{\"mode\":\"" +
+      mode_text +
+      "\"}}}}"
+    decode_mcpx_config(@json.parse(text)).servers.get("server").unwrap().protocol_mode
   }
-  inspect(decode_mode("auto") == Some(McpConnectionMode::Auto), content="true")
-  inspect(
-    decode_mode("stateful") == Some(McpConnectionMode::Stateful),
-    content="true",
-  )
-  inspect(
-    decode_mode("stateless") == Some(McpConnectionMode::Stateless),
-    content="true",
-  )
+  inspect(decode_mode("auto") == Some(Auto), content="true")
+  inspect(decode_mode("stateful") == Some(Stateful), content="true")
+  inspect(decode_mode("stateless") == Some(Stateless), content="true")
 }
 
 ///|
@@ -69,13 +60,11 @@ test "server config: applies transport protocol mode defaults" {
     ),
   )
   inspect(
-    effective_connection_mode(config.servers.get("remote").unwrap()) ==
-    McpConnectionMode::Auto,
+    effective_connection_mode(config.servers.get("remote").unwrap()) == Auto,
     content="true",
   )
   inspect(
-    effective_connection_mode(config.servers.get("local").unwrap()) ==
-    McpConnectionMode::Stateful,
+    effective_connection_mode(config.servers.get("local").unwrap()) == Stateful,
     content="true",
   )
 }
@@ -103,7 +92,7 @@ test "server config: rejects unsupported protocol connection mode" {
 test "server config: resolves env templates in url headers and static OAuth client" {
   let server = mcp_server_config(
     name="github",
-    transport=ServerTransport::Http,
+    transport=Http,
     url=Some("https://${GITHUB_HOST}/mcp"),
     headers={ "Authorization": "Bearer ${GITHUB_TOKEN}" },
     auth=Some(
@@ -148,7 +137,6 @@ test "server config: resolves env templates in url headers and static OAuth clie
       #|    description: None,
       #|  },
       #|)
-
     ),
   )
 }
@@ -186,7 +174,6 @@ test "server config: decodes stdio env/cwd and resolves templates" {
       #|    description: None,
       #|  },
       #|)
-
     ),
   )
 }
@@ -256,7 +243,7 @@ test "server config: missing description is None" {
 test "server config: mcp_server_config forwards description" {
   let server = mcp_server_config(
     name="github",
-    transport=ServerTransport::Http,
+    transport=Http,
     url=Some("https://mcp.github.com/mcp"),
     description=Some("GitHub Issues and PRs"),
   )
@@ -297,13 +284,13 @@ test "server config: glob matcher covers wildcard edge cases" {
 test "server config: auto keep-alive for known stdio commands unless dynamic chrome port" {
   let keep = mcp_server_config(
     name="browser",
-    transport=ServerTransport::Stdio,
+    transport=Stdio,
     command=Some("npx"),
     args=["-y", "@playwright/mcp"],
   )
   let dynamic_chrome = mcp_server_config(
     name="chrome-devtools",
-    transport=ServerTransport::Stdio,
+    transport=Stdio,
     command=Some("npx"),
     args=["chrome-devtools-mcp", "${CHROME_DEVTOOLS_URL}"],
   )
@@ -328,7 +315,6 @@ test "server config: auto keep-alive for known stdio commands unless dynamic chr
       #|    description: None,
       #|  },
       #|)
-
     ),
   )
   @debug.debug_inspect(
@@ -354,7 +340,6 @@ test "server config: auto keep-alive for known stdio commands unless dynamic chr
       #|    description: None,
       #|  },
       #|)
-
     ),
   )
 }
@@ -363,7 +348,7 @@ test "server config: auto keep-alive for known stdio commands unless dynamic chr
 test "server config: keep-alive env overrides by server or canonical name" {
   let server = mcp_server_config(
     name="custom",
-    transport=ServerTransport::Stdio,
+    transport=Stdio,
     command=Some("npx"),
     args=["@playwright/mcp"],
   )
@@ -388,7 +373,6 @@ test "server config: keep-alive env overrides by server or canonical name" {
       #|    description: None,
       #|  },
       #|)
-
     ),
   )
 }

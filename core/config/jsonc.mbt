@@ -68,8 +68,8 @@ fn strip_jsonc_comments(input : String) -> String raise JsoncError {
     }
   } nobreak {
     match state {
-      BlockComment => raise JsoncError::UnterminatedBlockComment
-      InString => raise JsoncError::UnterminatedString
+      BlockComment => raise UnterminatedBlockComment
+      InString => raise UnterminatedString
       _ => ()
     }
     out.to_string()
@@ -109,7 +109,7 @@ fn strip_jsonc_trailing_commas(input : String) -> String raise JsoncError {
     }
   } nobreak {
     if in_string {
-      raise JsoncError::UnterminatedString
+      raise UnterminatedString
     }
     out.to_string()
   }

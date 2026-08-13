@@ -34,7 +34,7 @@ async test "core http: strips user protocol headers from legacy requests" {
           "Mcp-Name": "attacker",
           "Mcp-Param-Admin": "true",
         },
-        mode=@config.McpConnectionMode::Stateful,
+        mode=Stateful,
       ),
     ),
   )
@@ -77,10 +77,7 @@ async test "core http: reads response headers case-insensitively" {
             )
         }
       },
-      http_endpoint(
-        url="https://mcp.example/case-response",
-        mode=@config.McpConnectionMode::Stateful,
-      ),
+      http_endpoint(url="https://mcp.example/case-response", mode=Stateful),
     ),
   )
   inspect(header(seen[1].headers, "Mcp-Session-Id"), content="session")
@@ -111,13 +108,10 @@ async test "core http: preserves legacy JSON-RPC error classification" {
             )
         }
       },
-      http_endpoint(
-        url="https://mcp.example/legacy-error",
-        mode=@config.McpConnectionMode::Stateful,
-      ),
+      http_endpoint(url="https://mcp.example/legacy-error", mode=Stateful),
     )
   catch {
-    McpHttpClientError::RemoteError(code, message) => {
+    RemoteError(code, message) => {
       inspect(code, content="-32099")
       inspect(message, content="legacy failure")
     }
@@ -154,10 +148,7 @@ async test "core http: explicit stateful initializes without discovery" {
           )
       }
     },
-    http_endpoint(
-      url="https://mcp.example/mcp",
-      mode=@config.McpConnectionMode::Stateful,
-    ),
+    http_endpoint(url="https://mcp.example/mcp", mode=Stateful),
   )
   inspect(tools.length(), content="0")
   inspect(

@@ -56,14 +56,14 @@ fn ToolCatalogCache::put(
   let public_key = tool_cache_key(url, mode, Map([]))
   let private_key = tool_cache_key(url, mode, headers)
   let catalog_id = tool_catalog_id(url, mode)
-  if result.cache_scope == @mcp_client.McpCacheScope::Public {
+  if result.cache_scope == Public {
     self.remove_catalog(catalog_id)
   } else {
     self.remove(public_key)
     self.remove(private_key)
   }
   if result.ttl_ms > 0 {
-    let key = if result.cache_scope == @mcp_client.McpCacheScope::Public {
+    let key = if result.cache_scope == Public {
       public_key
     } else {
       private_key
@@ -199,7 +199,7 @@ fn tool_cache_key(
 
 ///|
 fn hash_tool_cache_material(material : String) -> String {
-  let bytes = @encoding.encode(@encoding.Encoding::UTF8, material)
+  let bytes = @encoding.encode(UTF8, material)
   @crypto.sha256(bytes).iter().map(byte => byte.to_hex()).join("")
 }
 

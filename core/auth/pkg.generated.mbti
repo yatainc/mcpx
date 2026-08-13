@@ -1,0 +1,170 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/core/auth"
+
+import {
+  "moonbitlang/core/debug",
+  "yatainc/mcpx/core/host",
+}
+
+// Values
+pub fn auth_required_hint(server_name~ : String, status_code~ : Int, token_env_var? : String?) -> AuthHint?
+
+pub fn authorization_code_token_request_body(client_id~ : String, client_secret~ : String?, code~ : String, redirect_uri~ : String, code_verifier~ : String) -> String
+
+pub fn credentials_entry(server_name~ : String, server_url? : String?, client_id? : String?, access_token~ : String, refresh_token? : String?, expires_at? : Int?, updated_at~ : String) -> CredentialsEntry
+
+pub fn credentials_file_json(CredentialsFile) -> String
+
+pub fn credentials_lookup_action(credentials_path~ : String) -> @host.HostAction
+
+pub fn credentials_write_action(credentials_path~ : String, CredentialsFile) -> @host.HostAction
+
+pub fn decide_auth_cache(CredentialsEntry?, now_seconds~ : Int, skew_seconds? : Int) -> CachedAuthDecision
+
+pub fn decide_token_refresh(OAuthTokens, now_seconds~ : Int, skew_seconds? : Int) -> TokenRefreshDecision
+
+pub fn decode_client_registration_response(Json) -> Result[OAuthClientRegistration, OAuthPlanError]
+
+pub fn decode_credentials_file(Json) -> CredentialsFile raise CredentialsError
+
+pub fn decode_oauth_metadata(Json) -> Result[OAuthMetadata, OAuthPlanError]
+
+pub fn decode_oauth_token_response(Json, issued_at~ : Int) -> Result[OAuthTokens, OAuthPlanError]
+
+pub fn dynamic_client_registration_request(client_name~ : String, redirect_uri~ : String) -> Json
+
+pub fn empty_credentials_file() -> CredentialsFile
+
+pub fn expires_at_from_expires_in(issued_at~ : Int, expires_in~ : Int) -> Int
+
+pub fn find_credentials_entry(CredentialsFile, server_name~ : String, server_url? : String?) -> CredentialsEntry?
+
+pub fn find_pending_oauth_flow(CredentialsFile, server_name~ : String, state~ : String) -> PendingOAuthFlow?
+
+pub fn oauth_authorization_url(OAuthMetadata, client_id~ : String, redirect_uri~ : String, state~ : String, code_challenge~ : String, scopes~ : Array[String]) -> String
+
+pub fn oauth_dynamic_client_registration_action(OAuthMetadata, client_name~ : String, redirect_uri~ : String) -> @host.HostAction
+
+pub fn oauth_metadata(authorization_endpoint~ : String, token_endpoint~ : String, registration_endpoint? : String?, scopes_supported? : Array[String], issuer? : String?, authorization_response_iss_parameter_supported? : Bool) -> OAuthMetadata
+
+pub fn oauth_metadata_request_action(String) -> @host.HostAction
+
+pub fn oauth_no_browser_json(authorization_url~ : String, callback_url~ : String, state~ : String) -> Json
+
+pub fn oauth_refresh_token_action(OAuthMetadata, client_id~ : String, client_secret~ : String?, refresh_token~ : String) -> @host.HostAction
+
+pub fn oauth_token_exchange_action(OAuthMetadata, client_id~ : String, client_secret~ : String?, code~ : String, redirect_uri~ : String, code_verifier~ : String) -> @host.HostAction
+
+pub fn oauth_tokens(String, refresh_token? : String?, expires_at? : Int?) -> OAuthTokens
+
+pub fn pending_oauth_flow(server_name~ : String, server_url? : String?, client_id~ : String, client_secret? : String?, token_endpoint~ : String, authorization_issuer? : String?, require_authorization_issuer? : Bool, redirect_uri~ : String, code_verifier~ : String, state~ : String, created_at~ : String) -> PendingOAuthFlow
+
+pub fn put_credentials_entry(CredentialsFile, String, CredentialsEntry) -> CredentialsFile
+
+pub fn put_pending_oauth_flow(CredentialsFile, PendingOAuthFlow) -> CredentialsFile
+
+pub fn refresh_token_request_body(client_id~ : String, client_secret~ : String?, refresh_token~ : String) -> String
+
+pub fn remove_pending_oauth_flow(CredentialsFile, server_name~ : String, state~ : String) -> CredentialsFile
+
+pub fn remove_server_pending_oauth_flows(CredentialsFile, String) -> CredentialsFile
+
+pub fn replace_server_credentials_entry(CredentialsFile, String, CredentialsEntry) -> CredentialsFile
+
+pub fn replace_server_pending_oauth_flow(CredentialsFile, PendingOAuthFlow) -> CredentialsFile
+
+pub fn select_oauth_scopes(OAuthMetadata, requested_scopes~ : Array[String]) -> Array[String]
+
+pub fn validate_authorization_response_issuer(OAuthMetadata, String?) -> Result[Unit, OAuthPlanError]
+
+// Errors
+type CredentialsError derive(@debug.Debug)
+
+type OAuthPlanError derive(@debug.Debug)
+
+// Types and methods
+pub struct AuthHint {
+  server_name : String
+  status_code : Int
+  summary : String
+  suggested_commands : Array[String]
+  config_hint : String?
+  opens_browser : Bool
+} derive(@debug.Debug)
+
+pub enum CachedAuthDecision {
+  UseBearerHeader(String)
+  RefreshWithToken(String)
+  ReauthRequired
+} derive(@debug.Debug)
+
+pub struct CredentialsEntry {
+  server_name : String
+  server_url : String?
+  client_info : OAuthClientInfo?
+  tokens : OAuthTokens
+  updated_at : String
+} derive(@debug.Debug)
+pub impl ToJson for CredentialsEntry
+
+pub struct CredentialsFile {
+  version : Int
+  entries : Map[String, CredentialsEntry]
+  pending_oauth : Map[String, PendingOAuthFlow]
+} derive(@debug.Debug)
+pub impl ToJson for CredentialsFile
+
+pub struct OAuthClientInfo {
+  client_id : String
+} derive(@debug.Debug)
+pub impl ToJson for OAuthClientInfo
+
+pub struct OAuthClientRegistration {
+  client_id : String
+  client_secret : String?
+} derive(@debug.Debug)
+
+pub struct OAuthClientSecretInfo {
+  client_id : String
+  client_secret : String?
+} derive(@debug.Debug)
+pub impl ToJson for OAuthClientSecretInfo
+
+pub struct OAuthMetadata {
+  authorization_endpoint : String
+  token_endpoint : String
+  registration_endpoint : String?
+  scopes_supported : Array[String]
+  issuer : String?
+  authorization_response_iss_parameter_supported : Bool
+} derive(@debug.Debug)
+
+pub struct OAuthTokens {
+  access_token : String
+  refresh_token : String?
+  expires_at : Int?
+} derive(@debug.Debug)
+
+pub struct PendingOAuthFlow {
+  server_name : String
+  server_url : String?
+  client_info : OAuthClientSecretInfo
+  token_endpoint : String
+  authorization_issuer : String?
+  require_authorization_issuer : Bool
+  redirect_uri : String
+  code_verifier : String
+  state : String
+  created_at : String
+} derive(@debug.Debug)
+pub impl ToJson for PendingOAuthFlow
+
+pub enum TokenRefreshDecision {
+  UseCached
+  Refresh
+  ReauthRequired
+} derive(@debug.Debug)
+
+// Type aliases
+
+// Traits

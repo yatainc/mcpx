@@ -16,7 +16,7 @@ fn resolve_runtime_server(
 ///|
 fn is_keep_alive_server(server : @config.McpServerConfig) -> Bool {
   match server.lifecycle {
-    Some({ mode: @config.ServerLifecycleMode::KeepAlive, .. }) => true
+    Some({ mode: KeepAlive, .. }) => true
     _ => false
   }
 }
@@ -36,7 +36,7 @@ fn load_mcpx_env(path : String) -> Result[Map[String, String], String] {
     }
     match @config.parse_dotenv(text) {
       Ok(value) => value
-      Err(@config.DotenvError::InvalidDotenvLine(line_number, line)) =>
+      Err(InvalidDotenvLine(line_number, line)) =>
         return Err("invalid .env line " + line_number.to_string() + ": " + line)
     }
   } else {

@@ -36,7 +36,7 @@ async test "mcpx runtime: auth no-browser starts OAuth and replaces old pending 
         @config.empty_mcpx_config(),
         @config.mcp_server_config(
           name="github",
-          transport=@config.ServerTransport::Http,
+          transport=Http,
           url=Some("http://localhost:\{port}/mcp"),
           auth=Some(
             @config.oauth_server_auth(
@@ -124,7 +124,7 @@ async test "mcpx runtime: auth no-browser json supports dynamic client registrat
         @config.empty_mcpx_config(),
         @config.mcp_server_config(
           name="github",
-          transport=@config.ServerTransport::Http,
+          transport=Http,
           url=Some("http://localhost:\{port}/mcp"),
           auth=Some(@config.oauth_server_auth(metadata_url=Some(metadata_url))),
         ),
@@ -196,7 +196,7 @@ async test "mcpx runtime: auth discovers OAuth when metadata URL is absent" {
         @config.empty_mcpx_config(),
         @config.mcp_server_config(
           name="github",
-          transport=@config.ServerTransport::Http,
+          transport=Http,
           url=Some("http://localhost:\{port}/mcp"),
           auth=Some(@config.oauth_server_auth(client_id=Some("client-1"))),
         ),
@@ -275,7 +275,7 @@ async test "mcpx runtime: rejects mismatched discovered OAuth metadata issuer" {
         @config.empty_mcpx_config(),
         @config.mcp_server_config(
           name="github",
-          transport=@config.ServerTransport::Http,
+          transport=Http,
           url=Some("http://localhost:\{port}/mcp"),
           auth=Some(@config.oauth_server_auth(client_id=Some("client-1"))),
         ),
@@ -354,7 +354,7 @@ async test "mcpx runtime: auth discovery supports lowercase header and root issu
         @config.empty_mcpx_config(),
         @config.mcp_server_config(
           name="github",
-          transport=@config.ServerTransport::Http,
+          transport=Http,
           url=Some("http://localhost:\{port}/mcp"),
           auth=Some(@config.oauth_server_auth(client_id=Some("client-1"))),
         ),
@@ -429,7 +429,7 @@ async test "mcpx runtime: auth discovery fails when challenge has no resource me
         @config.empty_mcpx_config(),
         @config.mcp_server_config(
           name="github",
-          transport=@config.ServerTransport::Http,
+          transport=Http,
           url=Some("http://localhost:\{port}/mcp"),
           auth=Some(@config.oauth_server_auth(client_id=Some("client-1"))),
         ),
@@ -471,7 +471,7 @@ async test "mcpx runtime: auth config is required before OAuth discovery" {
       @config.empty_mcpx_config(),
       @config.mcp_server_config(
         name="github",
-        transport=@config.ServerTransport::Http,
+        transport=Http,
         url=Some("http://localhost:1/mcp"),
       ),
     ),
@@ -665,7 +665,7 @@ async test "mcpx runtime: interactive auth uses browser callback listener" {
         @config.empty_mcpx_config(),
         @config.mcp_server_config(
           name="github",
-          transport=@config.ServerTransport::Http,
+          transport=Http,
           url=Some("http://localhost:\{port}/mcp"),
           auth=Some(
             @config.oauth_server_auth(

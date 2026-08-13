@@ -67,25 +67,25 @@ pub fn parse_mcpx_args(
   args : Array[String],
 ) -> Result[McpxCommand, CliParseError] {
   match args.get(0) {
-    None => Ok(McpxCommand::Help)
+    None => Ok(Help)
     Some("--help") =>
       if args.length() > 1 {
-        Err(CliParseError::UnknownOption(args[1]))
+        Err(UnknownOption(args[1]))
       } else {
-        Ok(McpxCommand::Help)
+        Ok(Help)
       }
     Some("--version") =>
       if args.length() > 1 {
-        Err(CliParseError::UnknownOption(args[1]))
+        Err(UnknownOption(args[1]))
       } else {
-        Ok(McpxCommand::Version)
+        Ok(Version)
       }
     Some("call") => parse_call_command(args)
     Some("info") => parse_info_command(args)
     Some("search") => parse_search_command(args)
     Some("auth") => parse_auth_command(args)
     Some("daemon") => parse_daemon_command(args)
-    Some(command) => Err(CliParseError::UnknownCommand(command))
+    Some(command) => Err(UnknownCommand(command))
   }
 }
 
@@ -94,17 +94,15 @@ fn parse_call_command(
   args : Array[String],
 ) -> Result[McpxCommand, CliParseError] {
   match (args.get(1), args.get(2)) {
-    (None, _) => Ok(McpxCommand::CallHelp)
-    (Some("--url"), _) => Err(CliParseError::InvalidTarget("--url"))
-    (_, None) => Err(CliParseError::MissingArgument("tool"))
+    (None, _) => Ok(CallHelp)
+    (Some("--url"), _) => Err(InvalidTarget("--url"))
+    (_, None) => Err(MissingArgument("tool"))
     (Some(target), Some(tool)) =>
       if args.length() > 4 {
-        Err(CliParseError::UnknownOption(args[4]))
+        Err(UnknownOption(args[4]))
       } else {
         let (server, url) = target_server_url(target)
-        Ok(
-          McpxCommand::Call({ server, url, tool, arguments_json: args.get(3) }),
-        )
+        Ok(Call({ server, url, tool, arguments_json: args.get(3) }))
       }
   }
 }
@@ -114,14 +112,14 @@ fn parse_info_command(
   args : Array[String],
 ) -> Result[McpxCommand, CliParseError] {
   match args.get(1) {
-    None => Ok(McpxCommand::Info({ server: None, url: None, tool: None }))
-    Some("--url") => Err(CliParseError::InvalidTarget("--url"))
+    None => Ok(Info({ server: None, url: None, tool: None }))
+    Some("--url") => Err(InvalidTarget("--url"))
     Some(target) =>
       if args.length() > 3 {
-        Err(CliParseError::UnknownOption(args[3]))
+        Err(UnknownOption(args[3]))
       } else {
         let (server, url) = target_server_url(target)
-        Ok(McpxCommand::Info({ server: Some(server), url, tool: args.get(2) }))
+        Ok(Info({ server: Some(server), url, tool: args.get(2) }))
       }
   }
 }
@@ -131,12 +129,12 @@ fn parse_search_command(
   args : Array[String],
 ) -> Result[McpxCommand, CliParseError] {
   match args.get(1) {
-    None => Ok(McpxCommand::SearchHelp)
+    None => Ok(SearchHelp)
     Some(pattern) =>
       if args.length() > 2 {
-        Err(CliParseError::UnknownOption(args[2]))
+        Err(UnknownOption(args[2]))
       } else {
-        Ok(McpxCommand::Search({ pattern, }))
+        Ok(Search({ pattern, }))
       }
   }
 }
@@ -146,7 +144,7 @@ fn parse_auth_command(
   args : Array[String],
 ) -> Result[McpxCommand, CliParseError] {
   match args.get(1) {
-    None => Ok(McpxCommand::AuthHelp)
+    None => Ok(AuthHelp)
     Some(server) => {
       let mut no_browser = false
       let mut json_output = false
@@ -163,7 +161,7 @@ fn parse_auth_command(
                 code = Some(value)
                 continue i + 2
               }
-              None => return Err(CliParseError::MissingArgument("code"))
+              None => return Err(MissingArgument("code"))
             }
           "--state" =>
             match args.get(i + 1) {
@@ -171,7 +169,7 @@ fn parse_auth_command(
                 state = Some(value)
                 continue i + 2
               }
-              None => return Err(CliParseError::MissingArgument("state"))
+              None => return Err(MissingArgument("state"))
             }
           "--iss" =>
             match args.get(i + 1) {
@@ -179,22 +177,13 @@ fn parse_auth_command(
                 issuer = Some(value)
                 continue i + 2
               }
-              None => return Err(CliParseError::MissingArgument("iss"))
+              None => return Err(MissingArgument("iss"))
             }
-          option => return Err(CliParseError::UnknownOption(option))
+          option => return Err(UnknownOption(option))
         }
         continue i + 1
       }
-      Ok(
-        McpxCommand::Auth({
-          server,
-          no_browser,
-          json_output,
-          code,
-          state,
-          issuer,
-        }),
-      )
+      Ok(Auth({ server, no_browser, json_output, code, state, issuer }))
     }
   }
 }
@@ -206,23 +195,23 @@ fn parse_daemon_command(
   match args.get(1) {
     None =>
       if args.length() > 2 {
-        Err(CliParseError::UnknownOption(args[2]))
+        Err(UnknownOption(args[2]))
       } else {
-        Ok(McpxCommand::Daemon({ mode: DaemonMode::Help }))
+        Ok(Daemon({ mode: Help }))
       }
     Some("status") =>
       if args.length() > 2 {
-        Err(CliParseError::UnknownOption(args[2]))
+        Err(UnknownOption(args[2]))
       } else {
-        Ok(McpxCommand::Daemon({ mode: DaemonMode::Status }))
+        Ok(Daemon({ mode: Status }))
       }
     Some("stop") =>
       if args.length() > 2 {
-        Err(CliParseError::UnknownOption(args[2]))
+        Err(UnknownOption(args[2]))
       } else {
-        Ok(McpxCommand::Daemon({ mode: DaemonMode::Stop }))
+        Ok(Daemon({ mode: Stop }))
       }
-    Some(other) => Err(CliParseError::UnknownOption(other))
+    Some(other) => Err(UnknownOption(other))
   }
 }
 

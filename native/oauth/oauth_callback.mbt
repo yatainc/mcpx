@@ -74,7 +74,7 @@ pub async fn wait_for_oauth_callback(
       }
     },
   ) catch {
-    _ => Err(OAuthCallbackError::Timeout)
+    _ => Err(Timeout)
   }
   match result {
     Ok(value) => value
@@ -96,16 +96,16 @@ fn parse_oauth_callback_path(
     .view(start_offset=path.length() + 1)
     .to_owned()
   } else {
-    return Err(OAuthCallbackError::InvalidRequest)
+    return Err(InvalidRequest)
   }
   let params = query_params(query)
   let state = params.get("state").unwrap_or("")
   if state != expected_state {
-    return Err(OAuthCallbackError::StateMismatch)
+    return Err(StateMismatch)
   }
   let code = match params.get("code") {
     Some(value) if !value.is_empty() => value
-    _ => return Err(OAuthCallbackError::MissingCode)
+    _ => return Err(MissingCode)
   }
   let decoded_code = percent_decode(code) catch { error => return Err(error) }
   let issuer = match params.get("iss") {
@@ -122,24 +122,19 @@ fn percent_decode(value : String) -> String raise OAuthCallbackError {
   let bytes : Array[Byte] = []
   for i = 0; i < chars.length(); {
     if chars[i] == '%' {
-      guard i + 2 < chars.length() else {
-        raise OAuthCallbackError::InvalidRequest
-      }
+      guard i + 2 < chars.length() else { raise InvalidRequest }
       match (hex_value(chars[i + 1]), hex_value(chars[i + 2])) {
         (Some(high), Some(low)) => {
           bytes.push((high * 16 + low).to_byte())
           continue i + 3
         }
-        _ => raise OAuthCallbackError::InvalidRequest
+        _ => raise InvalidRequest
       }
     }
     if chars[i] == '+' {
       bytes.push((32 : Int).to_byte())
     } else {
-      let encoded = @encoding.encode(
-        @encoding.Encoding::UTF8,
-        chars[i].to_string(),
-      )
+      let encoded = @encoding.encode(UTF8, chars[i].to_string())
       for byte in encoded {
         bytes.push(byte)
       }
@@ -147,8 +142,8 @@ fn percent_decode(value : String) -> String raise OAuthCallbackError {
     continue i + 1
   }
   let encoded = Bytes::from_array(bytes)
-  @encoding.decoder(@encoding.Encoding::UTF8).decode(encoded[:]) catch {
-    _ => raise OAuthCallbackError::InvalidRequest
+  @encoding.decoder(UTF8).decode(encoded[:]) catch {
+    _ => raise InvalidRequest
   }
 }
 
@@ -190,10 +185,10 @@ async fn wait_for_callback_result(
       Some(Err(error)) => raise error
       None =>
         if @sys.now().reinterpret_as_int64() >= deadline {
-          raise OAuthCallbackError::Timeout
+          raise Timeout
         } else {
           @async.sleep(10) catch {
-            _ => raise OAuthCallbackError::Timeout
+            _ => raise Timeout
           }
         }
     }

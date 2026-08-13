@@ -66,21 +66,13 @@ pub fn validate_authorization_response_issuer(
   match (metadata.issuer, response_issuer) {
     (Some(expected), Some(actual)) if actual == expected => Ok(())
     (Some(_), Some(_)) =>
-      Err(
-        OAuthPlanError::InvalidAuthorizationResponse(
-          "authorization response iss mismatch",
-        ),
-      )
+      Err(InvalidAuthorizationResponse("authorization response iss mismatch"))
     (Some(_), None) if metadata.authorization_response_iss_parameter_supported =>
-      Err(
-        OAuthPlanError::InvalidAuthorizationResponse(
-          "authorization response missing iss",
-        ),
-      )
+      Err(InvalidAuthorizationResponse("authorization response missing iss"))
     (_, None) => Ok(())
     (None, Some(_)) =>
       Err(
-        OAuthPlanError::InvalidAuthorizationResponse(
+        InvalidAuthorizationResponse(
           "authorization server issuer is unavailable",
         ),
       )
@@ -174,56 +166,37 @@ pub fn decode_oauth_metadata(
   json : Json,
 ) -> Result[OAuthMetadata, OAuthPlanError] {
   let obj = expect_oauth_object(json) catch {
-    _ =>
-      return Err(
-        OAuthPlanError::InvalidOAuthMetadata("metadata must be object"),
-      )
+    _ => return Err(InvalidOAuthMetadata("metadata must be object"))
   }
   let authorization_endpoint = expect_oauth_string(
     obj.get("authorization_endpoint"),
     "authorization_endpoint",
   ) catch {
     _ =>
-      return Err(
-        OAuthPlanError::InvalidOAuthMetadata(
-          "authorization_endpoint must be string",
-        ),
-      )
+      return Err(InvalidOAuthMetadata("authorization_endpoint must be string"))
   }
   let token_endpoint = expect_oauth_string(
     obj.get("token_endpoint"),
     "token_endpoint",
   ) catch {
-    _ =>
-      return Err(
-        OAuthPlanError::InvalidOAuthMetadata("token_endpoint must be string"),
-      )
+    _ => return Err(InvalidOAuthMetadata("token_endpoint must be string"))
   }
   let registration_endpoint = optional_oauth_string(
     obj.get("registration_endpoint"),
     "registration_endpoint",
   ) catch {
     _ =>
-      return Err(
-        OAuthPlanError::InvalidOAuthMetadata(
-          "registration_endpoint must be string",
-        ),
-      )
+      return Err(InvalidOAuthMetadata("registration_endpoint must be string"))
   }
   let scopes_supported = optional_oauth_string_array(
     obj.get("scopes_supported"),
     "scopes_supported",
   ) catch {
     _ =>
-      return Err(
-        OAuthPlanError::InvalidOAuthMetadata(
-          "scopes_supported must be string array",
-        ),
-      )
+      return Err(InvalidOAuthMetadata("scopes_supported must be string array"))
   }
   let issuer = optional_oauth_string(obj.get("issuer"), "issuer") catch {
-    _ =>
-      return Err(OAuthPlanError::InvalidOAuthMetadata("issuer must be string"))
+    _ => return Err(InvalidOAuthMetadata("issuer must be string"))
   }
   let iss_supported = match
     obj.get("authorization_response_iss_parameter_supported") {
@@ -232,14 +205,14 @@ pub fn decode_oauth_metadata(
     Some(False) => false
     _ =>
       return Err(
-        OAuthPlanError::InvalidOAuthMetadata(
+        InvalidOAuthMetadata(
           "authorization_response_iss_parameter_supported must be boolean",
         ),
       )
   }
   if iss_supported && issuer is None {
     return Err(
-      OAuthPlanError::InvalidOAuthMetadata(
+      InvalidOAuthMetadata(
         "issuer is required when authorization response iss is supported",
       ),
     )
@@ -259,27 +232,16 @@ pub fn decode_client_registration_response(
   json : Json,
 ) -> Result[OAuthClientRegistration, OAuthPlanError] {
   let obj = expect_oauth_object(json) catch {
-    _ =>
-      return Err(
-        OAuthPlanError::InvalidClientRegistration("response must be object"),
-      )
+    _ => return Err(InvalidClientRegistration("response must be object"))
   }
   let client_id = expect_oauth_string(obj.get("client_id"), "client_id") catch {
-    _ =>
-      return Err(
-        OAuthPlanError::InvalidClientRegistration("client_id must be string"),
-      )
+    _ => return Err(InvalidClientRegistration("client_id must be string"))
   }
   let client_secret = optional_oauth_string(
     obj.get("client_secret"),
     "client_secret",
   ) catch {
-    _ =>
-      return Err(
-        OAuthPlanError::InvalidClientRegistration(
-          "client_secret must be string",
-        ),
-      )
+    _ => return Err(InvalidClientRegistration("client_secret must be string"))
   }
   Ok({ client_id, client_secret })
 }
@@ -288,7 +250,7 @@ pub fn decode_client_registration_response(
 fn expect_oauth_object(json : Json) -> Map[String, Json] raise OAuthPlanError {
   match json {
     Object(obj) => obj
-    _ => raise OAuthPlanError::InvalidOAuthMetadata("must be object")
+    _ => raise InvalidOAuthMetadata("must be object")
   }
 }
 
@@ -299,7 +261,7 @@ fn expect_oauth_string(
 ) -> String raise OAuthPlanError {
   match json {
     Some(String(value)) => value
-    _ => raise OAuthPlanError::InvalidOAuthMetadata(field + " must be string")
+    _ => raise InvalidOAuthMetadata(field + " must be string")
   }
 }
 
@@ -311,7 +273,7 @@ fn optional_oauth_string(
   match json {
     None | Some(Null) => None
     Some(String(value)) => Some(value)
-    _ => raise OAuthPlanError::InvalidOAuthMetadata(field + " must be string")
+    _ => raise InvalidOAuthMetadata(field + " must be string")
   }
 }
 
@@ -327,15 +289,12 @@ fn optional_oauth_string_array(
       for value in values {
         match value {
           String(text) => result.push(text)
-          _ =>
-            raise OAuthPlanError::InvalidOAuthMetadata(
-              field + " must contain strings",
-            )
+          _ => raise InvalidOAuthMetadata(field + " must contain strings")
         }
       }
       result
     }
-    _ => raise OAuthPlanError::InvalidOAuthMetadata(field + " must be array")
+    _ => raise InvalidOAuthMetadata(field + " must be array")
   }
 }
 
@@ -385,32 +344,22 @@ pub fn decode_oauth_token_response(
   issued_at~ : Int,
 ) -> Result[OAuthTokens, OAuthPlanError] {
   let obj = expect_oauth_object(json) catch {
-    _ =>
-      return Err(
-        OAuthPlanError::InvalidOAuthMetadata("token response must be object"),
-      )
+    _ => return Err(InvalidOAuthMetadata("token response must be object"))
   }
   let access_token = expect_oauth_string(
     obj.get("access_token"),
     "access_token",
   ) catch {
-    _ =>
-      return Err(
-        OAuthPlanError::InvalidOAuthMetadata("access_token must be string"),
-      )
+    _ => return Err(InvalidOAuthMetadata("access_token must be string"))
   }
   let refresh_token = optional_oauth_string(
     obj.get("refresh_token"),
     "refresh_token",
   ) catch {
-    _ =>
-      return Err(
-        OAuthPlanError::InvalidOAuthMetadata("refresh_token must be string"),
-      )
+    _ => return Err(InvalidOAuthMetadata("refresh_token must be string"))
   }
   let expires_in = optional_oauth_int(obj.get("expires_in"), "expires_in") catch {
-    _ =>
-      return Err(OAuthPlanError::InvalidOAuthMetadata("expires_in must be int"))
+    _ => return Err(InvalidOAuthMetadata("expires_in must be int"))
   }
   let expires_at = match expires_in {
     None => None
@@ -428,6 +377,6 @@ fn optional_oauth_int(
   match json {
     None | Some(Null) => None
     Some(Number(value, ..)) if value.trunc() == value => Some(value.to_int())
-    _ => raise OAuthPlanError::InvalidOAuthMetadata(field + " must be int")
+    _ => raise InvalidOAuthMetadata(field + " must be int")
   }
 }

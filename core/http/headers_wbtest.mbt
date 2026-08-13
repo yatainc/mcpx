@@ -22,7 +22,7 @@ test "HTTP headers: modern builder sanitizes reserved headers" {
       "MCP-PARAM-admin": "true",
       "Accept": "text/plain",
     },
-    @protocol.McpProtocolVersion::V2026_07_28,
+    V2026_07_28,
     "tools/call",
     Some("検索"),
   )

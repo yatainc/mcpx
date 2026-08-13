@@ -69,7 +69,7 @@ async test "oauth callback: rejects malformed percent-encoded UTF-8" {
       },
     )
   catch {
-    OAuthCallbackError::InvalidRequest => ()
+    InvalidRequest => ()
     _ => fail("expected invalid callback request")
   } noraise {
     _ => fail("expected malformed UTF-8 to fail")

@@ -23,10 +23,7 @@ async test "core http: tool list without cache hints is not cacheable" {
     http_endpoint(url="https://mcp.example/mcp"),
   )
   inspect(result.ttl_ms, content="0")
-  inspect(
-    result.cache_scope == @protocol.McpCacheScope::Private,
-    content="true",
-  )
+  inspect(result.cache_scope == Private, content="true")
 }
 
 ///|
@@ -54,7 +51,7 @@ async test "core http: uses tools list cache hints instead of discovery hints" {
     http_endpoint(url="https://mcp.example/tool-cache-hints"),
   )
   inspect(result.ttl_ms, content="60000")
-  inspect(result.cache_scope == @protocol.McpCacheScope::Public, content="true")
+  inspect(result.cache_scope == Public, content="true")
 }
 
 ///|
@@ -116,7 +113,7 @@ async test "core http: bounds modern tool pagination" {
       max_tools=10,
     )
   catch {
-    McpHttpClientError::Protocol(message) =>
+    Protocol(message) =>
       inspect(message, content="tools/list exceeds maximum page count")
     _ => fail("expected pagination limit")
   } noraise {
@@ -153,7 +150,7 @@ async test "core http: bounds modern tool count" {
       max_tools=1,
     )
   catch {
-    McpHttpClientError::Protocol(message) =>
+    Protocol(message) =>
       inspect(message, content="tools/list exceeds maximum tool count")
     _ => fail("expected tool limit")
   } noraise {
@@ -200,7 +197,7 @@ async test "core http: combines paginated modern tool lists" {
   inspect(result.tools.map(tool => tool.name).join(","), content="first,second")
   inspect(cursors.join(","), content=",page-2")
   inspect(result.ttl_ms, content="30000")
-  inspect(result.cache_scope == @protocol.McpCacheScope::Public, content="true")
+  inspect(result.cache_scope == Public, content="true")
 }
 
 ///|
@@ -237,7 +234,7 @@ async test "core http: rejects inconsistent pagination cache scope" {
       http_endpoint(url="https://mcp.example/inconsistent-scope"),
     )
   catch {
-    McpHttpClientError::Protocol(_) => ()
+    Protocol(_) => ()
     _ => fail("expected protocol error")
   } noraise {
     _ => fail("expected pagination to fail")
@@ -271,7 +268,7 @@ async test "core http: rejects repeated pagination cursor" {
       http_endpoint(url="https://mcp.example/cursor-loop"),
     )
   catch {
-    McpHttpClientError::Protocol(_) => ()
+    Protocol(_) => ()
     _ => fail("expected protocol error")
   } noraise {
     _ => fail("expected pagination to fail")
@@ -614,7 +611,7 @@ async test "core http: modern tools list requires resultType" {
       http_endpoint(url="https://mcp.example/result-type"),
     )
   catch {
-    McpHttpClientError::Protocol(_) => ()
+    Protocol(_) => ()
     _ => fail("expected protocol error")
   } noraise {
     _ => fail("expected missing resultType to fail")
@@ -702,7 +699,7 @@ async test "core http: modern call requires resultType" {
       arguments=Json::empty_object(),
     )
   catch {
-    McpHttpClientError::Protocol(_) => ()
+    Protocol(_) => ()
     _ => fail("expected protocol error")
   } noraise {
     _ => fail("expected missing resultType to fail")

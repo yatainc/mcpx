@@ -5,29 +5,19 @@ test "native tool cache: expires entries using injected clock" {
   cache.put(
     "https://example.test/mcp",
     Map([]),
-    @config.McpConnectionMode::Auto,
+    Auto,
     @core_http.mcp_tool_list_result(
       tools=[@mcp_client.mcp_tool_info(name="search", input_schema={})],
       ttl_ms=10,
     ),
   )
   inspect(
-    cache.get(
-      "https://example.test/mcp",
-      Map([]),
-      @config.McpConnectionMode::Auto,
-    )
-    is Some(_),
+    cache.get("https://example.test/mcp", Map([]), Auto) is Some(_),
     content="true",
   )
   now.val = 1010L
   inspect(
-    cache.get(
-      "https://example.test/mcp",
-      Map([]),
-      @config.McpConnectionMode::Auto,
-    )
-    is None,
+    cache.get("https://example.test/mcp", Map([]), Auto) is None,
     content="true",
   )
 }
@@ -40,31 +30,26 @@ test "native tool cache: public refresh supersedes private variants" {
   cache.put(
     url,
     { "Authorization": "Bearer old" },
-    @config.McpConnectionMode::Auto,
+    Auto,
     @core_http.mcp_tool_list_result(
       tools=[@mcp_client.mcp_tool_info(name="private", input_schema={})],
       ttl_ms=100,
-      cache_scope=@mcp_client.McpCacheScope::Private,
+      cache_scope=Private,
     ),
   )
   cache.put(
     url,
     { "Authorization": "Bearer new" },
-    @config.McpConnectionMode::Auto,
+    Auto,
     @core_http.mcp_tool_list_result(
       tools=[@mcp_client.mcp_tool_info(name="public", input_schema={})],
       ttl_ms=10,
-      cache_scope=@mcp_client.McpCacheScope::Public,
+      cache_scope=Public,
     ),
   )
   now.val = 1010L
   inspect(
-    cache.get(
-      url,
-      { "Authorization": "Bearer old" },
-      @config.McpConnectionMode::Auto,
-    )
-    is None,
+    cache.get(url, { "Authorization": "Bearer old" }, Auto) is None,
     content="true",
   )
 }
@@ -76,30 +61,23 @@ test "native tool cache: evicts least recently used entries" {
     cache.put(
       url,
       Map([]),
-      @config.McpConnectionMode::Auto,
+      Auto,
       @core_http.mcp_tool_list_result(
         tools=[@mcp_client.mcp_tool_info(name=url, input_schema={})],
         ttl_ms=10,
       ),
     )
   }
-  ignore(cache.get("https://one", Map([]), @config.McpConnectionMode::Auto))
+  ignore(cache.get("https://one", Map([]), Auto))
   cache.put(
     "https://three",
     Map([]),
-    @config.McpConnectionMode::Auto,
+    Auto,
     @core_http.mcp_tool_list_result(
       tools=[@mcp_client.mcp_tool_info(name="three", input_schema={})],
       ttl_ms=10,
     ),
   )
-  inspect(
-    cache.get("https://one", Map([]), @config.McpConnectionMode::Auto)
-    is Some(_),
-    content="true",
-  )
-  inspect(
-    cache.get("https://two", Map([]), @config.McpConnectionMode::Auto) is None,
-    content="true",
-  )
+  inspect(cache.get("https://one", Map([]), Auto) is Some(_), content="true")
+  inspect(cache.get("https://two", Map([]), Auto) is None, content="true")
 }

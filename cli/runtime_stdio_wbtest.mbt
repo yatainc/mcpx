@@ -12,7 +12,7 @@ async test "mcpx runtime: call uses configured stdio server" {
       @config.empty_mcpx_config(),
       @config.mcp_server_config(
         name="local",
-        transport=@config.ServerTransport::Stdio,
+        transport=Stdio,
         command=Some("/bin/sh"),
         args=["-c", stdio_call_script()],
       ),
@@ -45,7 +45,7 @@ async test "mcpx runtime: info uses configured stdio server" {
       @config.empty_mcpx_config(),
       @config.mcp_server_config(
         name="local",
-        transport=@config.ServerTransport::Stdio,
+        transport=Stdio,
         command=Some("/bin/sh"),
         args=["-c", stdio_list_script()],
       ),
@@ -109,7 +109,7 @@ async test "mcpx runtime: stdio resolves .env into env args and cwd" {
       @config.empty_mcpx_config(),
       @config.mcp_server_config(
         name="local",
-        transport=@config.ServerTransport::Stdio,
+        transport=Stdio,
         command=Some("/bin/sh"),
         args=["-c", stdio_env_cwd_script()],
         env={ "EXPECTED_TOKEN": "${EXPECTED_TOKEN}" },
@@ -161,12 +161,10 @@ async test "mcpx runtime: keep-alive stdio calls are routed through daemon" {
       @config.empty_mcpx_config(),
       @config.mcp_server_config(
         name="local",
-        transport=@config.ServerTransport::Stdio,
+        transport=Stdio,
         command=Some("/bin/sh"),
         args=["-c", stdio_keepalive_script()],
-        lifecycle=Some(
-          @config.server_lifecycle(@config.ServerLifecycleMode::KeepAlive),
-        ),
+        lifecycle=Some(@config.server_lifecycle(KeepAlive)),
       ),
     ),
   )

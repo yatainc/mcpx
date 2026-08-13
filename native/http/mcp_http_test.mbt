@@ -185,7 +185,7 @@ async test "mcp http: sends MCP 2026 mirrored headers without sessions" {
         headers=Map([]),
         tool_name="検索",
         arguments={ "region": "日本" },
-        mode=@config.McpConnectionMode::Stateless,
+        mode=Stateless,
       ),
     )
   })

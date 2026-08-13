@@ -14,7 +14,7 @@ on:
       - "flake.nix"
       - "flake.lock"
       - "package.nix"
-      - "moon.mod.json"
+      - "moon.mod"
       - "moon.pkg"
       - ".github/workflows/**"
   pull_request:
@@ -28,9 +28,9 @@ on:
       - "flake.nix"
       - "flake.lock"
       - "package.nix"
-      - "moon.mod.json"
+      - "moon.mod"
       - "moon.pkg"
-      - ".github/workflows/**"
+      - ".github/workflows/**"},{
 
 permissions: {}
 
@@ -60,8 +60,11 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      - name: moon fmt/check
-        run: nix develop --command moon check --target native --deny-warn
+      - name: moon fmt
+        run: nix develop --command moon fmt --check
+
+      - name: moon check
+        run: nix develop --command moon check --target native --warn-list +73 --deny-warn
 
       - name: moon test
         run: nix develop --command moon test --target native --no-render

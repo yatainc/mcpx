@@ -111,8 +111,8 @@ fn inspect_header_schema_node(
       }
       let value_type = match obj.get("type") {
         Some(String("string")) => McpHttpHeaderValueType::StringValue
-        Some(String("integer")) => McpHttpHeaderValueType::IntegerValue
-        Some(String("boolean")) => McpHttpHeaderValueType::BooleanValue
+        Some(String("integer")) => IntegerValue
+        Some(String("boolean")) => BooleanValue
         _ =>
           raise McpToolHeaderError(
             "x-mcp-header requires string, integer, or boolean",
@@ -157,11 +157,10 @@ fn build_mcp_tool_parameter_headers(
       None => ()
       Some(value) => {
         let text = match (binding.value_type, value) {
-          (McpHttpHeaderValueType::StringValue, String(text)) => text
-          (McpHttpHeaderValueType::BooleanValue, True) => "true"
-          (McpHttpHeaderValueType::BooleanValue, False) => "false"
-          (McpHttpHeaderValueType::IntegerValue, Number(value, ..)) if value.trunc() ==
-            value &&
+          (StringValue, String(text)) => text
+          (BooleanValue, True) => "true"
+          (BooleanValue, False) => "false"
+          (IntegerValue, Number(value, ..)) if value.trunc() == value &&
             value >= -9007199254740991.0 &&
             value <= 9007199254740991.0 => value.to_int64().to_string()
           _ => return Err("tool header argument type mismatch")

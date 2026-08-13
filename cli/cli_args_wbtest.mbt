@@ -109,7 +109,7 @@ test "cli args: auth completion accepts RFC 9207 issuer" {
     parse_mcpx_args([
       "auth", "github", "--code", "code-1", "--state", "state-1", "--iss", "https://auth.example",
     ]) {
-    Ok(McpxCommand::Auth(command)) =>
+    Ok(Auth(command)) =>
       inspect(command.issuer.unwrap(), content="https://auth.example")
     _ => fail("expected auth command")
   }

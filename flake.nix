@@ -51,7 +51,10 @@
 
           baseMoonHome = pkgs.moonPlatform.bundleWithRegistry {
             cachedRegistry = pkgs.moonPlatform.buildCachedRegistry {
-              moonModJson = ./moon.mod.json;
+              # moonbit-overlay still consumes the legacy JSON shape when
+              # constructing an offline registry. The project manifest itself
+              # is the canonical moon.mod DSL file at the repository root.
+              moonModJson = ./nix/moon.mod.json;
               registryIndexSrc = ./nix/moon-registry;
             };
           };

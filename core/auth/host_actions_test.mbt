@@ -31,7 +31,7 @@ test "auth host actions: stores refreshed credentials with private atomic write"
     file,
   )
   match action {
-    @host.HostAction::WriteTextFile(write) => {
+    WriteTextFile(write) => {
       inspect(write.path, content="/home/me/.config/mcpx/credentials.json")
       inspect(write.contents.contains("\n  \"entries\""), content="true")
       inspect(write.contents.has_suffix("\n"), content="true")

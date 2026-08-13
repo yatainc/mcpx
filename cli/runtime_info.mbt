@@ -31,7 +31,7 @@ async fn run_info(
         Err(message) => return error_result(message)
       }
       match resolved_server.transport {
-        @config.ServerTransport::Stdio =>
+        Stdio =>
           if is_keep_alive_server(resolved_server) {
             run_info_daemon(
               target_server,
@@ -43,7 +43,7 @@ async fn run_info(
           } else {
             run_info_stdio(target_server, resolved_server, command.tool)
           }
-        @config.ServerTransport::Http =>
+        Http =>
           match resolved_server.url {
             None => error_result("server has no url: " + target_server)
             Some(url) => {
@@ -146,8 +146,8 @@ fn truncate_chars(text : String, max_chars : Int) -> String {
 ///|
 fn server_transport_text(server : @config.McpServerConfig) -> String {
   match server.transport {
-    @config.ServerTransport::Http => "http"
-    @config.ServerTransport::Stdio => "stdio"
+    Http => "http"
+    Stdio => "stdio"
   }
 }
 
@@ -199,7 +199,7 @@ async fn run_info_url(
   headers~ : Map[String, String],
   tool~ : String?,
   filter_server~ : @config.McpServerConfig?,
-  mode? : @config.McpConnectionMode = @config.McpConnectionMode::Auto,
+  mode? : @config.McpConnectionMode = Auto,
 ) -> String {
   let tools = @mcp_http.http_mcp_list_tools(url~, headers~, mode~) catch {
     error => return mcp_http_error_result(server_name, error)

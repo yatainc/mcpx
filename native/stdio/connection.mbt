@@ -46,13 +46,13 @@ async fn[X] spawn_stdio(
   cwd : String?,
 ) -> StdioConnection raise McpStdioError {
   let (reader, stdout_handle) = @process.read_from_process() catch {
-    err => raise McpStdioError::SpawnFailed(err.to_string())
+    err => raise SpawnFailed(err.to_string())
   }
   let (stdin_handle, writer) = @process.write_to_process() catch {
-    err => raise McpStdioError::SpawnFailed(err.to_string())
+    err => raise SpawnFailed(err.to_string())
   }
   let (stderr_reader, stderr_handle) = @process.read_from_process() catch {
-    err => raise McpStdioError::SpawnFailed(err.to_string())
+    err => raise SpawnFailed(err.to_string())
   }
   let process = match cwd {
     None =>
@@ -66,7 +66,7 @@ async fn[X] spawn_stdio(
         stdout=stdout_handle,
         stderr=stderr_handle,
       ) catch {
-        err => raise McpStdioError::SpawnFailed(err.to_string())
+        err => raise SpawnFailed(err.to_string())
       }
     Some(dir) =>
       @process.spawn(
@@ -80,7 +80,7 @@ async fn[X] spawn_stdio(
         stderr=stderr_handle,
         cwd=dir.to_string_view(),
       ) catch {
-        err => raise McpStdioError::SpawnFailed(err.to_string())
+        err => raise SpawnFailed(err.to_string())
       }
   }
   group.spawn_bg(no_wait=true, () => drain_process_stderr(stderr_reader))
@@ -91,7 +91,7 @@ async fn[X] spawn_stdio(
     writer,
     _stdin_handle: stdin_handle,
     process,
-    state: StdioConnectionState::Open,
+    state: Open,
   }
 }
 
@@ -102,7 +102,7 @@ async fn write_json_line(
 ) -> Unit raise McpStdioError {
   ensure_stdio_connection_usable(conn)
   conn.writer.write(message.stringify() + "\n") catch {
-    err => raise McpStdioError::WriteFailed(err.to_string())
+    err => raise WriteFailed(err.to_string())
   }
 }
 
@@ -110,14 +110,14 @@ async fn write_json_line(
 async fn read_json_line(conn : StdioConnection) -> Json? raise McpStdioError {
   ensure_stdio_connection_usable(conn)
   let line = conn.reader.read_until("\n") catch {
-    err => raise McpStdioError::ReadFailed(err.to_string())
+    err => raise ReadFailed(err.to_string())
   }
   match line {
     None => None
     Some(text) =>
       Some(
         @json.parse(text) catch {
-          err => raise McpStdioError::InvalidJson(err.to_string())
+          err => raise InvalidJson(err.to_string())
         },
       )
   }
@@ -138,25 +138,24 @@ async fn[T] run_stdio_operation_with_timeout(
         poison_stdio_after_timeout(conn)
       }
       mark_stdio_poisoned(conn, "transport desynchronization")
-      raise McpStdioError::ReadFailed(message)
+      raise ReadFailed(message)
     }
-    McpStdioError::SpawnFailed(message) =>
-      raise McpStdioError::SpawnFailed(message)
+    McpStdioError::SpawnFailed(message) => raise SpawnFailed(message)
     McpStdioError::WriteFailed(message) => {
       mark_stdio_poisoned(conn, "transport desynchronization")
-      raise McpStdioError::WriteFailed(message)
+      raise WriteFailed(message)
     }
     McpStdioError::InvalidJson(message) => {
       mark_stdio_poisoned(conn, "transport desynchronization")
-      raise McpStdioError::InvalidJson(message)
+      raise InvalidJson(message)
     }
     McpStdioError::UnexpectedEof => {
       mark_stdio_poisoned(conn, "transport desynchronization")
-      raise McpStdioError::UnexpectedEof
+      raise UnexpectedEof
     }
-    McpStdioError::Protocol(message) => raise McpStdioError::Protocol(message)
-    McpStdioError::Timeout => raise McpStdioError::Timeout
-    error => raise McpStdioError::Protocol(error.to_string())
+    McpStdioError::Protocol(message) => raise Protocol(message)
+    McpStdioError::Timeout => raise Timeout
+    error => raise Protocol(error.to_string())
   }
 }
 
@@ -193,20 +192,19 @@ async fn read_response_for_id_with_skip_limit(
   for ;; {
     let message = read_json_line(conn)
     match message {
-      None => raise McpStdioError::UnexpectedEof
+      None => raise UnexpectedEof
       Some(json) =>
         match classify_stdio_inbound_message(json) {
-          StdioInboundMessage::Response(id, response) if id == expected_id =>
-            break response
-          StdioInboundMessage::Response(_, _) =>
+          Response(id, response) if id == expected_id => break response
+          Response(_, _) =>
             poison_stdio_after_desynchronization(
               conn, "unexpected MCP response id",
             )
-          StdioInboundMessage::Malformed =>
+          Malformed =>
             poison_stdio_after_desynchronization(
               conn, "malformed MCP message while awaiting response",
             )
-          StdioInboundMessage::RequestOrNotification => {
+          RequestOrNotification => {
             if skipped >= max_skipped_messages {
               poison_stdio_after_desynchronization(
                 conn, "too many messages while awaiting MCP response",
@@ -224,10 +222,10 @@ async fn read_response_for_id_with_skip_limit(
 fn classify_stdio_inbound_message(message : Json) -> StdioInboundMessage {
   let obj = match message {
     Object(value) => value
-    _ => return StdioInboundMessage::Malformed
+    _ => return Malformed
   }
   if obj.get("jsonrpc") != Some(Json::string("2.0")) {
-    return StdioInboundMessage::Malformed
+    return Malformed
   }
   let has_result = obj.get("result") is Some(_)
   let has_error = obj.get("error") is Some(_)
@@ -236,22 +234,22 @@ fn classify_stdio_inbound_message(message : Json) -> StdioInboundMessage {
       !has_error &&
       has_valid_stdio_message_params(obj.get("params")) =>
       match obj.get("id") {
-        None => StdioInboundMessage::RequestOrNotification
-        Some(String(_)) => StdioInboundMessage::RequestOrNotification
+        None => RequestOrNotification
+        Some(String(_)) => RequestOrNotification
         Some(id) if decode_stdio_message_id(id) is Some(_) =>
-          StdioInboundMessage::RequestOrNotification
-        _ => StdioInboundMessage::Malformed
+          RequestOrNotification
+        _ => Malformed
       }
     None if has_result != has_error =>
       match obj.get("id") {
         Some(id) =>
           match decode_stdio_message_id(id) {
-            Some(value) => StdioInboundMessage::Response(value, message)
-            None => StdioInboundMessage::Malformed
+            Some(value) => Response(value, message)
+            None => Malformed
           }
-        None => StdioInboundMessage::Malformed
+        None => Malformed
       }
-    _ => StdioInboundMessage::Malformed
+    _ => Malformed
   }
 }
 
@@ -275,8 +273,8 @@ fn decode_stdio_message_id(value : Json) -> Int? {
 
 ///|
 fn mark_stdio_poisoned(conn : StdioConnection, reason : String) -> Unit {
-  if conn.state != StdioConnectionState::Closed {
-    conn.state = StdioConnectionState::Poisoned(reason)
+  if conn.state != Closed {
+    conn.state = Poisoned(reason)
   }
 }
 
@@ -285,7 +283,7 @@ fn[T] poison_stdio_after_timeout(
   conn : StdioConnection,
 ) -> T raise McpStdioError {
   mark_stdio_poisoned(conn, "timeout")
-  raise McpStdioError::Timeout
+  raise Timeout
 }
 
 ///|
@@ -294,7 +292,7 @@ fn[T] poison_stdio_after_desynchronization(
   message : String,
 ) -> T raise McpStdioError {
   mark_stdio_poisoned(conn, "protocol desynchronization")
-  raise McpStdioError::Protocol(message)
+  raise Protocol(message)
 }
 
 ///|
@@ -302,20 +300,17 @@ fn ensure_stdio_connection_usable(
   conn : StdioConnection,
 ) -> Unit raise McpStdioError {
   match conn.state {
-    StdioConnectionState::Open => ()
-    StdioConnectionState::Poisoned(reason) =>
-      raise McpStdioError::Protocol(
-        "stdio connection is unusable after " + reason,
-      )
-    StdioConnectionState::Closed =>
-      raise McpStdioError::Protocol("stdio connection is closed")
+    Open => ()
+    Poisoned(reason) =>
+      raise Protocol("stdio connection is unusable after " + reason)
+    Closed => raise Protocol("stdio connection is closed")
   }
 }
 
 ///|
 fn close_stdio(conn : StdioConnection) -> Unit {
-  if conn.state != StdioConnectionState::Closed {
-    conn.state = StdioConnectionState::Closed
+  if conn.state != Closed {
+    conn.state = Closed
     conn.writer.close()
     conn.reader.close()
     conn.process.cancel()

@@ -21,13 +21,13 @@ pub fn secure_write_private_atomic(
   contents : String,
 ) -> Unit raise SecureFileError {
   guard secure_write_private_atomic_ffi(path, contents) == 0 else {
-    raise SecureFileError::SecureWriteFailed
+    raise SecureWriteFailed
   }
 }
 
 ///|
 pub fn secure_file_mode(path : String) -> Int raise SecureFileError {
   let mode = secure_file_mode_ffi(path)
-  guard mode >= 0 else { raise SecureFileError::SecureStatFailed }
+  guard mode >= 0 else { raise SecureStatFailed }
   mode
 }

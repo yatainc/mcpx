@@ -59,6 +59,6 @@ async fn post_json(
     headers,
     body: message.stringify(),
   }) catch {
-    error => raise McpHttpClientError::Network(error.to_string())
+    error => raise Network(error.to_string())
   }
 }

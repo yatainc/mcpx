@@ -105,8 +105,8 @@ fn lifecycle_public_identity_json(lifecycle : @config.ServerLifecycle) -> Json {
 ///|
 fn lifecycle_mode_text(mode : @config.ServerLifecycleMode) -> String {
   match mode {
-    @config.ServerLifecycleMode::KeepAlive => "keep-alive"
-    @config.ServerLifecycleMode::Ephemeral => "ephemeral"
+    KeepAlive => "keep-alive"
+    Ephemeral => "ephemeral"
   }
 }
 

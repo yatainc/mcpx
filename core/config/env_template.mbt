@@ -32,22 +32,17 @@ pub fn resolve_env_template(
     match (view.get_char(i), view.get_char(i + 1)) {
       (Some('$'), Some('{')) =>
         match find_closing_brace(view, i + 2) {
-          None => raise EnvTemplateError::InvalidEnvVarSyntax(input)
+          None => raise InvalidEnvVarSyntax(input)
           Some(close) => {
             let name = view
               .view(start_offset=i + 2, end_offset=close)
               .to_owned()
             if !is_valid_env_name(name) {
-              raise EnvTemplateError::InvalidEnvVarSyntax(input)
+              raise InvalidEnvVarSyntax(input)
             }
             match env.get(name) {
               Some(value) => out.write_string(value)
-              None =>
-                if strict {
-                  raise EnvTemplateError::MissingEnvVar(name)
-                } else {
-                  ()
-                }
+              None => if strict { raise MissingEnvVar(name) } else { () }
             }
             continue close + 1
           }

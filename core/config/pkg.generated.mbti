@@ -1,0 +1,114 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/core/config"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn decode_mcpx_config(Json) -> McpxConfig raise ConfigDecodeError
+
+pub fn effective_connection_mode(McpServerConfig) -> McpConnectionMode
+
+pub fn empty_mcpx_config() -> McpxConfig
+
+pub fn[T] filter_tools(McpServerConfig, Array[T], (T) -> String) -> Array[T]
+
+pub fn glob_match(String, String) -> Bool
+
+pub fn is_tool_allowed(McpServerConfig, String) -> Bool
+
+pub fn mcp_server_config(name~ : String, transport~ : ServerTransport, url? : String?, command? : String?, args? : Array[String], env? : Map[String, String], cwd? : String?, headers? : Map[String, String], auth? : ServerAuthConfig?, protocol_mode? : McpConnectionMode?, lifecycle? : ServerLifecycle?, allowed_tools? : Array[String], disabled_tools? : Array[String], description? : String?) -> McpServerConfig
+
+pub fn merge_env(Map[String, String], Map[String, String]) -> Map[String, String]
+
+pub fn normalize_jsonc(String) -> String raise JsoncError
+
+pub fn oauth_server_auth(client_id? : String?, client_secret? : String?, metadata_url? : String?, scopes? : Array[String]) -> ServerAuthConfig
+
+pub fn parse_dotenv(String) -> Result[Map[String, String], DotenvError]
+
+pub fn put_remote_mcp_server(McpxConfig, name~ : String, url~ : String) -> McpxConfig
+
+pub fn put_server_config(McpxConfig, McpServerConfig) -> McpxConfig
+
+pub fn resolve_env_template(String, Map[String, String], strict? : Bool) -> String raise EnvTemplateError
+
+pub fn resolve_server_env(McpServerConfig, Map[String, String]) -> Result[McpServerConfig, EnvTemplateError]
+
+pub fn server_lifecycle(ServerLifecycleMode, idle_timeout_ms? : Int?) -> ServerLifecycle
+
+// Errors
+type ConfigDecodeError derive(@debug.Debug)
+
+type EnvTemplateError derive(@debug.Debug)
+pub impl Show for EnvTemplateError
+
+type JsoncError derive(@debug.Debug)
+
+// Types and methods
+pub(all) enum DotenvError {
+  InvalidDotenvLine(Int, String)
+} derive(@debug.Debug)
+
+pub(all) enum McpConnectionMode {
+  Auto
+  Stateful
+  Stateless
+} derive(Eq, @debug.Debug)
+
+pub struct McpServerConfig {
+  name : String
+  transport : ServerTransport
+  url : String?
+  command : String?
+  args : Array[String]
+  env : Map[String, String]
+  cwd : String?
+  headers : Map[String, String]
+  auth : ServerAuthConfig?
+  protocol_mode : McpConnectionMode?
+  lifecycle : ServerLifecycle?
+  allowed_tools : Array[String]
+  disabled_tools : Array[String]
+  description : String?
+} derive(@debug.Debug)
+pub impl ToJson for McpServerConfig
+
+pub struct McpxConfig {
+  servers : Map[String, McpServerConfig]
+} derive(@debug.Debug)
+pub impl ToJson for McpxConfig
+
+pub struct ServerAuthConfig {
+  kind : ServerAuthKind
+  client_id : String?
+  client_secret : String?
+  metadata_url : String?
+  scopes : Array[String]
+} derive(@debug.Debug)
+pub impl ToJson for ServerAuthConfig
+
+pub(all) enum ServerAuthKind {
+  OAuth
+} derive(@debug.Debug)
+
+pub struct ServerLifecycle {
+  mode : ServerLifecycleMode
+  idle_timeout_ms : Int?
+} derive(@debug.Debug)
+pub impl ToJson for ServerLifecycle
+
+pub(all) enum ServerLifecycleMode {
+  KeepAlive
+  Ephemeral
+} derive(@debug.Debug)
+
+pub(all) enum ServerTransport {
+  Stdio
+  Http
+} derive(@debug.Debug)
+
+// Type aliases
+
+// Traits

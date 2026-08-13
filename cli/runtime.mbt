@@ -69,11 +69,11 @@ async fn run_mcpx_command_async(
   stdin_json? : String? = None,
 ) -> String {
   match command {
-    McpxCommand::Call(call) => run_call(call, home, config_home, stdin_json~)
-    McpxCommand::Info(info) => run_info(info, home, config_home)
-    McpxCommand::Search(search) => run_search(search, home, config_home)
-    McpxCommand::Auth(auth) => run_auth(auth, home, config_home)
-    McpxCommand::Daemon(daemon) => run_daemon(daemon, home, config_home)
+    Call(call) => run_call(call, home, config_home, stdin_json~)
+    Info(info) => run_info(info, home, config_home)
+    Search(search) => run_search(search, home, config_home)
+    Auth(auth) => run_auth(auth, home, config_home)
+    Daemon(daemon) => run_daemon(daemon, home, config_home)
     _ => run_mcpx_command(command)
   }
 }

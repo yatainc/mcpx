@@ -39,7 +39,7 @@ pub fn McpClient::is_initialized(self : McpClient) -> Bool {
 pub fn McpClient::initialize_request(self : McpClient) -> McpClientRequest {
   let id = self.session.next_request_id()
   {
-    kind: McpClientRequestKind::Initialize,
+    kind: Initialize,
     id: Some(id),
     message: mcp_initialize_request(
       id~,
@@ -56,7 +56,7 @@ pub fn McpClient::initialized_notification(
 ) -> McpClientRequest {
   ignore(self)
   {
-    kind: McpClientRequestKind::InitializedNotification,
+    kind: InitializedNotification,
     id: None,
     message: mcp_initialized_notification(),
   }
@@ -65,11 +65,7 @@ pub fn McpClient::initialized_notification(
 ///|
 pub fn McpClient::tools_list_request(self : McpClient) -> McpClientRequest {
   let id = self.session.next_request_id()
-  {
-    kind: McpClientRequestKind::ToolsList,
-    id: Some(id),
-    message: mcp_tools_list_request_legacy(id~),
-  }
+  { kind: ToolsList, id: Some(id), message: mcp_tools_list_request_legacy(id~) }
 }
 
 ///|
@@ -80,7 +76,7 @@ pub fn McpClient::tool_call_request(
 ) -> McpClientRequest {
   let id = self.session.next_request_id()
   {
-    kind: McpClientRequestKind::ToolsCall(name),
+    kind: ToolsCall(name),
     id: Some(id),
     message: mcp_tool_call_request_legacy(id~, name~, arguments~),
   }
@@ -131,7 +127,6 @@ pub fn McpClientRequest::expected_id(
 ) -> Int raise McpProtocolError {
   match self.id {
     Some(id) => id
-    None =>
-      raise McpProtocolError::InvalidResponse("request has no response id")
+    None => raise InvalidResponse("request has no response id")
   }
 }

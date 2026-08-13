@@ -1,0 +1,24 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/core/search"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn search_servers(String, Array[(String, String?)]) -> (Array[SearchResult], Int)
+
+pub fn server_search_score(String, String, String?) -> Int
+
+// Errors
+
+// Types and methods
+pub struct SearchResult {
+  name : String
+  description : String
+  score : Int
+} derive(Eq, Hash, @debug.Debug)
+
+// Type aliases
+
+// Traits

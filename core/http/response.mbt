@@ -13,17 +13,17 @@ fn response_payload(
 ) -> @protocol.McpTransportPayload raise McpHttpClientError {
   if response.status_code != 200 && response.status_code != 202 {
     let json = @json.parse(response.body) catch {
-      _ => raise McpHttpClientError::HttpStatus(response.status_code)
+      _ => raise HttpStatus(response.status_code)
     }
     if jsonrpc_error_code(json) is None {
-      raise McpHttpClientError::HttpStatus(response.status_code)
+      raise HttpStatus(response.status_code)
     }
     ignore(
       @protocol.decode_mcp_result(json, expected_id~) catch {
         error => raise protocol_error_to_http(error)
       },
     )
-    raise McpHttpClientError::HttpStatus(response.status_code)
+    raise HttpStatus(response.status_code)
   }
   match
     @protocol.decode_mcp_transport_payload(
@@ -68,14 +68,12 @@ fn protocol_error_to_http(
   error : @protocol.McpProtocolError,
 ) -> McpHttpClientError {
   match error {
-    @protocol.McpProtocolError::HeaderMismatch(message) =>
-      HeaderMismatch(message)
-    @protocol.McpProtocolError::MissingRequiredClientCapability(message) =>
+    HeaderMismatch(message) => HeaderMismatch(message)
+    MissingRequiredClientCapability(message) =>
       MissingRequiredClientCapability(message)
-    @protocol.McpProtocolError::UnsupportedProtocolVersion(_, supported) =>
+    UnsupportedProtocolVersion(_, supported) =>
       UnsupportedProtocolVersion(supported)
-    @protocol.McpProtocolError::RemoteError(code, message) =>
-      RemoteError(code, message)
-    @protocol.McpProtocolError::InvalidResponse(message) => Protocol(message)
+    RemoteError(code, message) => RemoteError(code, message)
+    InvalidResponse(message) => Protocol(message)
   }
 }

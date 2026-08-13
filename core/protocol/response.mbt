@@ -41,9 +41,7 @@ pub fn decode_mcp_initialize_response(
         Some(String(value)) => value
         _ =>
           return Err(
-            McpProtocolError::InvalidResponse(
-              "initialize result missing protocolVersion",
-            ),
+            InvalidResponse("initialize result missing protocolVersion"),
           )
       }
       let capabilities = obj.get("capabilities").unwrap_or(Json::empty_object())
@@ -52,8 +50,7 @@ pub fn decode_mcp_initialize_response(
       )
       Ok({ protocol_version, server_name, server_version, capabilities })
     }
-    _ =>
-      Err(McpProtocolError::InvalidResponse("initialize result must be object"))
+    _ => Err(InvalidResponse("initialize result must be object"))
   }
 }
 
@@ -87,42 +84,26 @@ fn decode_mcp_tool_list_page_inner(
   }
   let obj = match result {
     Object(value) => value
-    _ =>
-      return Err(
-        McpProtocolError::InvalidResponse("tools/list result must be object"),
-      )
+    _ => return Err(InvalidResponse("tools/list result must be object"))
   }
   match decode_result_type(obj.get("resultType")) {
-    Some(McpResultType::Complete) => ()
-    Some(McpResultType::InputRequired) =>
+    Some(Complete) => ()
+    Some(InputRequired) =>
       return Err(
-        McpProtocolError::InvalidResponse(
-          "tools/list resultType input_required is not complete",
-        ),
+        InvalidResponse("tools/list resultType input_required is not complete"),
       )
-    Some(McpResultType::Extension(value)) =>
-      return Err(
-        McpProtocolError::InvalidResponse(
-          "unsupported tools/list resultType: " + value,
-        ),
-      )
+    Some(Extension(value)) =>
+      return Err(InvalidResponse("unsupported tools/list resultType: " + value))
     None =>
       if modern {
-        return Err(
-          McpProtocolError::InvalidResponse(
-            "tools/list result missing resultType",
-          ),
-        )
+        return Err(InvalidResponse("tools/list result missing resultType"))
       } else {
         ()
       }
   }
   let tools_json = match obj.get("tools") {
     Some(Array(value)) => value
-    _ =>
-      return Err(
-        McpProtocolError::InvalidResponse("tools/list result missing tools"),
-      )
+    _ => return Err(InvalidResponse("tools/list result missing tools"))
   }
   let tools = []
   for tool in tools_json {
@@ -134,11 +115,7 @@ fn decode_mcp_tool_list_page_inner(
   let next_cursor = match obj.get("nextCursor") {
     Some(String(value)) => Some(value)
     Some(_) =>
-      return Err(
-        McpProtocolError::InvalidResponse(
-          "tools/list nextCursor must be string",
-        ),
-      )
+      return Err(InvalidResponse("tools/list nextCursor must be string"))
     None => None
   }
   let ttl_ms = match obj.get("ttlMs") {
@@ -148,7 +125,7 @@ fn decode_mcp_tool_list_page_inner(
   }
   let cache_scope = match obj.get("cacheScope") {
     Some(String("public")) => McpCacheScope::Public
-    _ => McpCacheScope::Private
+    _ => Private
   }
   Ok({ tools, next_cursor, ttl_ms, cache_scope })
 }
@@ -156,9 +133,9 @@ fn decode_mcp_tool_list_page_inner(
 ///|
 fn decode_result_type(value : Json?) -> McpResultType? {
   match value {
-    Some(String("complete")) => Some(McpResultType::Complete)
-    Some(String("input_required")) => Some(McpResultType::InputRequired)
-    Some(String(other)) => Some(McpResultType::Extension(other))
+    Some(String("complete")) => Some(Complete)
+    Some(String("input_required")) => Some(InputRequired)
+    Some(String(other)) => Some(Extension(other))
     _ => None
   }
 }
@@ -193,17 +170,12 @@ fn decode_mcp_complete_result_inner(
     _ => None
   }
   match result_type {
-    None if modern =>
-      Err(McpProtocolError::InvalidResponse("result missing resultType"))
-    None | Some(McpResultType::Complete) => Ok(result)
-    Some(McpResultType::InputRequired) =>
-      Err(
-        McpProtocolError::InvalidResponse(
-          "resultType input_required is not supported",
-        ),
-      )
-    Some(McpResultType::Extension(value)) =>
-      Err(McpProtocolError::InvalidResponse("unsupported resultType: " + value))
+    None if modern => Err(InvalidResponse("result missing resultType"))
+    None | Some(Complete) => Ok(result)
+    Some(InputRequired) =>
+      Err(InvalidResponse("resultType input_required is not supported"))
+    Some(Extension(value)) =>
+      Err(InvalidResponse("unsupported resultType: " + value))
   }
 }
 
@@ -214,24 +186,21 @@ pub fn decode_mcp_result(
 ) -> Json raise McpProtocolError {
   let obj = match response {
     Object(value) => value
-    _ => raise McpProtocolError::InvalidResponse("response must be object")
+    _ => raise InvalidResponse("response must be object")
   }
   if obj.get("jsonrpc") != Some(Json::string("2.0")) {
-    raise McpProtocolError::InvalidResponse("response jsonrpc must be 2.0")
+    raise InvalidResponse("response jsonrpc must be 2.0")
   }
   match decode_response_id(obj.get("id")) {
     Some(id) if id == expected_id => ()
-    _ => raise McpProtocolError::InvalidResponse("unexpected response id")
+    _ => raise InvalidResponse("unexpected response id")
   }
   match (obj.get("result"), obj.get("error")) {
     (Some(_), Some(_)) =>
-      raise McpProtocolError::InvalidResponse(
-        "response must not contain both result and error",
-      )
+      raise InvalidResponse("response must not contain both result and error")
     (Some(result), None) => result
     (None, Some(error)) => raise decode_mcp_error(error)
-    _ =>
-      raise McpProtocolError::InvalidResponse("response missing result/error")
+    _ => raise InvalidResponse("response missing result/error")
   }
 }
 
@@ -247,34 +216,24 @@ pub fn mcp_response_id(message : Json) -> Int? {
 fn decode_mcp_tool(json : Json) -> Result[McpToolInfo, McpProtocolError] {
   let obj = match json {
     Object(value) => value
-    _ => return Err(McpProtocolError::InvalidResponse("tool must be object"))
+    _ => return Err(InvalidResponse("tool must be object"))
   }
   let name = match obj.get("name") {
     Some(String(value)) => value
-    _ =>
-      return Err(McpProtocolError::InvalidResponse("tool.name must be string"))
+    _ => return Err(InvalidResponse("tool.name must be string"))
   }
   let description = match obj.get("description") {
     Some(String(value)) => Some(value)
-    Some(_) =>
-      return Err(
-        McpProtocolError::InvalidResponse("tool.description must be string"),
-      )
+    Some(_) => return Err(InvalidResponse("tool.description must be string"))
     None => None
   }
   let input_schema = match obj.get("inputSchema") {
     Some(Object(_) as value) => value
-    _ =>
-      return Err(
-        McpProtocolError::InvalidResponse("tool.inputSchema must be object"),
-      )
+    _ => return Err(InvalidResponse("tool.inputSchema must be object"))
   }
   let output_schema = match obj.get("outputSchema") {
     Some(Object(_) as value) => Some(value)
-    Some(_) =>
-      return Err(
-        McpProtocolError::InvalidResponse("tool.outputSchema must be object"),
-      )
+    Some(_) => return Err(InvalidResponse("tool.outputSchema must be object"))
     None => None
   }
   Ok({ name, description, input_schema, output_schema })
@@ -321,31 +280,25 @@ fn decode_mcp_error(json : Json) -> McpProtocolError {
       let code = match obj.get("code") {
         Some(Number(value, ..)) if is_supported_json_int(value) =>
           value.to_int()
-        _ =>
-          return McpProtocolError::InvalidResponse(
-            "JSON-RPC error code must be an integer",
-          )
+        _ => return InvalidResponse("JSON-RPC error code must be an integer")
       }
       let message = match obj.get("message") {
         Some(String(value)) => value
-        _ =>
-          return McpProtocolError::InvalidResponse(
-            "JSON-RPC error message must be a string",
-          )
+        _ => return InvalidResponse("JSON-RPC error message must be a string")
       }
       match code {
-        -32020 => McpProtocolError::HeaderMismatch(message)
-        -32021 => McpProtocolError::MissingRequiredClientCapability(message)
+        -32020 => HeaderMismatch(message)
+        -32021 => MissingRequiredClientCapability(message)
         -32022 => {
           let (requested, supported) = decode_unsupported_version_data(
             obj.get("data"),
           )
-          McpProtocolError::UnsupportedProtocolVersion(requested, supported)
+          UnsupportedProtocolVersion(requested, supported)
         }
-        _ => McpProtocolError::RemoteError(code, message)
+        _ => RemoteError(code, message)
       }
     }
-    _ => McpProtocolError::InvalidResponse("JSON-RPC error must be an object")
+    _ => InvalidResponse("JSON-RPC error must be an object")
   }
 }
 

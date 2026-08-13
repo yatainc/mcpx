@@ -5,14 +5,14 @@ async fn run_daemon(
   config_home : String?,
 ) -> String {
   match command.mode {
-    DaemonMode::Help => run_mcpx_command(McpxCommand::Daemon(command))
-    DaemonMode::Status => {
+    Help => run_mcpx_command(Daemon(command))
+    Status => {
       let running = @mcpx_daemon.daemon_ping(home~, config_home~) catch {
         _ => false
       }
       daemon_result("status", running~)
     }
-    DaemonMode::Stop => {
+    Stop => {
       let stopped = @mcpx_daemon.daemon_stop(home~, config_home~) catch {
         _ => false
       }

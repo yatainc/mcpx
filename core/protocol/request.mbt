@@ -71,11 +71,7 @@ pub fn mcp_tools_list_request(
     None => ()
   }
   params["_meta"] = mcp_request_meta(
-    mcp_request_context(
-      protocol=McpProtocolVersion::V2026_07_28,
-      client_name~,
-      client_version~,
-    ),
+    mcp_request_context(protocol=V2026_07_28, client_name~, client_version~),
   )
   mcp_request(id, "tools/list", Some(Json::object(params)))
 }
@@ -104,11 +100,7 @@ pub fn mcp_tool_call_request(
   params["name"] = Json::string(name)
   params["arguments"] = arguments
   params["_meta"] = mcp_request_meta(
-    mcp_request_context(
-      protocol=McpProtocolVersion::V2026_07_28,
-      client_name~,
-      client_version~,
-    ),
+    mcp_request_context(protocol=V2026_07_28, client_name~, client_version~),
   )
   mcp_request(id, "tools/call", Some(Json::object(params)))
 }

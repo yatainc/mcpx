@@ -19,10 +19,7 @@ test "HTTP response: decodes successful JSON payloads" {
 ///|
 test "HTTP response: accepts empty 202 transport payloads" {
   let payload = response_payload(http_response(status_code=202, body=""))
-  inspect(
-    payload is @protocol.McpTransportPayload::AcceptedNoContent,
-    content="true",
-  )
+  inspect(payload is AcceptedNoContent, content="true")
 }
 
 ///|
@@ -39,7 +36,7 @@ test "HTTP response: preserves valid remote errors on non-success status" {
       expected_id=3,
     )
   catch {
-    McpHttpClientError::RemoteError(code, message) => {
+    RemoteError(code, message) => {
       inspect(code, content="-32602")
       inspect(message, content="bad params")
     }
@@ -52,7 +49,7 @@ test "HTTP response: preserves valid remote errors on non-success status" {
 ///|
 test "HTTP response: rejects malformed non-success bodies as status errors" {
   try response_json(http_response(status_code=503, body="unavailable")) catch {
-    McpHttpClientError::HttpStatus(code) => inspect(code, content="503")
+    HttpStatus(code) => inspect(code, content="503")
     _ => fail("expected HTTP status error")
   } noraise {
     _ => fail("expected response failure")

@@ -38,7 +38,7 @@ pub fn McpToolPagination::begin_page(
   limits : McpToolListLimits,
 ) -> Result[String?, McpToolPaginationError] {
   if self.pages >= limits.max_pages {
-    return Err(McpToolPaginationError::TooManyPages)
+    return Err(TooManyPages)
   }
   self.pages = self.pages + 1
   Ok(self.next_cursor)
@@ -51,11 +51,11 @@ pub fn McpToolPagination::accept_page(
   limits : McpToolListLimits,
 ) -> Result[Bool, McpToolPaginationError] {
   if self.tools.length() + page.tools.length() > limits.max_tools {
-    return Err(McpToolPaginationError::TooManyTools)
+    return Err(TooManyTools)
   }
   match page.next_cursor {
     Some(cursor) if self.seen_cursors.contains(cursor) =>
-      return Err(McpToolPaginationError::RepeatedCursor)
+      return Err(RepeatedCursor)
     _ => ()
   }
   for tool in page.tools {
@@ -84,7 +84,7 @@ pub fn mcp_tool_list_page(
   tools : Array[McpToolInfo],
   next_cursor? : String? = None,
   ttl_ms? : Int = 0,
-  cache_scope? : McpCacheScope = McpCacheScope::Private,
+  cache_scope? : McpCacheScope = Private,
 ) -> McpToolListPage {
   { tools, next_cursor, ttl_ms, cache_scope }
 }

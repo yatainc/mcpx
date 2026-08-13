@@ -1,0 +1,20 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/core"
+
+import {
+  "yatainc/mcpx/core/http",
+  "yatainc/mcpx/core/protocol",
+}
+
+// Values
+pub async fn call_tool(async (@http.HttpRequest) -> @http.HttpResponse, @http.Endpoint, tool_name~ : String, arguments~ : Json) -> Json raise @http.McpHttpClientError
+
+pub async fn list_tools(async (@http.HttpRequest) -> @http.HttpResponse, @http.Endpoint) -> Array[@protocol.McpToolInfo] raise @http.McpHttpClientError
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

@@ -11,7 +11,7 @@ async fn probe_modern_stdio(
   conn : StdioConnection,
 ) -> StdioProbeOutcome raise McpStdioError {
   let context = @mcp_client.mcp_request_context(
-    protocol=@mcp_client.McpProtocolVersion::V2026_07_28,
+    protocol=V2026_07_28,
     client_name=@mcp_client.MCPX_CLIENT_NAME,
     client_version=@mcp_client.MCPX_CLIENT_VERSION,
   )
@@ -19,29 +19,23 @@ async fn probe_modern_stdio(
   let response = read_response_for_id(conn, expected_id=1)
   match @mcp_client.decode_mcp_discover_response(response, expected_id=1) {
     Ok(discover) =>
-      if discover.protocol_versions.contains(
-          @mcp_client.McpProtocolVersion::V2026_07_28,
-        ) {
-        StdioProbeOutcome::Modern
+      if discover.protocol_versions.contains(V2026_07_28) {
+        Modern
       } else {
-        StdioProbeOutcome::ModernError("MCP 2026-07-28 is not supported")
+        ModernError("MCP 2026-07-28 is not supported")
       }
-    Err(@mcp_client.McpProtocolError::RemoteError(code, message)) =>
+    Err(RemoteError(code, message)) =>
       classify_stdio_discovery_remote_error(code, message)
-    Err(@mcp_client.McpProtocolError::UnsupportedProtocolVersion(_, supported)) =>
-      StdioProbeOutcome::ModernError(
+    Err(UnsupportedProtocolVersion(_, supported)) =>
+      ModernError(
         "unsupported MCP protocol version; supported: " + supported.join(", "),
       )
-    Err(@mcp_client.McpProtocolError::HeaderMismatch(message)) =>
-      StdioProbeOutcome::ModernError("MCP header mismatch: " + message)
-    Err(@mcp_client.McpProtocolError::MissingRequiredClientCapability(message)) =>
-      StdioProbeOutcome::ModernError(
-        "missing required client capability: " + message,
-      )
-    Err(@mcp_client.McpProtocolError::InvalidResponse(message)) =>
-      StdioProbeOutcome::ModernError(
-        "invalid MCP discovery response: " + message,
-      )
+    Err(HeaderMismatch(message)) =>
+      ModernError("MCP header mismatch: " + message)
+    Err(MissingRequiredClientCapability(message)) =>
+      ModernError("missing required client capability: " + message)
+    Err(InvalidResponse(message)) =>
+      ModernError("invalid MCP discovery response: " + message)
   }
 }
 
@@ -51,9 +45,9 @@ fn classify_stdio_discovery_remote_error(
   message : String,
 ) -> StdioProbeOutcome {
   if code == -32601 {
-    StdioProbeOutcome::ExplicitLegacy
+    ExplicitLegacy
   } else {
-    StdioProbeOutcome::ModernError(
+    ModernError(
       "modern MCP discovery error " + code.to_string() + ": " + message,
     )
   }

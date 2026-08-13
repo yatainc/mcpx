@@ -66,7 +66,7 @@ test "tool pagination: rejects repeated cursors" {
       mcp_tool_list_page([], next_cursor=Some("same")),
       limits,
     )
-    is Err(McpToolPaginationError::RepeatedCursor),
+    is Err(RepeatedCursor),
     content="true",
   )
 }
@@ -87,16 +87,13 @@ test "tool pagination: enforces page and tool limits before mutation" {
     )
     .unwrap(),
   )
-  inspect(
-    pagination.begin_page(limits) is Err(McpToolPaginationError::TooManyPages),
-    content="true",
-  )
+  inspect(pagination.begin_page(limits) is Err(TooManyPages), content="true")
   inspect(
     pagination.accept_page(
       mcp_tool_list_page([mcp_tool_info(name="extra", input_schema={})]),
       limits,
     )
-    is Err(McpToolPaginationError::TooManyTools),
+    is Err(TooManyTools),
     content="true",
   )
   inspect(pagination.tools()[0].name, content="kept")

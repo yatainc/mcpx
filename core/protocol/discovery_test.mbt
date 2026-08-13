@@ -1,7 +1,7 @@
 ///|
 test "discovery: builds request and decodes canonical discover result" {
   let context = mcp_request_context(
-    protocol=McpProtocolVersion::V2026_07_28,
+    protocol=V2026_07_28,
     client_name="mcpx",
     client_version="0.1.4",
   )

@@ -1,0 +1,244 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/core/protocol"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const MCPX_CLIENT_NAME : String = "mcpx"
+
+pub const MCPX_CLIENT_VERSION : String = "0.1.4"
+
+pub const MCP_PROTOCOL_VERSION : String = "2026-07-28"
+
+pub const MCP_PROTOCOL_VERSION_2025_03_26 : String = "2025-03-26"
+
+pub const MCP_PROTOCOL_VERSION_2025_06_18 : String = "2025-06-18"
+
+pub const MCP_PROTOCOL_VERSION_2025_11_25 : String = "2025-11-25"
+
+pub const MCP_PROTOCOL_VERSION_2026_07_28 : String = "2026-07-28"
+
+pub const MCP_PROTOCOL_VERSION_LEGACY : String = "2025-11-25"
+
+pub const MCP_TOOL_LIST_MAX_PAGES : Int = 1000
+
+pub const MCP_TOOL_LIST_MAX_TOOLS : Int = 100000
+
+pub fn decode_mcp_complete_result(Json, expected_id~ : Int) -> Result[Json, McpProtocolError]
+
+pub fn decode_mcp_discover_response(Json, expected_id~ : Int) -> Result[McpDiscoverInfo, McpProtocolError]
+
+pub fn decode_mcp_initialize_response(Json, expected_id~ : Int) -> Result[McpInitializeInfo, McpProtocolError]
+
+pub fn decode_mcp_modern_complete_result(Json, expected_id~ : Int) -> Result[Json, McpProtocolError]
+
+pub fn decode_mcp_modern_tool_list_page(Json, expected_id~ : Int) -> Result[McpToolListPage, McpProtocolError]
+
+pub fn decode_mcp_result(Json, expected_id~ : Int) -> Json raise McpProtocolError
+
+pub fn decode_mcp_tool_list_response(Json, expected_id~ : Int) -> Result[Array[McpToolInfo], McpProtocolError]
+
+pub fn decode_mcp_transport_payload(McpTransportResponse) -> Result[McpTransportPayload, McpProtocolError]
+
+pub fn decode_sse_data(String) -> Array[String]
+
+pub fn expect_json_payload(McpTransportPayload) -> Json raise McpProtocolError
+
+pub fn mcp_client(client_name~ : String, client_version~ : String, protocol_version? : String) -> McpClient
+
+pub fn mcp_discover_request(id~ : Int, McpRequestContext) -> Json
+
+pub fn mcp_initialize_request(id~ : Int, client_name~ : String, client_version~ : String, protocol_version? : String) -> Json
+
+pub fn mcp_initialized_notification() -> Json
+
+pub fn mcp_notification(String, Json?) -> Json
+
+pub fn mcp_protocol_family(McpProtocolVersion) -> McpProtocolFamily
+
+pub fn mcp_protocol_version_to_string(McpProtocolVersion) -> String
+
+pub fn mcp_request(Int, String, Json?) -> Json
+
+pub fn mcp_request_context(protocol~ : McpProtocolVersion, client_name~ : String, client_version~ : String, client_capabilities? : Map[String, Json]) -> McpRequestContext
+
+pub fn mcp_request_meta(McpRequestContext) -> Json
+
+pub fn mcp_response_id(Json) -> Int?
+
+pub fn mcp_session() -> McpSession
+
+pub fn mcp_tool_call_request(id~ : Int, name~ : String, arguments~ : Json, client_name~ : String, client_version~ : String) -> Json
+
+pub fn mcp_tool_call_request_legacy(id~ : Int, name~ : String, arguments~ : Json) -> Json
+
+pub fn mcp_tool_info(name~ : String, description? : String?, input_schema~ : Json, output_schema? : Json?) -> McpToolInfo
+
+pub fn mcp_tool_list_limits(max_pages? : Int, max_tools? : Int) -> McpToolListLimits
+
+pub fn mcp_tool_list_page(Array[McpToolInfo], next_cursor? : String?, ttl_ms? : Int, cache_scope? : McpCacheScope) -> McpToolListPage
+
+pub fn mcp_tool_pagination() -> McpToolPagination
+
+pub fn mcp_tools_list_request(id~ : Int, client_name~ : String, client_version~ : String, cursor? : String?) -> Json
+
+pub fn mcp_tools_list_request_legacy(id~ : Int) -> Json
+
+pub fn mcp_transport_response(status_code~ : Int, content_type~ : String?, body~ : String) -> McpTransportResponse
+
+pub fn newest_compatible_mcp_protocol_version(Array[McpProtocolVersion], allow_stateless_core~ : Bool) -> McpProtocolVersion?
+
+pub fn parse_mcp_protocol_version(String) -> McpProtocolVersion
+
+pub fn with_mcp_request_meta(Map[String, Json], McpRequestContext) -> Json
+
+// Errors
+pub suberror McpProtocolError {
+  InvalidResponse(String)
+  HeaderMismatch(String)
+  MissingRequiredClientCapability(String)
+  UnsupportedProtocolVersion(String?, Array[String])
+  RemoteError(Int, String)
+} derive(@debug.Debug)
+
+pub(all) suberror McpToolPaginationError {
+  TooManyPages
+  TooManyTools
+  RepeatedCursor
+} derive(Eq, @debug.Debug)
+
+// Types and methods
+pub(all) enum McpCacheScope {
+  Public
+  Private
+} derive(Eq, @debug.Debug)
+
+pub struct McpClient {
+  client_name : String
+  client_version : String
+  protocol_version : String
+  session : McpSession
+} derive(@debug.Debug)
+pub fn McpClient::accept_initialize_response(Self, McpClientRequest, Json) -> McpInitializeInfo raise McpProtocolError
+pub fn McpClient::accept_tool_call_response(Self, McpClientRequest, Json) -> Json raise McpProtocolError
+pub fn McpClient::accept_tools_list_response(Self, McpClientRequest, Json) -> Array[McpToolInfo] raise McpProtocolError
+pub fn McpClient::initialize_request(Self) -> McpClientRequest
+pub fn McpClient::initialized_notification(Self) -> McpClientRequest
+pub fn McpClient::is_initialized(Self) -> Bool
+pub fn McpClient::tool_call_request(Self, name~ : String, arguments~ : Json) -> McpClientRequest
+pub fn McpClient::tools_list_request(Self) -> McpClientRequest
+
+pub struct McpClientRequest {
+  kind : McpClientRequestKind
+  id : Int?
+  message : Json
+} derive(@debug.Debug)
+pub fn McpClientRequest::expected_id(Self) -> Int raise McpProtocolError
+
+pub(all) enum McpClientRequestKind {
+  Initialize
+  InitializedNotification
+  ToolsList
+  ToolsCall(String)
+} derive(@debug.Debug)
+
+pub struct McpDiscoverInfo {
+  protocol_versions : Array[McpProtocolVersion]
+  capabilities : Json
+  instructions : String?
+  response_meta : McpResponseMeta
+} derive(@debug.Debug)
+
+pub struct McpInitializeInfo {
+  protocol_version : String
+  server_name : String?
+  server_version : String?
+  capabilities : Json
+} derive(@debug.Debug)
+
+pub(all) enum McpProtocolFamily {
+  InitializeEra
+  StatelessCore
+  Unsupported
+} derive(Eq, @debug.Debug)
+
+pub(all) enum McpProtocolVersion {
+  V2025_03_26
+  V2025_06_18
+  V2025_11_25
+  V2026_07_28
+  Unknown(String)
+} derive(Eq, @debug.Debug)
+
+pub struct McpRequestContext {
+  protocol : McpProtocolVersion
+  client_name : String
+  client_version : String
+  client_capabilities : Map[String, Json]
+}
+
+pub struct McpResponseMeta {
+  server_info : Json?
+  raw : Json
+} derive(@debug.Debug)
+
+pub(all) enum McpResultType {
+  Complete
+  InputRequired
+  Extension(String)
+} derive(Eq, @debug.Debug)
+
+pub struct McpSession {
+  mut initialized : Bool
+  mut next_id : Int
+  mut protocol_version : String?
+  mut server_name : String?
+  mut server_version : String?
+  mut capabilities : Json?
+} derive(@debug.Debug)
+pub fn McpSession::is_initialized(Self) -> Bool
+pub fn McpSession::mark_initialized(Self, McpInitializeInfo) -> Unit
+pub fn McpSession::next_request_id(Self) -> Int
+
+pub struct McpToolInfo {
+  name : String
+  description : String?
+  input_schema : Json
+  output_schema : Json?
+} derive(@debug.Debug)
+
+pub struct McpToolListLimits {
+  max_pages : Int
+  max_tools : Int
+}
+
+pub struct McpToolListPage {
+  tools : Array[McpToolInfo]
+  next_cursor : String?
+  ttl_ms : Int
+  cache_scope : McpCacheScope
+} derive(@debug.Debug)
+
+pub struct McpToolPagination {
+  // private fields
+}
+pub fn McpToolPagination::accept_page(Self, McpToolListPage, McpToolListLimits) -> Result[Bool, McpToolPaginationError]
+pub fn McpToolPagination::begin_page(Self, McpToolListLimits) -> Result[String?, McpToolPaginationError]
+pub fn McpToolPagination::tools(Self) -> Array[McpToolInfo]
+
+pub(all) enum McpTransportPayload {
+  JsonPayload(Json)
+  AcceptedNoContent
+} derive(@debug.Debug)
+
+pub struct McpTransportResponse {
+  status_code : Int
+  content_type : String?
+  body : String
+} derive(@debug.Debug)
+
+// Type aliases
+
+// Traits

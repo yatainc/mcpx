@@ -1,0 +1,68 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/core/http"
+
+import {
+  "moonbitlang/core/debug",
+  "yatainc/mcpx/core/config",
+  "yatainc/mcpx/core/protocol",
+}
+
+// Values
+pub async fn call_tool(async (HttpRequest) -> HttpResponse, Endpoint, tool_name~ : String, arguments~ : Json, tool_definition? : @protocol.McpToolInfo?, on_catalog_refresh? : (McpToolListResult) -> Unit) -> Json raise McpHttpClientError
+
+pub fn encode_mcp_http_header_value(String) -> String
+
+pub fn http_endpoint(url~ : String, headers? : Map[String, String], mode? : @config.McpConnectionMode) -> Endpoint
+
+pub fn http_response(status_code~ : Int, content_type? : String?, headers? : Map[String, String], body~ : String) -> HttpResponse
+
+pub async fn list_tools(async (HttpRequest) -> HttpResponse, Endpoint) -> Array[@protocol.McpToolInfo] raise McpHttpClientError
+
+pub async fn list_tools_with_cache_hint(async (HttpRequest) -> HttpResponse, Endpoint, max_pages? : Int, max_tools? : Int) -> McpToolListResult raise McpHttpClientError
+
+pub fn mcp_http_client_status_code(McpHttpClientError) -> Int?
+
+pub fn mcp_tool_list_result(tools~ : Array[@protocol.McpToolInfo], ttl_ms? : Int, cache_scope? : @protocol.McpCacheScope) -> McpToolListResult
+
+// Errors
+pub suberror McpHttpClientError {
+  HttpStatus(Int)
+  Network(String)
+  Protocol(String)
+  HeaderMismatch(String)
+  MissingRequiredClientCapability(String)
+  UnsupportedProtocolVersion(Array[String])
+  ModeProtocolIncompatible(String, String)
+  RemoteError(Int, String)
+} derive(@debug.Debug)
+
+// Types and methods
+pub struct Endpoint {
+  url : String
+  headers : Map[String, String]
+  mode : @config.McpConnectionMode
+}
+
+pub struct HttpRequest {
+  http_method : String
+  url : String
+  headers : Map[String, String]
+  body : String
+}
+
+pub struct HttpResponse {
+  status_code : Int
+  content_type : String?
+  headers : Map[String, String]
+  body : String
+}
+
+pub struct McpToolListResult {
+  tools : Array[@protocol.McpToolInfo]
+  ttl_ms : Int
+  cache_scope : @protocol.McpCacheScope
+}
+
+// Type aliases
+
+// Traits

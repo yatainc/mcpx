@@ -75,9 +75,7 @@ async fn fetch_modern_tool_catalog(
     match cache_scope {
       None => cache_scope = Some(page.cache_scope)
       Some(value) if value != page.cache_scope =>
-        raise McpHttpClientError::Protocol(
-          "tools/list pagination cacheScope changed",
-        )
+        raise Protocol("tools/list pagination cacheScope changed")
       Some(_) => ()
     }
     let has_next = match pagination.accept_page(page, limits) {
@@ -105,7 +103,7 @@ async fn fetch_modern_tool_catalog(
       break
     }
   }
-  let scope = cache_scope.unwrap_or(@protocol.McpCacheScope::Private)
+  let scope = cache_scope.unwrap_or(Private)
   {
     result: mcp_tool_list_result(
       tools=validated_tools.map(tool => tool.info),
@@ -158,12 +156,9 @@ fn pagination_error_to_http(
   error : @protocol.McpToolPaginationError,
 ) -> McpHttpClientError {
   match error {
-    @protocol.McpToolPaginationError::TooManyPages =>
-      McpHttpClientError::Protocol("tools/list exceeds maximum page count")
-    @protocol.McpToolPaginationError::TooManyTools =>
-      McpHttpClientError::Protocol("tools/list exceeds maximum tool count")
-    @protocol.McpToolPaginationError::RepeatedCursor =>
-      McpHttpClientError::Protocol("tools/list pagination cursor repeated")
+    TooManyPages => Protocol("tools/list exceeds maximum page count")
+    TooManyTools => Protocol("tools/list exceeds maximum tool count")
+    RepeatedCursor => Protocol("tools/list pagination cursor repeated")
   }
 }
 
@@ -181,14 +176,12 @@ async fn call_tool_modern_with_catalog(
     Some(tool) if tool.name == tool_name => {
       let validated = match validate_http_tool(tool) {
         Ok(value) => value
-        Err(message) => raise McpHttpClientError::Protocol(message)
+        Err(message) => raise Protocol(message)
       }
       (validated, 2)
     }
     Some(_) =>
-      raise McpHttpClientError::Protocol(
-        "cached tool definition name does not match: " + tool_name,
-      )
+      raise Protocol("cached tool definition name does not match: " + tool_name)
     None => {
       let catalog = fetch_modern_tool_catalog(fetch, endpoint, version)
       on_catalog_refresh(catalog.result)
@@ -196,9 +189,7 @@ async fn call_tool_modern_with_catalog(
         catalog.validated_tools.search_by(tool => tool.info.name == tool_name) {
         Some(index) => catalog.validated_tools[index]
         None =>
-          raise McpHttpClientError::Protocol(
-            "tool not found in validated tools/list: " + tool_name,
-          )
+          raise Protocol("tool not found in validated tools/list: " + tool_name)
       }
       (tool, catalog.next_request_id)
     }
@@ -206,7 +197,7 @@ async fn call_tool_modern_with_catalog(
   let parameter_headers = match
     validated_tool.header_plan.build_headers(arguments) {
     Ok(value) => value
-    Err(message) => raise McpHttpClientError::Protocol(message)
+    Err(message) => raise Protocol(message)
   }
   call_tool_modern(
     fetch,
@@ -217,7 +208,7 @@ async fn call_tool_modern_with_catalog(
     tool_name~,
     arguments~,
   ) catch {
-    McpHttpClientError::HeaderMismatch(_) => {
+    HeaderMismatch(_) => {
       let refreshed = fetch_modern_tool_catalog(
         fetch,
         endpoint,
@@ -228,14 +219,14 @@ async fn call_tool_modern_with_catalog(
         refreshed.validated_tools.search_by(tool => tool.info.name == tool_name) {
         Some(index) => refreshed.validated_tools[index]
         None =>
-          raise McpHttpClientError::Protocol(
+          raise Protocol(
             "tool not found after header schema refresh: " + tool_name,
           )
       }
       let refreshed_headers = match
         refreshed_tool.header_plan.build_headers(arguments) {
         Ok(value) => value
-        Err(message) => raise McpHttpClientError::Protocol(message)
+        Err(message) => raise Protocol(message)
       }
       let result = call_tool_modern(
         fetch,

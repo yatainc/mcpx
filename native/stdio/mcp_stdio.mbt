@@ -32,72 +32,57 @@ pub async fn[X] stdio_mcp_connect(
   args~ : Array[String],
   env~ : Map[String, String],
   cwd~ : String?,
-  mode? : @config.McpConnectionMode = @config.McpConnectionMode::Stateful,
+  mode? : @config.McpConnectionMode = Stateful,
   probe_timeout_ms? : Int = 1000,
   response_timeout_ms? : Int = 30000,
 ) -> StdioMcpClient raise McpStdioError {
   let client = new_legacy_client()
-  if mode == @config.McpConnectionMode::Stateful {
+  if mode == Stateful {
     let conn = spawn_stdio(group, command, args, env, cwd)
     initialize_stdio(conn, client, response_timeout_ms)
-    return new_stdio_mcp_client(
-      conn,
-      client,
-      StdioProtocolLifecycle::Initialize,
-      response_timeout_ms,
-    )
+    return new_stdio_mcp_client(conn, client, Initialize, response_timeout_ms)
   }
   let probe_conn = spawn_stdio(group, command, args, env, cwd)
   let probe_started_at = @async.now()
   let probe_result = @async.with_timeout(probe_timeout_ms, () => {
     probe_modern_stdio(probe_conn)
   }) catch {
-    @async.TimeoutError => StdioProbeOutcome::TimedOut
+    @async.TimeoutError => TimedOut
     McpStdioError::ReadFailed(message) => {
       let elapsed = @async.now() - probe_started_at
       if elapsed >= probe_timeout_ms.to_int64() {
-        StdioProbeOutcome::TimedOut
+        TimedOut
       } else {
-        StdioProbeOutcome::ModernError("MCP discovery read failed: " + message)
+        ModernError("MCP discovery read failed: " + message)
       }
     }
     McpStdioError::WriteFailed(message) =>
-      StdioProbeOutcome::ModernError("MCP discovery write failed: " + message)
+      ModernError("MCP discovery write failed: " + message)
     McpStdioError::InvalidJson(message) =>
-      StdioProbeOutcome::ModernError("invalid MCP discovery JSON: " + message)
+      ModernError("invalid MCP discovery JSON: " + message)
     McpStdioError::UnexpectedEof =>
-      StdioProbeOutcome::ModernError("MCP discovery ended unexpectedly")
-    McpStdioError::Protocol(message) => StdioProbeOutcome::ModernError(message)
+      ModernError("MCP discovery ended unexpectedly")
+    McpStdioError::Protocol(message) => ModernError(message)
     McpStdioError::SpawnFailed(message) =>
-      StdioProbeOutcome::ModernError("MCP discovery spawn failed: " + message)
-    McpStdioError::Timeout => StdioProbeOutcome::TimedOut
-    error => StdioProbeOutcome::ModernError(error.to_string())
+      ModernError("MCP discovery spawn failed: " + message)
+    McpStdioError::Timeout => TimedOut
+    error => ModernError(error.to_string())
   }
   match probe_result {
-    StdioProbeOutcome::Modern =>
-      new_stdio_mcp_client(
-        probe_conn,
-        client,
-        StdioProtocolLifecycle::Stateless,
-        response_timeout_ms,
-      )
-    StdioProbeOutcome::ModernError(message) => {
+    Modern =>
+      new_stdio_mcp_client(probe_conn, client, Stateless, response_timeout_ms)
+    ModernError(message) => {
       close_stdio(probe_conn)
-      raise McpStdioError::Protocol(message)
+      raise Protocol(message)
     }
-    StdioProbeOutcome::ExplicitLegacy | StdioProbeOutcome::TimedOut => {
+    ExplicitLegacy | TimedOut => {
       close_stdio(probe_conn)
-      if mode == @config.McpConnectionMode::Stateless {
-        raise McpStdioError::Protocol("stateless MCP is not supported")
+      if mode == Stateless {
+        raise Protocol("stateless MCP is not supported")
       }
       let legacy_conn = spawn_stdio(group, command, args, env, cwd)
       initialize_stdio(legacy_conn, client, response_timeout_ms)
-      new_stdio_mcp_client(
-        legacy_conn,
-        client,
-        StdioProtocolLifecycle::Initialize,
-        response_timeout_ms,
-      )
+      new_stdio_mcp_client(legacy_conn, client, Initialize, response_timeout_ms)
     }
   }
 }
@@ -115,7 +100,7 @@ fn new_stdio_mcp_client(
     lifecycle,
     next_request_id: Ref(2),
     response_timeout_ms,
-    operation_lock: @async.Semaphore(1),
+    operation_lock: Semaphore(1),
   }
 }
 
@@ -135,7 +120,7 @@ pub async fn StdioMcpClient::call_tool(
   arguments~ : Json,
 ) -> Json raise McpStdioError {
   self.operation_lock.acquire() catch {
-    error => raise McpStdioError::Protocol(error.to_string())
+    error => raise Protocol(error.to_string())
   }
   defer self.operation_lock.release()
   run_stdio_operation_with_timeout(self.conn, self.response_timeout_ms, () => {
@@ -190,7 +175,7 @@ pub async fn StdioMcpClient::list_tools(
   max_tools? : Int = @mcp_client.MCP_TOOL_LIST_MAX_TOOLS,
 ) -> Array[@mcp_client.McpToolInfo] raise McpStdioError {
   self.operation_lock.acquire() catch {
-    error => raise McpStdioError::Protocol(error.to_string())
+    error => raise Protocol(error.to_string())
   }
   defer self.operation_lock.release()
   run_stdio_operation_with_timeout(self.conn, self.response_timeout_ms, () => {
@@ -263,7 +248,7 @@ pub async fn stdio_mcp_call_tool(
   cwd~ : String?,
   tool_name~ : String,
   arguments~ : Json,
-  mode? : @config.McpConnectionMode = @config.McpConnectionMode::Stateful,
+  mode? : @config.McpConnectionMode = Stateful,
   probe_timeout_ms? : Int = 1000,
   response_timeout_ms? : Int = 30000,
 ) -> Json raise McpStdioError {
@@ -281,18 +266,14 @@ pub async fn stdio_mcp_call_tool(
     defer client.close()
     client.call_tool(tool_name~, arguments~)
   }) catch {
-    McpStdioError::SpawnFailed(message) =>
-      raise McpStdioError::SpawnFailed(message)
-    McpStdioError::ReadFailed(message) =>
-      raise McpStdioError::ReadFailed(message)
-    McpStdioError::WriteFailed(message) =>
-      raise McpStdioError::WriteFailed(message)
-    McpStdioError::InvalidJson(message) =>
-      raise McpStdioError::InvalidJson(message)
-    McpStdioError::Protocol(message) => raise McpStdioError::Protocol(message)
-    McpStdioError::Timeout => raise McpStdioError::Timeout
-    McpStdioError::UnexpectedEof => raise McpStdioError::UnexpectedEof
-    err => raise McpStdioError::Protocol(err.to_string())
+    McpStdioError::SpawnFailed(message) => raise SpawnFailed(message)
+    McpStdioError::ReadFailed(message) => raise ReadFailed(message)
+    McpStdioError::WriteFailed(message) => raise WriteFailed(message)
+    McpStdioError::InvalidJson(message) => raise InvalidJson(message)
+    McpStdioError::Protocol(message) => raise Protocol(message)
+    McpStdioError::Timeout => raise Timeout
+    McpStdioError::UnexpectedEof => raise UnexpectedEof
+    err => raise Protocol(err.to_string())
   }
 }
 
@@ -302,7 +283,7 @@ pub async fn stdio_mcp_list_tools(
   args~ : Array[String],
   env~ : Map[String, String],
   cwd~ : String?,
-  mode? : @config.McpConnectionMode = @config.McpConnectionMode::Stateful,
+  mode? : @config.McpConnectionMode = Stateful,
   probe_timeout_ms? : Int = 1000,
   response_timeout_ms? : Int = 30000,
   max_pages? : Int = @mcp_client.MCP_TOOL_LIST_MAX_PAGES,
@@ -322,18 +303,14 @@ pub async fn stdio_mcp_list_tools(
     defer client.close()
     client.list_tools(max_pages~, max_tools~)
   }) catch {
-    McpStdioError::SpawnFailed(message) =>
-      raise McpStdioError::SpawnFailed(message)
-    McpStdioError::ReadFailed(message) =>
-      raise McpStdioError::ReadFailed(message)
-    McpStdioError::WriteFailed(message) =>
-      raise McpStdioError::WriteFailed(message)
-    McpStdioError::InvalidJson(message) =>
-      raise McpStdioError::InvalidJson(message)
-    McpStdioError::Protocol(message) => raise McpStdioError::Protocol(message)
-    McpStdioError::Timeout => raise McpStdioError::Timeout
-    McpStdioError::UnexpectedEof => raise McpStdioError::UnexpectedEof
-    err => raise McpStdioError::Protocol(err.to_string())
+    McpStdioError::SpawnFailed(message) => raise SpawnFailed(message)
+    McpStdioError::ReadFailed(message) => raise ReadFailed(message)
+    McpStdioError::WriteFailed(message) => raise WriteFailed(message)
+    McpStdioError::InvalidJson(message) => raise InvalidJson(message)
+    McpStdioError::Protocol(message) => raise Protocol(message)
+    McpStdioError::Timeout => raise Timeout
+    McpStdioError::UnexpectedEof => raise UnexpectedEof
+    err => raise Protocol(err.to_string())
   }
 }
 
@@ -342,12 +319,9 @@ fn pagination_error_to_stdio(
   error : @mcp_client.McpToolPaginationError,
 ) -> McpStdioError {
   match error {
-    @mcp_client.McpToolPaginationError::TooManyPages =>
-      McpStdioError::Protocol("tools/list exceeds maximum page count")
-    @mcp_client.McpToolPaginationError::TooManyTools =>
-      McpStdioError::Protocol("tools/list exceeds maximum tool count")
-    @mcp_client.McpToolPaginationError::RepeatedCursor =>
-      McpStdioError::Protocol("tools/list pagination cursor repeated")
+    TooManyPages => Protocol("tools/list exceeds maximum page count")
+    TooManyTools => Protocol("tools/list exceeds maximum tool count")
+    RepeatedCursor => Protocol("tools/list pagination cursor repeated")
   }
 }
 
@@ -356,20 +330,16 @@ fn protocol_error_to_stdio(
   error : @mcp_client.McpProtocolError,
 ) -> McpStdioError {
   match error {
-    @mcp_client.McpProtocolError::InvalidResponse(message) =>
-      McpStdioError::Protocol(message)
-    @mcp_client.McpProtocolError::HeaderMismatch(message) =>
-      McpStdioError::Protocol("MCP header mismatch: " + message)
-    @mcp_client.McpProtocolError::MissingRequiredClientCapability(message) =>
-      McpStdioError::Protocol("missing required client capability: " + message)
-    @mcp_client.McpProtocolError::UnsupportedProtocolVersion(_, supported) =>
-      McpStdioError::Protocol(
+    InvalidResponse(message) => Protocol(message)
+    HeaderMismatch(message) => Protocol("MCP header mismatch: " + message)
+    MissingRequiredClientCapability(message) =>
+      Protocol("missing required client capability: " + message)
+    UnsupportedProtocolVersion(_, supported) =>
+      Protocol(
         "unsupported MCP protocol version; supported: " + supported.join(", "),
       )
-    @mcp_client.McpProtocolError::RemoteError(code, message) =>
-      McpStdioError::Protocol(
-        "json-rpc error " + code.to_string() + ": " + message,
-      )
+    RemoteError(code, message) =>
+      Protocol("json-rpc error " + code.to_string() + ": " + message)
   }
 }
 
