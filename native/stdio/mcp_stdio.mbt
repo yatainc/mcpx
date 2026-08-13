@@ -41,6 +41,7 @@ pub struct StdioMcpClient {
   lifecycle : StdioProtocolLifecycle
   next_request_id : Ref[Int]
   response_timeout_ms : Int
+  operation_lock : @async.Semaphore
 }
 
 ///|
@@ -58,13 +59,12 @@ pub async fn[X] stdio_mcp_connect(
   if mode == @config.McpConnectionMode::Stateful {
     let conn = spawn_stdio(group, command, args, env, cwd)
     initialize_stdio(conn, client, response_timeout_ms)
-    return {
+    return new_stdio_mcp_client(
       conn,
       client,
-      lifecycle: StdioProtocolLifecycle::Initialize,
-      next_request_id: Ref(2),
+      StdioProtocolLifecycle::Initialize,
       response_timeout_ms,
-    }
+    )
   }
   let probe_conn = spawn_stdio(group, command, args, env, cwd)
   let probe_started_at = @async.now()
@@ -94,13 +94,12 @@ pub async fn[X] stdio_mcp_connect(
   }
   match probe_result {
     StdioProbeOutcome::Modern =>
-      {
-        conn: probe_conn,
+      new_stdio_mcp_client(
+        probe_conn,
         client,
-        lifecycle: StdioProtocolLifecycle::Stateless,
-        next_request_id: Ref(2),
+        StdioProtocolLifecycle::Stateless,
         response_timeout_ms,
-      }
+      )
     StdioProbeOutcome::ModernError(message) => {
       close_stdio(probe_conn)
       raise McpStdioError::Protocol(message)
@@ -112,14 +111,30 @@ pub async fn[X] stdio_mcp_connect(
       }
       let legacy_conn = spawn_stdio(group, command, args, env, cwd)
       initialize_stdio(legacy_conn, client, response_timeout_ms)
-      {
-        conn: legacy_conn,
+      new_stdio_mcp_client(
+        legacy_conn,
         client,
-        lifecycle: StdioProtocolLifecycle::Initialize,
-        next_request_id: Ref(2),
+        StdioProtocolLifecycle::Initialize,
         response_timeout_ms,
-      }
+      )
     }
+  }
+}
+
+///|
+fn new_stdio_mcp_client(
+  conn : StdioConnection,
+  client : @mcp_client.McpClient,
+  lifecycle : StdioProtocolLifecycle,
+  response_timeout_ms : Int,
+) -> StdioMcpClient {
+  {
+    conn,
+    client,
+    lifecycle,
+    next_request_id: Ref(2),
+    response_timeout_ms,
+    operation_lock: @async.Semaphore(1),
   }
 }
 
@@ -134,6 +149,19 @@ fn new_legacy_client() -> @mcp_client.McpClient {
 
 ///|
 pub async fn StdioMcpClient::call_tool(
+  self : StdioMcpClient,
+  tool_name~ : String,
+  arguments~ : Json,
+) -> Json raise McpStdioError {
+  self.operation_lock.acquire() catch {
+    error => raise McpStdioError::Protocol(error.to_string())
+  }
+  defer self.operation_lock.release()
+  self.call_tool_unlocked(tool_name~, arguments~)
+}
+
+///|
+async fn StdioMcpClient::call_tool_unlocked(
   self : StdioMcpClient,
   tool_name~ : String,
   arguments~ : Json,
@@ -185,6 +213,19 @@ pub async fn StdioMcpClient::list_tools(
   self : StdioMcpClient,
   max_pages? : Int = @mcp_client.MCP_TOOL_LIST_MAX_PAGES,
   max_tools? : Int = @mcp_client.MCP_TOOL_LIST_MAX_TOOLS,
+) -> Array[@mcp_client.McpToolInfo] raise McpStdioError {
+  self.operation_lock.acquire() catch {
+    error => raise McpStdioError::Protocol(error.to_string())
+  }
+  defer self.operation_lock.release()
+  self.list_tools_unlocked(max_pages~, max_tools~)
+}
+
+///|
+async fn StdioMcpClient::list_tools_unlocked(
+  self : StdioMcpClient,
+  max_pages~ : Int,
+  max_tools~ : Int,
 ) -> Array[@mcp_client.McpToolInfo] raise McpStdioError {
   match self.lifecycle {
     Initialize => {

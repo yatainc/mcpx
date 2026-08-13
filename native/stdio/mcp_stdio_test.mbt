@@ -494,6 +494,56 @@ async test "mcp stdio: stateless rejects method not found" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: serializes concurrent client operations" {
+  let script =
+    #|i=0
+    #|while IFS= read -r line; do
+    #|  i=$((i + 1))
+    #|  if [ "$i" = "1" ]; then
+    #|    printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-03-26","capabilities":{}}}'
+    #|  elif [ "$i" = "3" ]; then
+    #|    first="$line"
+    #|    if IFS= read -r -t 1 second; then
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":999,"error":{"code":-32603,"message":"concurrent request"}}'
+    #|      exit 0
+    #|    fi
+    #|    printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"call":1}}'
+    #|  elif [ "$i" = "4" ]; then
+    #|    printf '%s\n' '{"jsonrpc":"2.0","id":3,"result":{"call":2}}'
+    #|  fi
+    #|done
+  @async.with_task_group(group => {
+    let client = stdio_mcp_connect(
+      group,
+      command="/bin/bash",
+      args=["-c", script],
+      env=Map([]),
+      cwd=None,
+    )
+    let results : Array[Json] = []
+    for _ in 0..<2 {
+      group.spawn_bg(no_wait=true, () => {
+        let result = client.call_tool(
+          tool_name="search",
+          arguments=Json::empty_object(),
+        )
+        results.push(result)
+      })
+    }
+    while results.length() < 2 {
+      @async.sleep(10)
+    }
+    client.close()
+    results.sort_by((left, right) => left.stringify().compare(right.stringify()))
+    inspect(
+      results.map(value => value.stringify()).join("|"),
+      content="{\"call\":1}|{\"call\":2}",
+    )
+  })
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "mcp stdio: persistent client reuses initialized process" {
   let script =
     #|i=0
