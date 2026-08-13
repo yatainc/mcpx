@@ -114,6 +114,92 @@ async test "mcp http: falls back to initialize then call tool with session" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "mcp http: sends MCP 2026 mirrored headers without sessions" {
+  let received : Map[String, String] = Map([])
+  @async.with_task_group(group => {
+    let server = @async_http.Server(@socket.Addr::parse("127.0.0.1:0"))
+    defer server.close()
+    let port = server.addr.port()
+    group.spawn_bg(no_wait=true, () => {
+      server.run_forever(allow_failure=true, (request, body, conn) => {
+        let msg = @json.parse(body.read_all().text())
+        let rpc_method = match msg {
+          Object(obj) =>
+            match obj.get("method") {
+              Some(String(value)) => value
+              _ => ""
+            }
+          _ => ""
+        }
+        let id = match msg {
+          Object(obj) => obj.get("id").unwrap_or(Json::number(1.0, repr="1"))
+          _ => Json::number(1.0, repr="1")
+        }
+        conn.send_response(200, "OK", extra_headers={
+          "content-type": "application/json",
+        })
+        let result = match rpc_method {
+          "server/discover" =>
+            Json::object({
+              "resultType": Json::string("complete"),
+              "supportedVersions": Json::array([Json::string("2026-07-28")]),
+            })
+          "tools/list" =>
+            Json::object({
+              "resultType": Json::string("complete"),
+              "tools": Json::array([
+                Json::object({
+                  "name": Json::string("検索"),
+                  "inputSchema": @json.parse(
+                    (
+                      #|{"type":"object","properties":{"region":{"type":"string","x-mcp-header":"Region"}}}
+                    ),
+                  ),
+                }),
+              ]),
+              "ttlMs": Json::number(0.0, repr="0"),
+              "cacheScope": Json::string("private"),
+            })
+          _ => {
+            for key, value in request.headers {
+              received[key.to_lower()] = value
+            }
+            Json::object({
+              "resultType": Json::string("complete"),
+              "content": Json::array([]),
+            })
+          }
+        }
+        conn
+        ..write(
+          Json::object({
+            "jsonrpc": Json::string("2.0"),
+            "id": id,
+            "result": result,
+          }).stringify(),
+        )
+        .end_response()
+      })
+    })
+    ignore(
+      http_mcp_call_tool(
+        url="http://localhost:\{port}/mcp",
+        headers=Map([]),
+        tool_name="検索",
+        arguments={ "region": "日本" },
+        mode=@config.McpConnectionMode::Stateless,
+      ),
+    )
+  })
+  inspect(received["mcp-protocol-version"], content="2026-07-28")
+  inspect(received["mcp-method"], content="tools/call")
+  inspect(received["mcp-name"], content="=?base64?5qSc57Si?=")
+  inspect(received["mcp-param-region"], content="=?base64?5pel5pys?=")
+  inspect(received.contains("mcp-session-id"), content="false")
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "mcp http: decodes text event stream JSON-RPC response" {
   @async.with_task_group(group => {
     let server = @async_http.Server(@socket.Addr::parse("127.0.0.1:0"))

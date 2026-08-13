@@ -69,7 +69,7 @@ class Handler(BaseHTTPRequestHandler):
             send_json({
                 "jsonrpc": "2.0",
                 "id": msg.get("id", 1),
-                "error": {"code": -32601, "message": "Method not found"},
+                "error": {"code": -32000, "message": "Legacy request rejected"},
             }, code=400)
             return
 
