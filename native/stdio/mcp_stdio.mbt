@@ -11,6 +11,7 @@ pub suberror McpStdioError {
   WriteFailed(String)
   InvalidJson(String)
   Protocol(String)
+  Timeout
   UnexpectedEof
 } derive(Debug)
 
@@ -44,6 +45,7 @@ pub struct StdioMcpClient {
   client : @mcp_client.McpClient
   lifecycle : StdioProtocolLifecycle
   next_request_id : Ref[Int]
+  response_timeout_ms : Int
 }
 
 ///|
@@ -55,16 +57,18 @@ pub async fn[X] stdio_mcp_connect(
   cwd~ : String?,
   mode? : @config.McpConnectionMode = @config.McpConnectionMode::Stateful,
   probe_timeout_ms? : Int = 1000,
+  response_timeout_ms? : Int = 30000,
 ) -> StdioMcpClient raise McpStdioError {
   let client = new_legacy_client()
   if mode == @config.McpConnectionMode::Stateful {
     let conn = spawn_stdio(group, command, args, env, cwd)
-    initialize_stdio(conn, client)
+    initialize_stdio(conn, client, response_timeout_ms)
     return {
       conn,
       client,
       lifecycle: StdioProtocolLifecycle::Initialize,
       next_request_id: Ref(2),
+      response_timeout_ms,
     }
   }
   let probe_conn = spawn_stdio(group, command, args, env, cwd)
@@ -81,6 +85,7 @@ pub async fn[X] stdio_mcp_connect(
         client,
         lifecycle: StdioProtocolLifecycle::Stateless,
         next_request_id: Ref(2),
+        response_timeout_ms,
       }
     Ok(StdioProbeOutcome::ModernError(message)) => {
       close_stdio(probe_conn)
@@ -92,12 +97,13 @@ pub async fn[X] stdio_mcp_connect(
         raise McpStdioError::Protocol("stateless MCP is not supported")
       }
       let legacy_conn = spawn_stdio(group, command, args, env, cwd)
-      initialize_stdio(legacy_conn, client)
+      initialize_stdio(legacy_conn, client, response_timeout_ms)
       {
         conn: legacy_conn,
         client,
         lifecycle: StdioProtocolLifecycle::Initialize,
         next_request_id: Ref(2),
+        response_timeout_ms,
       }
     }
   }
@@ -125,7 +131,11 @@ pub async fn StdioMcpClient::call_tool(
       let id = request.expected_id() catch {
         _ => raise McpStdioError::Protocol("mcp protocol error")
       }
-      let response = read_response_for_id(self.conn, expected_id=id)
+      let response = read_response_for_id_with_timeout(
+        self.conn,
+        expected_id=id,
+        timeout_ms=self.response_timeout_ms,
+      )
       self.client.accept_tool_call_response(request, response) catch {
         _ => raise McpStdioError::Protocol("mcp protocol error")
       }
@@ -142,7 +152,11 @@ pub async fn StdioMcpClient::call_tool(
           client_version="0.1.4",
         ),
       )
-      let response = read_response_for_id(self.conn, expected_id=id)
+      let response = read_response_for_id_with_timeout(
+        self.conn,
+        expected_id=id,
+        timeout_ms=self.response_timeout_ms,
+      )
       match
         @mcp_client.decode_mcp_complete_result(
           response,
@@ -169,7 +183,11 @@ pub async fn StdioMcpClient::list_tools(
       let id = request.expected_id() catch {
         _ => raise McpStdioError::Protocol("mcp protocol error")
       }
-      let response = read_response_for_id(self.conn, expected_id=id)
+      let response = read_response_for_id_with_timeout(
+        self.conn,
+        expected_id=id,
+        timeout_ms=self.response_timeout_ms,
+      )
       self.client.accept_tools_list_response(request, response) catch {
         _ => raise McpStdioError::Protocol("mcp protocol error")
       }
@@ -194,7 +212,11 @@ pub async fn StdioMcpClient::list_tools(
             cursor~,
           ),
         )
-        let response = read_response_for_id(self.conn, expected_id=id)
+        let response = read_response_for_id_with_timeout(
+          self.conn,
+          expected_id=id,
+          timeout_ms=self.response_timeout_ms,
+        )
         let page = match
           @mcp_client.decode_mcp_tool_list_page(
             response,
@@ -242,6 +264,7 @@ pub async fn stdio_mcp_call_tool(
   arguments~ : Json,
   mode? : @config.McpConnectionMode = @config.McpConnectionMode::Stateful,
   probe_timeout_ms? : Int = 1000,
+  response_timeout_ms? : Int = 30000,
 ) -> Json raise McpStdioError {
   @async.with_task_group(group => {
     let client = stdio_mcp_connect(
@@ -252,10 +275,22 @@ pub async fn stdio_mcp_call_tool(
       cwd~,
       mode~,
       probe_timeout_ms~,
+      response_timeout_ms~,
     )
     defer client.close()
     client.call_tool(tool_name~, arguments~)
   }) catch {
+    McpStdioError::SpawnFailed(message) =>
+      raise McpStdioError::SpawnFailed(message)
+    McpStdioError::ReadFailed(message) =>
+      raise McpStdioError::ReadFailed(message)
+    McpStdioError::WriteFailed(message) =>
+      raise McpStdioError::WriteFailed(message)
+    McpStdioError::InvalidJson(message) =>
+      raise McpStdioError::InvalidJson(message)
+    McpStdioError::Protocol(message) => raise McpStdioError::Protocol(message)
+    McpStdioError::Timeout => raise McpStdioError::Timeout
+    McpStdioError::UnexpectedEof => raise McpStdioError::UnexpectedEof
     err => raise McpStdioError::Protocol(err.to_string())
   }
 }
@@ -268,6 +303,7 @@ pub async fn stdio_mcp_list_tools(
   cwd~ : String?,
   mode? : @config.McpConnectionMode = @config.McpConnectionMode::Stateful,
   probe_timeout_ms? : Int = 1000,
+  response_timeout_ms? : Int = 30000,
   max_pages? : Int = MAX_TOOL_LIST_PAGES,
   max_tools? : Int = MAX_TOOL_LIST_TOOLS,
 ) -> Array[@mcp_client.McpToolInfo] raise McpStdioError {
@@ -280,10 +316,22 @@ pub async fn stdio_mcp_list_tools(
       cwd~,
       mode~,
       probe_timeout_ms~,
+      response_timeout_ms~,
     )
     defer client.close()
     client.list_tools(max_pages~, max_tools~)
   }) catch {
+    McpStdioError::SpawnFailed(message) =>
+      raise McpStdioError::SpawnFailed(message)
+    McpStdioError::ReadFailed(message) =>
+      raise McpStdioError::ReadFailed(message)
+    McpStdioError::WriteFailed(message) =>
+      raise McpStdioError::WriteFailed(message)
+    McpStdioError::InvalidJson(message) =>
+      raise McpStdioError::InvalidJson(message)
+    McpStdioError::Protocol(message) => raise McpStdioError::Protocol(message)
+    McpStdioError::Timeout => raise McpStdioError::Timeout
+    McpStdioError::UnexpectedEof => raise McpStdioError::UnexpectedEof
     err => raise McpStdioError::Protocol(err.to_string())
   }
 }
@@ -360,13 +408,18 @@ fn is_recognized_modern_stdio_error(code : Int) -> Bool {
 async fn initialize_stdio(
   conn : StdioConnection,
   client : @mcp_client.McpClient,
+  response_timeout_ms : Int,
 ) -> Unit raise McpStdioError {
   let init = client.initialize_request()
   write_json_line(conn, init.message)
   let init_id = init.expected_id() catch {
     _ => raise McpStdioError::Protocol("mcp protocol error")
   }
-  let init_response = read_response_for_id(conn, expected_id=init_id)
+  let init_response = read_response_for_id_with_timeout(
+    conn,
+    expected_id=init_id,
+    timeout_ms=response_timeout_ms,
+  )
   ignore(
     client.accept_initialize_response(init, init_response) catch {
       _ => raise McpStdioError::Protocol("mcp protocol error")
@@ -462,6 +515,29 @@ async fn read_json_line(conn : StdioConnection) -> Json? raise McpStdioError {
           err => raise McpStdioError::InvalidJson(err.to_string())
         },
       )
+  }
+}
+
+///|
+async fn read_response_for_id_with_timeout(
+  conn : StdioConnection,
+  expected_id~ : Int,
+  timeout_ms~ : Int,
+) -> Json raise McpStdioError {
+  let started_at = @async.now()
+  @async.with_timeout(timeout_ms, () => read_response_for_id(conn, expected_id~)) catch {
+    @async.TimeoutError => raise McpStdioError::Timeout
+    McpStdioError::ReadFailed(message) => {
+      let elapsed = @async.now() - started_at
+      if elapsed >= timeout_ms.to_int64() {
+        raise McpStdioError::Timeout
+      }
+      raise McpStdioError::ReadFailed(message)
+    }
+    McpStdioError::InvalidJson(message) =>
+      raise McpStdioError::InvalidJson(message)
+    McpStdioError::UnexpectedEof => raise McpStdioError::UnexpectedEof
+    error => raise McpStdioError::Protocol(error.to_string())
   }
 }
 

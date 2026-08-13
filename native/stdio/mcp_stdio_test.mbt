@@ -111,6 +111,35 @@ async test "mcp stdio: paginates stateless tool lists" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: times out silent tool operations" {
+  let script =
+    #|while IFS= read -r line; do
+    #|  case "$line" in
+    #|    *'"method":"server/discover"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}'
+    #|      ;;
+    #|    *) sleep 10 ;;
+    #|  esac
+    #|done
+  try
+    stdio_mcp_list_tools(
+      command="/bin/sh",
+      args=["-c", script],
+      env=Map([]),
+      cwd=None,
+      mode=@config.McpConnectionMode::Stateless,
+      response_timeout_ms=50,
+    )
+  catch {
+    McpStdioError::Timeout => ()
+    _ => fail("expected timeout error")
+  } noraise {
+    _ => fail("expected operation timeout")
+  }
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "mcp stdio: bounds stateless tool pagination" {
   let script =
     #|while IFS= read -r line; do
