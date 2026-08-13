@@ -192,6 +192,49 @@ async test "mcp stdio: poisons connection after wrong response id" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: poisons connection after malformed operation JSON" {
+  let script =
+    #|while IFS= read -r line; do
+    #|  case "$line" in
+    #|    *'"method":"server/discover"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}'
+    #|      ;;
+    #|    *'"method":"tools/list"'*)
+    #|      printf '%s\n' 'not-json'
+    #|      ;;
+    #|  esac
+    #|done
+  @async.with_task_group(group => {
+    let client = stdio_mcp_connect(
+      group,
+      command="/bin/sh",
+      args=["-c", script],
+      env=Map([]),
+      cwd=None,
+      mode=@config.McpConnectionMode::Stateless,
+    )
+    defer client.close()
+    try client.list_tools() catch {
+      McpStdioError::InvalidJson(_) => ()
+      _ => fail("expected invalid JSON error")
+    } noraise {
+      _ => fail("expected malformed operation response to fail")
+    }
+    try client.list_tools() catch {
+      McpStdioError::Protocol(message) =>
+        inspect(
+          message,
+          content="stdio connection is unusable after transport desynchronization",
+        )
+      _ => fail("expected poisoned connection error")
+    } noraise {
+      _ => fail("expected poisoned connection to reject operation")
+    }
+  })
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "mcp stdio: times out silent tool operations" {
   let script =
     #|while IFS= read -r line; do

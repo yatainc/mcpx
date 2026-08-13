@@ -130,15 +130,23 @@ async fn[T] run_stdio_operation_with_timeout(
       if elapsed >= timeout_ms.to_int64() {
         poison_stdio_after_timeout(conn)
       }
+      mark_stdio_poisoned(conn, "transport desynchronization")
       raise McpStdioError::ReadFailed(message)
     }
     McpStdioError::SpawnFailed(message) =>
       raise McpStdioError::SpawnFailed(message)
-    McpStdioError::WriteFailed(message) =>
+    McpStdioError::WriteFailed(message) => {
+      mark_stdio_poisoned(conn, "transport desynchronization")
       raise McpStdioError::WriteFailed(message)
-    McpStdioError::InvalidJson(message) =>
+    }
+    McpStdioError::InvalidJson(message) => {
+      mark_stdio_poisoned(conn, "transport desynchronization")
       raise McpStdioError::InvalidJson(message)
-    McpStdioError::UnexpectedEof => raise McpStdioError::UnexpectedEof
+    }
+    McpStdioError::UnexpectedEof => {
+      mark_stdio_poisoned(conn, "transport desynchronization")
+      raise McpStdioError::UnexpectedEof
+    }
     McpStdioError::Protocol(message) => raise McpStdioError::Protocol(message)
     McpStdioError::Timeout => raise McpStdioError::Timeout
     error => raise McpStdioError::Protocol(error.to_string())
@@ -209,10 +217,17 @@ fn is_mcp_request(message : Json) -> Bool {
 }
 
 ///|
+fn mark_stdio_poisoned(conn : StdioConnection, reason : String) -> Unit {
+  if conn.state != StdioConnectionState::Closed {
+    conn.state = StdioConnectionState::Poisoned(reason)
+  }
+}
+
+///|
 fn[T] poison_stdio_after_timeout(
   conn : StdioConnection,
 ) -> T raise McpStdioError {
-  conn.state = StdioConnectionState::Poisoned("timeout")
+  mark_stdio_poisoned(conn, "timeout")
   raise McpStdioError::Timeout
 }
 
@@ -221,7 +236,7 @@ fn[T] poison_stdio_after_desynchronization(
   conn : StdioConnection,
   message : String,
 ) -> T raise McpStdioError {
-  conn.state = StdioConnectionState::Poisoned("protocol desynchronization")
+  mark_stdio_poisoned(conn, "protocol desynchronization")
   raise McpStdioError::Protocol(message)
 }
 
