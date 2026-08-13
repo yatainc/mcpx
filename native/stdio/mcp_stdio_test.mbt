@@ -193,6 +193,58 @@ async test "mcp stdio: auto times out silent probe and restarts" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: auto does not fallback on recognized modern errors" {
+  for code in [-32020, -32021, -32022] {
+    let marker = "/tmp/mcpx-stdio-modern-error-" + code.to_string() + ".marker"
+    @fs.remove_file(marker) catch {
+      _ => ()
+    }
+    @fs.remove_file(marker + ".fallback") catch {
+      _ => ()
+    }
+    let script =
+      #|if [ ! -f "$MARKER" ]; then
+      #|  touch "$MARKER"
+      #|  read -r line
+      #|  printf '%s\n' '{"jsonrpc":"2.0","id":1,"error":{"code":'"$CODE"',"message":"modern error","data":{"supported":["2099-01-01"]}}}'
+      #|else
+      #|  touch "$MARKER.fallback"
+      #|  i=0
+      #|  while IFS= read -r line; do
+      #|    i=$((i + 1))
+      #|    if [ "$i" = "1" ]; then
+      #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}'
+      #|    elif [ "$i" = "3" ]; then
+      #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"tools":[]}}'
+      #|    fi
+      #|  done
+      #|fi
+    try
+      stdio_mcp_list_tools(
+        command="/bin/sh",
+        args=["-c", script],
+        env={ "MARKER": marker, "CODE": code.to_string() },
+        cwd=None,
+        mode=@config.McpConnectionMode::Auto,
+      )
+    catch {
+      McpStdioError::Protocol(_) => ()
+      _ => fail("expected protocol error")
+    } noraise {
+      _ => fail("expected recognized modern error")
+    }
+    inspect(@fs.path_exists(marker + ".fallback"), content="false")
+    @fs.remove_file(marker) catch {
+      _ => ()
+    }
+    @fs.remove_file(marker + ".fallback") catch {
+      _ => ()
+    }
+  }
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "mcp stdio: stateless rejects method not found" {
   let script =
     #|while IFS= read -r line; do

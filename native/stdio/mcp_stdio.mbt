@@ -26,6 +26,13 @@ pub(all) enum StdioProtocolLifecycle {
 }
 
 ///|
+priv enum StdioProbeOutcome {
+  Modern
+  ModernError(String)
+  Legacy
+}
+
+///|
 pub struct StdioMcpClient {
   priv conn : StdioConnection
   client : @mcp_client.McpClient
@@ -55,21 +62,25 @@ pub async fn[X] stdio_mcp_connect(
     }
   }
   let probe_conn = spawn_stdio(group, command, args, env, cwd)
-  let probe_result : Result[Unit, Error] = try
+  let probe_result : Result[StdioProbeOutcome, Error] = try
     @async.with_timeout(probe_timeout_ms, () => probe_modern_stdio(probe_conn))
     |> Ok
   catch {
     error => Err(error)
   }
   match probe_result {
-    Ok(_) =>
+    Ok(StdioProbeOutcome::Modern) =>
       {
         conn: probe_conn,
         client,
         lifecycle: StdioProtocolLifecycle::Stateless,
         next_request_id: Ref(2),
       }
-    Err(_) => {
+    Ok(StdioProbeOutcome::ModernError(message)) => {
+      close_stdio(probe_conn)
+      raise McpStdioError::Protocol(message)
+    }
+    Ok(StdioProbeOutcome::Legacy) | Err(_) => {
       close_stdio(probe_conn)
       if mode == @config.McpConnectionMode::Stateless {
         raise McpStdioError::Protocol("stateless MCP is not supported")
@@ -248,7 +259,9 @@ fn take_modern_request_id(client : StdioMcpClient) -> Int {
 }
 
 ///|
-async fn probe_modern_stdio(conn : StdioConnection) -> Unit raise McpStdioError {
+async fn probe_modern_stdio(
+  conn : StdioConnection,
+) -> StdioProbeOutcome raise McpStdioError {
   let context = @mcp_client.mcp_request_context(
     protocol=@mcp_client.McpProtocolVersion::V2026_07_28,
     client_name="mcpx",
@@ -261,14 +274,35 @@ async fn probe_modern_stdio(conn : StdioConnection) -> Unit raise McpStdioError 
       if discover.protocol_versions.contains(
           @mcp_client.McpProtocolVersion::V2026_07_28,
         ) {
-        ()
+        StdioProbeOutcome::Modern
       } else {
-        raise McpStdioError::Protocol("MCP 2026-07-28 is not supported")
+        StdioProbeOutcome::ModernError("MCP 2026-07-28 is not supported")
       }
-    Err(@mcp_client.McpProtocolError::RemoteError(-32601, _)) =>
-      raise McpStdioError::Protocol("legacy MCP server")
-    Err(_) => raise McpStdioError::Protocol("MCP discovery failed")
+    Err(@mcp_client.McpProtocolError::RemoteError(code, message)) =>
+      if is_recognized_modern_stdio_error(code) {
+        StdioProbeOutcome::ModernError(
+          "modern MCP discovery error " + code.to_string() + ": " + message,
+        )
+      } else {
+        StdioProbeOutcome::Legacy
+      }
+    Err(@mcp_client.McpProtocolError::UnsupportedProtocolVersion(_, supported)) =>
+      StdioProbeOutcome::ModernError(
+        "unsupported MCP protocol version; supported: " + supported.join(", "),
+      )
+    Err(@mcp_client.McpProtocolError::HeaderMismatch(message)) =>
+      StdioProbeOutcome::ModernError("MCP header mismatch: " + message)
+    Err(@mcp_client.McpProtocolError::MissingRequiredClientCapability(message)) =>
+      StdioProbeOutcome::ModernError(
+        "missing required client capability: " + message,
+      )
+    Err(_) => StdioProbeOutcome::Legacy
   }
+}
+
+///|
+fn is_recognized_modern_stdio_error(code : Int) -> Bool {
+  code == -32020 || code == -32021 || code == -32022
 }
 
 ///|
