@@ -43,7 +43,6 @@ async fn fetch_modern_tool_catalog(
 ) -> ModernToolCatalog raise McpHttpClientError {
   let pagination = @protocol.mcp_tool_pagination()
   let limits = @protocol.mcp_tool_list_limits(max_pages~, max_tools~)
-  let accepted_tools : Array[@protocol.McpToolInfo] = []
   let validated_tools : Array[ValidatedHttpTool] = []
   let mut request_id = first_request_id
   let mut ttl_ms = 0
@@ -83,10 +82,7 @@ async fn fetch_modern_tool_catalog(
     }
     for tool in page.tools {
       match validate_http_tool(tool) {
-        Ok(validated) => {
-          validated_tools.push(validated)
-          accepted_tools.push(tool)
-        }
+        Ok(validated) => validated_tools.push(validated)
         Err(_) => ()
       }
     }
@@ -112,7 +108,7 @@ async fn fetch_modern_tool_catalog(
   let scope = cache_scope.unwrap_or(@protocol.McpCacheScope::Private)
   {
     result: mcp_tool_list_result(
-      tools=accepted_tools,
+      tools=validated_tools.map(tool => tool.info),
       ttl_ms~,
       cache_scope=scope,
     ),
