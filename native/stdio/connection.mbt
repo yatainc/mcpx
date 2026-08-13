@@ -9,6 +9,13 @@ priv enum StdioConnectionState {
 } derive(Eq)
 
 ///|
+priv enum StdioInboundMessage {
+  Response(Int, Json)
+  RequestOrNotification
+  Malformed
+}
+
+///|
 priv struct StdioConnection {
   reader : @process.ReadFromProcess
   _stdout_handle : &@process.ProcessOutput
@@ -188,17 +195,18 @@ async fn read_response_for_id_with_skip_limit(
     match message {
       None => raise McpStdioError::UnexpectedEof
       Some(json) =>
-        match @mcp_client.mcp_response_id(json) {
-          Some(id) if id == expected_id => break json
-          Some(_) if !is_mcp_request(json) =>
+        match classify_stdio_inbound_message(json) {
+          StdioInboundMessage::Response(id, response) if id == expected_id =>
+            break response
+          StdioInboundMessage::Response(_, _) =>
             poison_stdio_after_desynchronization(
               conn, "unexpected MCP response id",
             )
-          None if !is_mcp_request(json) =>
+          StdioInboundMessage::Malformed =>
             poison_stdio_after_desynchronization(
               conn, "malformed MCP message while awaiting response",
             )
-          _ => {
+          StdioInboundMessage::RequestOrNotification => {
             if skipped >= max_skipped_messages {
               poison_stdio_after_desynchronization(
                 conn, "too many messages while awaiting MCP response",
@@ -213,14 +221,45 @@ async fn read_response_for_id_with_skip_limit(
 }
 
 ///|
-fn is_mcp_request(message : Json) -> Bool {
-  match message {
-    Object(obj) =>
-      obj.get("jsonrpc") == Some(Json::string("2.0")) &&
-      obj.get("method") is Some(String(_)) &&
-      obj.get("result") is None &&
-      obj.get("error") is None
-    _ => false
+fn classify_stdio_inbound_message(message : Json) -> StdioInboundMessage {
+  let obj = match message {
+    Object(value) => value
+    _ => return StdioInboundMessage::Malformed
+  }
+  if obj.get("jsonrpc") != Some(Json::string("2.0")) {
+    return StdioInboundMessage::Malformed
+  }
+  let has_result = obj.get("result") is Some(_)
+  let has_error = obj.get("error") is Some(_)
+  match obj.get("method") {
+    Some(String(_)) if !has_result && !has_error =>
+      match obj.get("id") {
+        None => StdioInboundMessage::RequestOrNotification
+        Some(String(_)) => StdioInboundMessage::RequestOrNotification
+        Some(id) if decode_stdio_message_id(id) is Some(_) =>
+          StdioInboundMessage::RequestOrNotification
+        _ => StdioInboundMessage::Malformed
+      }
+    None if has_result != has_error =>
+      match obj.get("id") {
+        Some(id) =>
+          match decode_stdio_message_id(id) {
+            Some(value) => StdioInboundMessage::Response(value, message)
+            None => StdioInboundMessage::Malformed
+          }
+        None => StdioInboundMessage::Malformed
+      }
+    _ => StdioInboundMessage::Malformed
+  }
+}
+
+///|
+fn decode_stdio_message_id(value : Json) -> Int? {
+  match value {
+    Number(number, ..) if number.trunc() == number &&
+      number >= (-2147483648).to_double() &&
+      number <= (2147483647 : Int).to_double() => Some(number.to_int())
+    _ => None
   }
 }
 

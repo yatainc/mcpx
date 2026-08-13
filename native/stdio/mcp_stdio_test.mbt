@@ -147,6 +147,79 @@ async test "mcp stdio: bounds skipped messages while awaiting responses" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: skips server requests with the expected response id" {
+  let script =
+    #|while IFS= read -r line; do
+    #|  case "$line" in
+    #|    *'"method":"server/discover"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}'
+    #|      ;;
+    #|    *'"method":"tools/list"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"method":"server/request","params":{}}'
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[]}}'
+    #|      ;;
+    #|  esac
+    #|done
+  let tools = stdio_mcp_list_tools(
+    command="/bin/sh",
+    args=["-c", script],
+    env=Map([]),
+    cwd=None,
+    mode=@config.McpConnectionMode::Stateless,
+  )
+  inspect(tools.length(), content="0")
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: poisons connection after matching malformed response" {
+  let script =
+    #|while IFS= read -r line; do
+    #|  case "$line" in
+    #|    *'"method":"server/discover"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}'
+    #|      ;;
+    #|    *'"method":"tools/list"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2}'
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[]}}'
+    #|      ;;
+    #|  esac
+    #|done
+  @async.with_task_group(group => {
+    let client = stdio_mcp_connect(
+      group,
+      command="/bin/sh",
+      args=["-c", script],
+      env=Map([]),
+      cwd=None,
+      mode=@config.McpConnectionMode::Stateless,
+    )
+    defer client.close()
+    try client.list_tools() catch {
+      McpStdioError::Protocol(message) =>
+        inspect(
+          message,
+          content="malformed MCP message while awaiting response",
+        )
+      _ => fail("expected protocol error")
+    } noraise {
+      _ => fail("expected malformed response to fail")
+    }
+    try client.list_tools() catch {
+      McpStdioError::Protocol(message) =>
+        inspect(
+          message,
+          content="stdio connection is unusable after protocol desynchronization",
+        )
+      _ => fail("expected poisoned connection error")
+    } noraise {
+      _ => fail("expected poisoned connection to reject operation")
+    }
+  })
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "mcp stdio: poisons connection after wrong response id" {
   let script =
     #|while IFS= read -r line; do
