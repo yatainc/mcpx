@@ -578,10 +578,12 @@ fn build_headers_legacy(
   session_id : String?,
 ) -> Map[String, String] {
   let headers = base_headers.copy()
-  headers["content-type"] = "application/json"
-  headers["accept"] = "application/json, text/event-stream"
+  set_header_case_insensitive(headers, "content-type", "application/json")
+  set_header_case_insensitive(
+    headers, "accept", "application/json, text/event-stream",
+  )
   match session_id {
-    Some(value) => headers["Mcp-Session-Id"] = value
+    Some(value) => set_header_case_insensitive(headers, "Mcp-Session-Id", value)
     None => ()
   }
   headers
@@ -686,6 +688,16 @@ fn jsonrpc_error_code(json : Json) -> Int? {
 }
 
 ///|
+fn set_header_case_insensitive(
+  headers : Map[String, String],
+  name : String,
+  value : String,
+) -> Unit {
+  remove_header_case_insensitive(headers, name)
+  headers[name] = value
+}
+
+///|
 fn remove_header_case_insensitive(
   headers : Map[String, String],
   target : String,
@@ -748,8 +760,10 @@ fn update_session_id(
 
 ///|
 fn header(headers : Map[String, String], key : String) -> String? {
-  match headers.get(key) {
-    Some(value) => Some(value)
-    None => headers.get(key.to_lower())
+  for name, value in headers {
+    if name.equal_ignore_ascii_case(key) {
+      return Some(value)
+    }
   }
+  None
 }

@@ -266,8 +266,10 @@ fn core_error_to_native(error : @core_http.McpHttpClientError) -> McpHttpError {
 
 ///|
 fn header(headers : Map[String, String], key : String) -> String? {
-  match headers.get(key) {
-    Some(value) => Some(value)
-    None => headers.get(key.to_lower())
+  for name, value in headers {
+    if name.equal_ignore_ascii_case(key) {
+      return Some(value)
+    }
   }
+  None
 }

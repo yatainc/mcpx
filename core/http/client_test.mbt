@@ -475,6 +475,8 @@ async test "core http: generated headers replace user headers case-insensitively
         "mcp-name": "attacker",
         "mcp-param-region": "attacker",
         "mcp-session-id": "legacy-session",
+        "Content-Type": "text/plain",
+        "ACCEPT": "text/plain",
       }),
       tool_name="run",
       arguments={ "region": "safe" },
@@ -482,7 +484,8 @@ async test "core http: generated headers replace user headers case-insensitively
   )
   for
     expected in [
-      "mcp-protocol-version", "mcp-method", "mcp-name", "mcp-param-region",
+      "content-type", "accept", "mcp-protocol-version", "mcp-method", "mcp-name",
+      "mcp-param-region",
     ] {
     let mut count = 0
     for key, _ in seen[2].headers {
@@ -494,6 +497,11 @@ async test "core http: generated headers replace user headers case-insensitively
   }
   inspect(header(seen[2].headers, "Mcp-Method"), content="tools/call")
   inspect(header(seen[2].headers, "Mcp-Name"), content="run")
+  inspect(header(seen[2].headers, "Content-Type"), content="application/json")
+  inspect(
+    header(seen[2].headers, "Accept"),
+    content="application/json, text/event-stream",
+  )
   inspect(header(seen[2].headers, "Mcp-Param-Region"), content="safe")
   inspect(header(seen[2].headers, "Mcp-Session-Id"), content="")
 }
@@ -893,6 +901,48 @@ async test "core http: modern call requires resultType" {
   } noraise {
     _ => fail("expected missing resultType to fail")
   }
+}
+
+///|
+async test "core http: reads response headers case-insensitively" {
+  let seen : Array[HttpRequest] = []
+  ignore(
+    list_tools(
+      req => {
+        seen.push(req)
+        match rpc_method(req.body) {
+          "initialize" =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              headers={ "MCP-SESSION-ID": "session" },
+              body=(
+                #|{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}
+              ),
+            )
+          "notifications/initialized" =>
+            http_response(
+              status_code=202,
+              content_type=Some("application/json"),
+              body="",
+            )
+          _ =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":2,"result":{"tools":[]}}
+              ),
+            )
+        }
+      },
+      http_endpoint(
+        url="https://mcp.example/case-response",
+        mode=@config.McpConnectionMode::Stateful,
+      ),
+    ),
+  )
+  inspect(header(seen[1].headers, "Mcp-Session-Id"), content="session")
 }
 
 ///|
