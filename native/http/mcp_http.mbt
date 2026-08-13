@@ -10,6 +10,7 @@ let tool_cache : Map[String, ToolCacheEntry] = Map([])
 ///|
 suberror McpHttpError {
   HttpStatus(Int)
+  Network(String)
   Protocol(String)
   Negotiation(String)
 } derive(Debug)
@@ -19,6 +20,14 @@ pub fn mcp_http_status_code(error : McpHttpError) -> Int? {
   match error {
     HttpStatus(code) => Some(code)
     _ => None
+  }
+}
+
+///|
+pub fn mcp_http_is_network_error(error : McpHttpError) -> Bool {
+  match error {
+    Network(_) => true
+    _ => false
   }
 }
 
@@ -210,14 +219,7 @@ async fn native_fetch(
     request.url,
     request.body,
     headers=request.headers,
-  ) catch {
-    error =>
-      return @core_http.http_response(
-        status_code=599,
-        content_type=Some("text/plain"),
-        body=error.to_string(),
-      )
-  }
+  )
   let content_type = header(response.headers, "content-type")
   let body = if response.code == 202 {
     ""
@@ -242,7 +244,7 @@ fn core_error_to_native(error : @core_http.McpHttpClientError) -> McpHttpError {
     @core_http.McpHttpClientError::Protocol(message) =>
       McpHttpError::Protocol(message)
     @core_http.McpHttpClientError::Network(message) =>
-      McpHttpError::Protocol(message)
+      McpHttpError::Network(message)
     @core_http.McpHttpClientError::HeaderMismatch(message) =>
       McpHttpError::Negotiation("header mismatch: " + message)
     @core_http.McpHttpClientError::MissingRequiredClientCapability(message) =>

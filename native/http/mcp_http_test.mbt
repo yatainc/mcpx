@@ -1,5 +1,17 @@
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "mcp http: preserves network errors" {
+  try
+    http_mcp_list_tools(url="http://127.0.0.1:1/unreachable", headers=Map([]))
+  catch {
+    error => inspect(mcp_http_is_network_error(error), content="true")
+  } noraise {
+    _ => fail("expected request failure")
+  }
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "mcp http: falls back to initialize then call tool with session" {
   let seen_session = []
   @async.with_task_group(group => {
