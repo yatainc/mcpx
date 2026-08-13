@@ -299,6 +299,7 @@ async test "mcp http: lists tools with stateless request" {
         #|    name: "search",
         #|    description: Some("Search things"),
         #|    input_schema: Object({ "type": String("object") }),
+        #|    output_schema: None,
         #|  },
         #|]
       ),

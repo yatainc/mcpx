@@ -49,6 +49,7 @@ async test "mcp stdio: lists tools after initialize" {
       #|    name: "search",
       #|    description: Some("Search things"),
       #|    input_schema: Object({ "type": String("object") }),
+      #|    output_schema: None,
       #|  },
       #|]
     ),

@@ -23,10 +23,33 @@ test "mcpx info: displays JSON Schema 2020-12 constructs without loss" {
     "maps",
     @mcp_client.mcp_tool_info(name="locate", input_schema=schema),
   )
-  inspect(output.contains("JSON Schema 2020-12:"), content="true")
+  inspect(output.contains("Input Schema:"), content="true")
   inspect(output.contains("\"$defs\""), content="true")
   inspect(output.contains("\"prefixItems\""), content="true")
   inspect(output.contains("\"unevaluatedProperties\": false"), content="true")
+}
+
+///|
+test "mcpx info: displays composition input and primitive output schemas" {
+  let output = tool_schema_result(
+    "lookup",
+    @mcp_client.mcp_tool_info(
+      name="find",
+      input_schema={
+        "type": "object",
+        "oneOf": [{ "required": ["id"] }, { "required": ["name"] }],
+        "if": { "required": ["id"] },
+        "then": { "properties": { "id": { "type": "integer" } } },
+        "else": { "properties": { "name": { "type": "string" } } },
+      },
+      output_schema=Some({ "type": "number" }),
+    ),
+  )
+  inspect(output.contains("Input Schema:"), content="true")
+  inspect(output.contains("\"oneOf\""), content="true")
+  inspect(output.contains("\"if\""), content="true")
+  inspect(output.contains("Output Schema:"), content="true")
+  inspect(output.contains("\"type\": \"number\""), content="true")
 }
 
 ///|
@@ -40,5 +63,5 @@ test "mcpx info: keeps concise output for basic schemas" {
     }),
   )
   inspect(output.contains("query  string required"), content="true")
-  inspect(output.contains("JSON Schema 2020-12:"), content="false")
+  inspect(output.contains("Input Schema:"), content="false")
 }

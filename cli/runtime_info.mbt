@@ -289,10 +289,18 @@ fn tool_schema_result(
   lines.push("")
   lines.push("Arguments:")
   append_schema_argument_lines(lines, tool.input_schema)
-  if contains_json_schema_2020_12_construct(tool.input_schema) {
+  if should_display_complete_input_schema(tool.input_schema) {
     lines.push("")
-    lines.push("JSON Schema 2020-12:")
+    lines.push("Input Schema:")
     lines.push(tool.input_schema.stringify(indent=2))
+  }
+  match tool.output_schema {
+    Some(schema) => {
+      lines.push("")
+      lines.push("Output Schema:")
+      lines.push(schema.stringify(indent=2))
+    }
+    None => ()
   }
   lines.join("\n")
 }
@@ -375,26 +383,21 @@ fn append_schema_argument_lines(lines : Array[String], schema : Json) -> Unit {
 }
 
 ///|
-fn contains_json_schema_2020_12_construct(schema : Json) -> Bool {
+fn should_display_complete_input_schema(schema : Json) -> Bool {
   match schema {
-    Object(obj) => {
-      let keywords = [
-        "$defs", "$dynamicAnchor", "$dynamicRef", "prefixItems", "unevaluatedItems",
-        "unevaluatedProperties", "dependentRequired", "dependentSchemas", "minContains",
-        "maxContains",
-      ]
-      if keywords.any(keyword => obj.contains(keyword)) {
-        return true
-      }
-      for _, value in obj {
-        if contains_json_schema_2020_12_construct(value) {
+    Object(obj) =>
+      for key, _ in obj {
+        if key != "type" &&
+          key != "properties" &&
+          key != "required" &&
+          key != "description" &&
+          key != "title" {
           return true
         }
+      } nobreak {
+        false
       }
-      false
-    }
-    Array(values) => values.any(contains_json_schema_2020_12_construct)
-    _ => false
+    _ => true
   }
 }
 

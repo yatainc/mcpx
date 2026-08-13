@@ -539,6 +539,10 @@ fn tool_info_json(tool : @mcp_client.McpToolInfo) -> Json {
     None => ()
   }
   obj["inputSchema"] = tool.input_schema
+  match tool.output_schema {
+    Some(value) => obj["outputSchema"] = value
+    None => ()
+  }
   Json::object(obj)
 }
 

@@ -71,7 +71,9 @@ pub fn mcpx_js_call_tool(
   arguments_json : String,
 ) -> @js_async.Promise[String] {
   @js_async.Promise::from_async(() => {
-    let arguments = @json.parse(arguments_json) catch { _ => Json::empty_object() }
+    let arguments = @json.parse(arguments_json) catch {
+      _ => Json::empty_object()
+    }
     let result = call_tool_js(fetch, url~, tool_name~, arguments~)
     Json::object({ "status": Json::string("ok"), "result": result }).stringify()
   })
@@ -142,5 +144,9 @@ fn tool_info_json(tool : @protocol.McpToolInfo) -> Json {
     None => ()
   }
   obj["inputSchema"] = tool.input_schema
+  match tool.output_schema {
+    Some(value) => obj["outputSchema"] = value
+    None => ()
+  }
   Json::object(obj)
 }

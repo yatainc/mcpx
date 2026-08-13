@@ -84,6 +84,7 @@ test "mcp client response: decodes initialize tool list and call result" {
       #|      name: "search",
       #|      description: Some("Search things"),
       #|      input_schema: Object({ "type": String("object") }),
+      #|      output_schema: None,
       #|    },
       #|  ],
       #|)
@@ -97,6 +98,37 @@ test "mcp client response: decodes initialize tool list and call result" {
   inspect(
     (decode_mcp_result(call, expected_id=3) catch { _ => Json::empty_object() }).stringify(),
     content="{\"ok\":true}",
+  )
+}
+
+///|
+test "mcp response: preserves arbitrary input and output schemas" {
+  let tools = decode_mcp_tool_list_response(
+    {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "result": {
+        "tools": [
+          {
+            "name": "schema-tool",
+            "inputSchema": {
+              "type": "object",
+              "oneOf": [{ "required": ["id"] }, { "required": ["name"] }],
+            },
+            "outputSchema": { "type": "array", "items": { "type": "string" } },
+          },
+        ],
+      },
+    },
+    expected_id=2,
+  ).unwrap()
+  inspect(
+    tools[0].input_schema.stringify().contains("\"oneOf\""),
+    content="true",
+  )
+  inspect(
+    tools[0].output_schema.unwrap().stringify(),
+    content="{\"type\":\"array\",\"items\":{\"type\":\"string\"}}",
   )
 }
 

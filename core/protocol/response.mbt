@@ -202,7 +202,8 @@ fn decode_mcp_tool(json : Json) -> Result[McpToolInfo, McpProtocolError] {
     _ => None
   }
   let input_schema = obj.get("inputSchema").unwrap_or(Json::object(Map([])))
-  Ok({ name, description, input_schema })
+  let output_schema = obj.get("outputSchema")
+  Ok({ name, description, input_schema, output_schema })
 }
 
 ///|

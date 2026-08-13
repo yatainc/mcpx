@@ -3,6 +3,7 @@ pub struct McpToolInfo {
   name : String
   description : String?
   input_schema : Json
+  output_schema : Json?
 } derive(Debug)
 
 ///|
@@ -10,8 +11,9 @@ pub fn mcp_tool_info(
   name~ : String,
   description? : String? = None,
   input_schema~ : Json,
+  output_schema? : Json? = None,
 ) -> McpToolInfo {
-  { name, description, input_schema }
+  { name, description, input_schema, output_schema }
 }
 
 ///|
