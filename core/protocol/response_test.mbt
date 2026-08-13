@@ -200,6 +200,41 @@ test "mcp response: rejects invalid modern tool list result types" {
 }
 
 ///|
+test "mcp response: validates complete result type" {
+  let complete = decode_mcp_complete_result(
+    {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "result": { "resultType": "complete", "value": 42 },
+    },
+    expected_id=3,
+  ).unwrap()
+  inspect(
+    complete.stringify(),
+    content="{\"resultType\":\"complete\",\"value\":42}",
+  )
+  let legacy = decode_mcp_complete_result(
+    { "jsonrpc": "2.0", "id": 3, "result": { "value": 42 } },
+    expected_id=3,
+  ).unwrap()
+  inspect(legacy.stringify(), content="{\"value\":42}")
+  for result_type in ["input_required", "extension/unknown"] {
+    inspect(
+      decode_mcp_complete_result(
+        Json::object({
+          "jsonrpc": Json::string("2.0"),
+          "id": Json::number(3.0, repr="3"),
+          "result": Json::object({ "resultType": Json::string(result_type) }),
+        }),
+        expected_id=3,
+      )
+      is Err(_),
+      content="true",
+    )
+  }
+}
+
+///|
 test "mcp client response: rejects id mismatch and surfaces json-rpc errors" {
   let mismatch = Json::object({
     "jsonrpc": Json::string("2.0"),

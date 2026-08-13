@@ -158,6 +158,31 @@ fn decode_result_type(value : Json?) -> McpResultType? {
 }
 
 ///|
+pub fn decode_mcp_complete_result(
+  response : Json,
+  expected_id~ : Int,
+) -> Result[Json, McpProtocolError] {
+  let result = decode_mcp_result(response, expected_id~) catch {
+    error => return Err(error)
+  }
+  let result_type = match result {
+    Object(obj) => decode_result_type(obj.get("resultType"))
+    _ => None
+  }
+  match result_type {
+    None | Some(McpResultType::Complete) => Ok(result)
+    Some(McpResultType::InputRequired) =>
+      Err(
+        McpProtocolError::InvalidResponse(
+          "resultType input_required is not supported",
+        ),
+      )
+    Some(McpResultType::Extension(value)) =>
+      Err(McpProtocolError::InvalidResponse("unsupported resultType: " + value))
+  }
+}
+
+///|
 pub fn decode_mcp_result(
   response : Json,
   expected_id~ : Int,

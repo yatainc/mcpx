@@ -311,8 +311,9 @@ async fn call_tool_modern(
     request,
   )
   let json = response_json(response)
-  @protocol.decode_mcp_result(json, expected_id=2) catch {
-    error => raise protocol_error_to_http(error)
+  match @protocol.decode_mcp_complete_result(json, expected_id=2) {
+    Ok(value) => value
+    Err(error) => raise protocol_error_to_http(error)
   }
 }
 

@@ -126,8 +126,9 @@ pub async fn StdioMcpClient::call_tool(
         ),
       )
       let response = read_response_for_id(self.conn, expected_id=id)
-      @mcp_client.decode_mcp_result(response, expected_id=id) catch {
-        _ => raise McpStdioError::Protocol("mcp protocol error")
+      match @mcp_client.decode_mcp_complete_result(response, expected_id=id) {
+        Ok(value) => value
+        Err(_) => raise McpStdioError::Protocol("mcp protocol error")
       }
     }
   }
