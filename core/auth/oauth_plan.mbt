@@ -59,6 +59,7 @@ pub fn dynamic_client_registration_request(
 ) -> Json {
   let obj = Map([])
   obj["client_name"] = Json::string(client_name)
+  obj["application_type"] = Json::string("native")
   obj["redirect_uris"] = Json::array([Json::string(redirect_uri)])
   obj["grant_types"] = Json::array([
     Json::string("authorization_code"),

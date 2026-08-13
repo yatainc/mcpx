@@ -28,7 +28,7 @@ test "auth host actions oauth: dynamic client registration is host HTTP POST" {
     .to_json()
     .stringify(),
     content=(
-      #|{"kind":"http_request","method":"POST","url":"https://auth.example/register","headers":{"content-type":"application/json","accept":"application/json"},"body":"{\"client_name\":\"mcpx\",\"redirect_uris\":[\"http://127.0.0.1:8765/callback\"],\"grant_types\":[\"authorization_code\",\"refresh_token\"],\"response_types\":[\"code\"],\"token_endpoint_auth_method\":\"none\"}"}
+      #|{"kind":"http_request","method":"POST","url":"https://auth.example/register","headers":{"content-type":"application/json","accept":"application/json"},"body":"{\"client_name\":\"mcpx\",\"application_type\":\"native\",\"redirect_uris\":[\"http://127.0.0.1:8765/callback\"],\"grant_types\":[\"authorization_code\",\"refresh_token\"],\"response_types\":[\"code\"],\"token_endpoint_auth_method\":\"none\"}"}
     ),
   )
 }

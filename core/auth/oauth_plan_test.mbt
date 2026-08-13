@@ -69,7 +69,7 @@ test "oauth plan: dynamic client registration request is JSON" {
       redirect_uri="http://127.0.0.1:8765/callback",
     ).stringify(),
     content=(
-      #|{"client_name":"mcpx","redirect_uris":["http://127.0.0.1:8765/callback"],"grant_types":["authorization_code","refresh_token"],"response_types":["code"],"token_endpoint_auth_method":"none"}
+      #|{"client_name":"mcpx","application_type":"native","redirect_uris":["http://127.0.0.1:8765/callback"],"grant_types":["authorization_code","refresh_token"],"response_types":["code"],"token_endpoint_auth_method":"none"}
     ),
   )
 }
