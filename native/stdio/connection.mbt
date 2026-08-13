@@ -215,7 +215,11 @@ async fn read_response_for_id_with_skip_limit(
 ///|
 fn is_mcp_request(message : Json) -> Bool {
   match message {
-    Object(obj) => obj.get("method") is Some(String(_))
+    Object(obj) =>
+      obj.get("jsonrpc") == Some(Json::string("2.0")) &&
+      obj.get("method") is Some(String(_)) &&
+      obj.get("result") is None &&
+      obj.get("error") is None
     _ => false
   }
 }
