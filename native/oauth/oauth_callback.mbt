@@ -107,32 +107,49 @@ fn parse_oauth_callback_path(
     Some(value) if !value.is_empty() => value
     _ => return Err(OAuthCallbackError::MissingCode)
   }
-  let issuer = params.get("iss").map(percent_decode)
-  Ok({ code: percent_decode(code), state, issuer })
+  let decoded_code = percent_decode(code) catch { error => return Err(error) }
+  let issuer = match params.get("iss") {
+    Some(value) =>
+      Some(percent_decode(value) catch { error => return Err(error) })
+    None => None
+  }
+  Ok({ code: decoded_code, state, issuer })
 }
 
 ///|
-fn percent_decode(value : String) -> String {
+fn percent_decode(value : String) -> String raise OAuthCallbackError {
   let chars = value.to_array()
-  let out = StringBuilder::new(size_hint=chars.length())
+  let bytes : Array[Byte] = []
   for i = 0; i < chars.length(); {
-    if chars[i] == '%' && i + 2 < chars.length() {
+    if chars[i] == '%' {
+      guard i + 2 < chars.length() else {
+        raise OAuthCallbackError::InvalidRequest
+      }
       match (hex_value(chars[i + 1]), hex_value(chars[i + 2])) {
         (Some(high), Some(low)) => {
-          out.write_char((high * 16 + low).unsafe_to_char())
+          bytes.push((high * 16 + low).to_byte())
           continue i + 3
         }
-        _ => ()
+        _ => raise OAuthCallbackError::InvalidRequest
       }
     }
     if chars[i] == '+' {
-      out.write_char(' ')
+      bytes.push((32 : Int).to_byte())
     } else {
-      out.write_char(chars[i])
+      let encoded = @encoding.encode(
+        @encoding.Encoding::UTF8,
+        chars[i].to_string(),
+      )
+      for byte in encoded {
+        bytes.push(byte)
+      }
     }
     continue i + 1
   }
-  out.to_string()
+  let encoded = Bytes::from_array(bytes)
+  @encoding.decoder(@encoding.Encoding::UTF8).decode(encoded[:]) catch {
+    _ => raise OAuthCallbackError::InvalidRequest
+  }
 }
 
 ///|
