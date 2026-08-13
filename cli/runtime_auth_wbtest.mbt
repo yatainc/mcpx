@@ -531,11 +531,11 @@ async test "mcpx runtime: interactive auth uses browser callback listener" {
   @fs.remove_file(paths.credentials_file) catch {
     _ => ()
   }
-  let old_browser = @sys.get_env_var("MCPX_BROWSER")
-  @sys.set_env_var("MCPX_BROWSER", "fetch")
+  let old_browser = @env.get_env_var("MCPX_BROWSER")
+  @env.set_env_var("MCPX_BROWSER", "fetch")
   defer (match old_browser {
-    Some(value) => @sys.set_env_var("MCPX_BROWSER", value)
-    None => @sys.unset_env_var("MCPX_BROWSER")
+    Some(value) => @env.set_env_var("MCPX_BROWSER", value)
+    None => @env.unset_env_var("MCPX_BROWSER")
   })
   @async.with_task_group(group => {
     let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))

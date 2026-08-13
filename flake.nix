@@ -13,7 +13,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    moonbit-overlay.url = "github:moonbit-community/moonbit-overlay/v0.10.4+2cc641edf+75c7e1f";
+    moonbit-overlay.url = "github:moonbit-community/moonbit-overlay/v0.10.7+bc794d341+4da23f8";
   };
 
   outputs = inputs:

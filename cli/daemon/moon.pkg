@@ -5,7 +5,6 @@ import {
   "moonbitlang/core/env",
   "moonbitlang/core/json",
   "moonbitlang/x/fs",
-  "moonbitlang/x/sys",
   "yatainc/mcpx/core/config",
   "yatainc/mcpx/core/protocol" @mcp_client,
   "yatainc/mcpx/native/paths" @app_paths,
