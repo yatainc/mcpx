@@ -84,31 +84,6 @@ pub async fn http_mcp_list_tools(
 }
 
 ///|
-async fn native_fetch(
-  request : @core_http.HttpRequest,
-) -> @core_http.HttpResponse {
-  let (response, data) = @async_http.post(
-    request.url,
-    request.body,
-    headers=request.headers,
-  )
-  let content_type = header(response.headers, "content-type")
-  let body = if response.code == 202 {
-    ""
-  } else {
-    data.text() catch {
-      _ => ""
-    }
-  }
-  @core_http.http_response(
-    status_code=response.code,
-    content_type~,
-    headers=response.headers,
-    body~,
-  )
-}
-
-///|
 fn core_error_to_native(error : @core_http.McpHttpClientError) -> McpHttpError {
   match error {
     @core_http.McpHttpClientError::HttpStatus(code) =>
@@ -136,14 +111,4 @@ fn core_error_to_native(error : @core_http.McpHttpClientError) -> McpHttpError {
         "json-rpc error " + code.to_string() + ": " + message,
       )
   }
-}
-
-///|
-fn header(headers : Map[String, String], key : String) -> String? {
-  for name, value in headers {
-    if name.equal_ignore_ascii_case(key) {
-      return Some(value)
-    }
-  }
-  None
 }
