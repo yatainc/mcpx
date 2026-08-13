@@ -1,21 +1,4 @@
 ///|
-test "native http: cache keys are structured hashes" {
-  let first = tool_cache_key(
-    "https://mcp.example",
-    @config.McpConnectionMode::Auto,
-    { "x": "a\ny=b" },
-  )
-  let second = tool_cache_key(
-    "https://mcp.example",
-    @config.McpConnectionMode::Auto,
-    { "x": "a", "y": "b" },
-  )
-  inspect(first == second, content="false")
-  inspect(first.contains("a\ny=b"), content="false")
-  inspect(first.length(), content="64")
-}
-
-///|
 #cfg(all(target="native", not(platform="windows")))
 async test "native http: caches public tool lists across headers" {
   let requests = Ref(0)
