@@ -67,7 +67,7 @@ async test "mcp stdio: auto discovers stateless MCP 2026" {
     #|      ;;
     #|    *'"method":"tools/list"'*)
     #|      if printf '%s' "$line" | grep -q 'io.modelcontextprotocol/clientInfo'; then
-    #|        printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"modern","inputSchema":{}}]}}'
+    #|        printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[{"name":"modern","inputSchema":{}}]}}'
     #|      fi
     #|      ;;
     #|  esac
@@ -80,6 +80,58 @@ async test "mcp stdio: auto discovers stateless MCP 2026" {
     mode=@config.McpConnectionMode::Auto,
   )
   inspect(tools[0].name, content="modern")
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: modern tool results require resultType" {
+  for rpc_name in ["tools/list", "tools/call"] {
+    let script =
+      #|while IFS= read -r line; do
+      #|  case "$line" in
+      #|    *'"method":"server/discover"'*)
+      #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}'
+      #|      ;;
+      #|    *'"method":"'"$RPC_NAME"'"'*)
+      #|      if [ "$RPC_NAME" = "tools/list" ]; then
+      #|        printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"tools":[]}}'
+      #|      else
+      #|        printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"content":[]}}'
+      #|      fi
+      #|      ;;
+      #|  esac
+      #|done
+    try {
+      if rpc_name == "tools/list" {
+        ignore(
+          stdio_mcp_list_tools(
+            command="/bin/sh",
+            args=["-c", script],
+            env={ "RPC_NAME": rpc_name },
+            cwd=None,
+            mode=@config.McpConnectionMode::Stateless,
+          ),
+        )
+      } else {
+        ignore(
+          stdio_mcp_call_tool(
+            command="/bin/sh",
+            args=["-c", script],
+            env={ "RPC_NAME": rpc_name },
+            cwd=None,
+            tool_name="run",
+            arguments=Json::empty_object(),
+            mode=@config.McpConnectionMode::Stateless,
+          ),
+        )
+      }
+    } catch {
+      McpStdioError::Protocol(_) => ()
+      _ => fail("expected protocol error")
+    } noraise {
+      _ => fail("expected missing resultType to fail")
+    }
+  }
 }
 
 ///|

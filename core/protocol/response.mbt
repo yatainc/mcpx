@@ -161,6 +161,7 @@ fn decode_result_type(value : Json?) -> McpResultType? {
 pub fn decode_mcp_complete_result(
   response : Json,
   expected_id~ : Int,
+  require_result_type? : Bool = false,
 ) -> Result[Json, McpProtocolError] {
   let result = decode_mcp_result(response, expected_id~) catch {
     error => return Err(error)
@@ -170,6 +171,8 @@ pub fn decode_mcp_complete_result(
     _ => None
   }
   match result_type {
+    None if require_result_type =>
+      Err(McpProtocolError::InvalidResponse("result missing resultType"))
     None | Some(McpResultType::Complete) => Ok(result)
     Some(McpResultType::InputRequired) =>
       Err(

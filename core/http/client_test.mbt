@@ -262,7 +262,7 @@ async test "core http: modern call sends method name and preserves arguments" {
           status_code=200,
           content_type=Some("application/json"),
           body=(
-            #|{"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"ok"}]}}
+            #|{"jsonrpc":"2.0","id":3,"result":{"resultType":"complete","content":[{"type":"text","text":"ok"}]}}
           ),
         )
       }
@@ -273,7 +273,7 @@ async test "core http: modern call sends method name and preserves arguments" {
   )
   inspect(
     result.stringify(),
-    content="{\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]}",
+    content="{\"resultType\":\"complete\",\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]}",
   )
   inspect(header(seen[2].headers, "Mcp-Method"), content="tools/call")
   inspect(header(seen[2].headers, "Mcp-Name"), content="search")
@@ -811,6 +811,50 @@ async test "core http: removes unannotated user Mcp-Param headers" {
     ),
   )
   inspect(header(seen[2].headers, "Mcp-Param-Admin"), content="")
+}
+
+///|
+async test "core http: modern call requires resultType" {
+  try
+    call_tool(
+      req => {
+        match rpc_method(req.body) {
+          "server/discover" =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}
+              ),
+            )
+          "tools/list" =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[{"name":"run","inputSchema":{"type":"object"}}]}}
+              ),
+            )
+          _ =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":3,"result":{"content":[]}}
+              ),
+            )
+        }
+      },
+      http_endpoint(url="https://mcp.example/call-result-type"),
+      tool_name="run",
+      arguments=Json::empty_object(),
+    )
+  catch {
+    McpHttpClientError::Protocol(_) => ()
+    _ => fail("expected protocol error")
+  } noraise {
+    _ => fail("expected missing resultType to fail")
+  }
 }
 
 ///|

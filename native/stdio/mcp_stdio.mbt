@@ -137,7 +137,12 @@ pub async fn StdioMcpClient::call_tool(
         ),
       )
       let response = read_response_for_id(self.conn, expected_id=id)
-      match @mcp_client.decode_mcp_complete_result(response, expected_id=id) {
+      match
+        @mcp_client.decode_mcp_complete_result(
+          response,
+          expected_id=id,
+          require_result_type=true,
+        ) {
         Ok(value) => value
         Err(_) => raise McpStdioError::Protocol("mcp protocol error")
       }
@@ -173,8 +178,12 @@ pub async fn StdioMcpClient::list_tools(
       )
       let response = read_response_for_id(self.conn, expected_id=id)
       match
-        @mcp_client.decode_mcp_tool_list_response(response, expected_id=id) {
-        Ok(value) => value
+        @mcp_client.decode_mcp_tool_list_page(
+          response,
+          expected_id=id,
+          require_result_type=true,
+        ) {
+        Ok(value) => value.tools
         Err(_) => raise McpStdioError::Protocol("mcp protocol error")
       }
     }
