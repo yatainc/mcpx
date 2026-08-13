@@ -10,6 +10,7 @@ pub suberror OAuthCallbackError {
 pub struct OAuthCallbackCode {
   code : String
   state : String
+  issuer : String?
 } derive(Debug)
 
 ///|
@@ -106,7 +107,42 @@ fn parse_oauth_callback_path(
     Some(value) if !value.is_empty() => value
     _ => return Err(OAuthCallbackError::MissingCode)
   }
-  Ok({ code, state })
+  let issuer = params.get("iss").map(percent_decode)
+  Ok({ code: percent_decode(code), state, issuer })
+}
+
+///|
+fn percent_decode(value : String) -> String {
+  let chars = value.to_array()
+  let out = StringBuilder::new(size_hint=chars.length())
+  for i = 0; i < chars.length(); {
+    if chars[i] == '%' && i + 2 < chars.length() {
+      match (hex_value(chars[i + 1]), hex_value(chars[i + 2])) {
+        (Some(high), Some(low)) => {
+          out.write_char((high * 16 + low).unsafe_to_char())
+          continue i + 3
+        }
+        _ => ()
+      }
+    }
+    if chars[i] == '+' {
+      out.write_char(' ')
+    } else {
+      out.write_char(chars[i])
+    }
+    continue i + 1
+  }
+  out.to_string()
+}
+
+///|
+fn hex_value(value : Char) -> Int? {
+  match value {
+    '0'..='9' => Some(value.to_int() - '0'.to_int())
+    'a'..='f' => Some(value.to_int() - 'a'.to_int() + 10)
+    'A'..='F' => Some(value.to_int() - 'A'.to_int() + 10)
+    _ => None
+  }
 }
 
 ///|

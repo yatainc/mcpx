@@ -109,9 +109,73 @@ test "oauth plan: decodes authorization server metadata" {
       #|    token_endpoint: "https://auth.example/token",
       #|    registration_endpoint: Some("https://auth.example/register"),
       #|    scopes_supported: ["repo", "read:user"],
+      #|    issuer: None,
+      #|    authorization_response_iss_parameter_supported: false,
       #|  },
       #|)
     ),
+  )
+}
+
+///|
+test "oauth plan: validates RFC 9207 authorization response issuer" {
+  let metadata = oauth_metadata(
+    authorization_endpoint="https://auth.example/authorize",
+    token_endpoint="https://auth.example/token",
+    issuer=Some("https://auth.example"),
+    authorization_response_iss_parameter_supported=true,
+  )
+  inspect(
+    validate_authorization_response_issuer(
+      metadata,
+      Some("https://auth.example"),
+    )
+    is Ok(_),
+    content="true",
+  )
+  inspect(
+    validate_authorization_response_issuer(metadata, None) is Err(_),
+    content="true",
+  )
+  inspect(
+    validate_authorization_response_issuer(
+      metadata,
+      Some("https://attacker.example"),
+    )
+    is Err(_),
+    content="true",
+  )
+}
+
+///|
+test "oauth plan: rejects unexpected issuer even without advertised support" {
+  let metadata = oauth_metadata(
+    authorization_endpoint="https://auth.example/authorize",
+    token_endpoint="https://auth.example/token",
+    issuer=Some("https://auth.example"),
+  )
+  inspect(
+    validate_authorization_response_issuer(
+      metadata,
+      Some("https://attacker.example"),
+    )
+    is Err(_),
+    content="true",
+  )
+}
+
+///|
+test "oauth plan: decodes RFC 9207 metadata" {
+  let decoded = decode_oauth_metadata({
+    "issuer": "https://auth.example",
+    "authorization_endpoint": "https://auth.example/authorize",
+    "token_endpoint": "https://auth.example/token",
+    "authorization_response_iss_parameter_supported": true,
+  }).unwrap()
+  inspect(decoded.issuer.unwrap(), content="https://auth.example")
+  inspect(
+    decoded.authorization_response_iss_parameter_supported,
+    content="true",
   )
 }
 

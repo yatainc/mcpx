@@ -403,6 +403,42 @@ async test "mcpx runtime: auth config is required before OAuth discovery" {
 }
 
 ///|
+async test "mcpx runtime: auth rejects mismatched RFC 9207 issuer before exchange" {
+  let home = "/tmp/mcpx-runtime-auth-issuer-mismatch-test/home"
+  let paths = @app_paths.mcpx_app_paths(home)
+  @fs.remove_file(paths.credentials_file) catch {
+    _ => ()
+  }
+  @storage.save_credentials_file(
+    paths.credentials_file,
+    @auth.put_pending_oauth_flow(
+      @auth.empty_credentials_file(),
+      @auth.pending_oauth_flow(
+        server_name="github",
+        client_id="client-1",
+        token_endpoint="http://127.0.0.1:1/token",
+        authorization_issuer=Some("https://auth.example"),
+        require_authorization_issuer=true,
+        redirect_uri="http://127.0.0.1:8765/callback",
+        code_verifier="verifier-1",
+        state="state-1",
+        created_at="1000",
+      ),
+    ),
+  )
+  let result = run_mcpx_args_async(
+    [
+      "auth", "github", "--code", "code-1", "--state", "state-1", "--iss", "https://attacker.example",
+    ],
+    home~,
+  )
+  inspect(
+    result.contains("OAuth authorization response issuer mismatch"),
+    content="true",
+  )
+}
+
+///|
 #cfg(all(target="native", not(platform="windows")))
 async test "mcpx runtime: auth code exchange stores credentials and removes pending flow" {
   let home = "/tmp/mcpx-runtime-auth-exchange-test/home"

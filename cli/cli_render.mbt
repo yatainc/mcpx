@@ -34,7 +34,7 @@ pub fn mcpx_help_text() -> String {
     #|  mcpx search <pattern>
     #|  mcpx call <server|url> <tool> [arguments-json]
     #|  mcpx auth <server> [--no-browser] [--json]
-    #|  mcpx auth <server> --code <code> --state <state>
+    #|  mcpx auth <server> --code <code> --state <state> [--iss <issuer>]
     #|  mcpx daemon
     #|  mcpx daemon <status|stop>
     #|
@@ -72,7 +72,7 @@ pub fn auth_help_text() -> String {
     #|
     #|Usage:
     #|  mcpx auth <server> [--no-browser] [--json]
-    #|  mcpx auth <server> --code <code> --state <state>
+    #|  mcpx auth <server> --code <code> --state <state> [--iss <issuer>]
   )
 }
 
@@ -144,6 +144,10 @@ fn render_auth_command(command : AuthCommand) -> String {
   }
   match command.state {
     Some(_) => obj["stateProvided"] = Json::boolean(true)
+    None => ()
+  }
+  match command.issuer {
+    Some(_) => obj["issuerProvided"] = Json::boolean(true)
     None => ()
   }
   Json::object(obj).stringify()

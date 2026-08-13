@@ -4,6 +4,8 @@ pub struct OAuthMetadata {
   token_endpoint : String
   registration_endpoint : String?
   scopes_supported : Array[String]
+  issuer : String?
+  authorization_response_iss_parameter_supported : Bool
 } derive(Debug)
 
 ///|
@@ -12,12 +14,16 @@ pub fn oauth_metadata(
   token_endpoint~ : String,
   registration_endpoint? : String? = None,
   scopes_supported? : Array[String] = [],
+  issuer? : String? = None,
+  authorization_response_iss_parameter_supported? : Bool = false,
 ) -> OAuthMetadata {
   {
     authorization_endpoint,
     token_endpoint,
     registration_endpoint,
     scopes_supported,
+    issuer,
+    authorization_response_iss_parameter_supported,
   }
 }
 
@@ -50,6 +56,35 @@ pub fn oauth_authorization_url(
     params.push(query_pair("scope", scopes.join(" ")))
   }
   metadata.authorization_endpoint + "?" + params.join("&")
+}
+
+///|
+pub fn validate_authorization_response_issuer(
+  metadata : OAuthMetadata,
+  response_issuer : String?,
+) -> Result[Unit, OAuthPlanError] {
+  match (metadata.issuer, response_issuer) {
+    (Some(expected), Some(actual)) if actual == expected => Ok(())
+    (Some(_), Some(_)) =>
+      Err(
+        OAuthPlanError::InvalidAuthorizationResponse(
+          "authorization response iss mismatch",
+        ),
+      )
+    (Some(_), None) if metadata.authorization_response_iss_parameter_supported =>
+      Err(
+        OAuthPlanError::InvalidAuthorizationResponse(
+          "authorization response missing iss",
+        ),
+      )
+    (_, None) => Ok(())
+    (None, Some(_)) =>
+      Err(
+        OAuthPlanError::InvalidAuthorizationResponse(
+          "authorization server issuer is unavailable",
+        ),
+      )
+  }
 }
 
 ///|
@@ -135,6 +170,7 @@ pub struct OAuthClientRegistration {
 suberror OAuthPlanError {
   InvalidOAuthMetadata(String)
   InvalidClientRegistration(String)
+  InvalidAuthorizationResponse(String)
 } derive(Debug)
 
 ///|
@@ -189,11 +225,36 @@ pub fn decode_oauth_metadata(
         ),
       )
   }
+  let issuer = optional_oauth_string(obj.get("issuer"), "issuer") catch {
+    _ =>
+      return Err(OAuthPlanError::InvalidOAuthMetadata("issuer must be string"))
+  }
+  let iss_supported = match
+    obj.get("authorization_response_iss_parameter_supported") {
+    None | Some(Null) => false
+    Some(True) => true
+    Some(False) => false
+    _ =>
+      return Err(
+        OAuthPlanError::InvalidOAuthMetadata(
+          "authorization_response_iss_parameter_supported must be boolean",
+        ),
+      )
+  }
+  if iss_supported && issuer is None {
+    return Err(
+      OAuthPlanError::InvalidOAuthMetadata(
+        "issuer is required when authorization response iss is supported",
+      ),
+    )
+  }
   Ok({
     authorization_endpoint,
     token_endpoint,
     registration_endpoint,
     scopes_supported,
+    issuer,
+    authorization_response_iss_parameter_supported: iss_supported,
   })
 }
 
