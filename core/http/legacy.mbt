@@ -13,8 +13,9 @@ async fn list_tools_legacy(
   initialize_legacy(fetch, endpoint, client, session_id)
   let list = client.tools_list_request()
   let payload = send_json_legacy(fetch, endpoint, session_id, list.message)
-  client.accept_tools_list_response(list, payload_json(payload)) catch {
-    error => raise McpHttpClientError::Protocol(error.to_string())
+  let response = payload_json(payload)
+  client.accept_tools_list_response(list, response) catch {
+    error => raise protocol_error_to_http(error)
   }
 }
 
@@ -35,8 +36,9 @@ async fn call_tool_legacy(
   initialize_legacy(fetch, endpoint, client, session_id)
   let call = client.tool_call_request(name=tool_name, arguments~)
   let payload = send_json_legacy(fetch, endpoint, session_id, call.message)
-  client.accept_tool_call_response(call, payload_json(payload)) catch {
-    error => raise McpHttpClientError::Protocol(error.to_string())
+  let response = payload_json(payload)
+  client.accept_tool_call_response(call, response) catch {
+    error => raise protocol_error_to_http(error)
   }
 }
 
@@ -49,9 +51,10 @@ async fn initialize_legacy(
 ) -> Unit raise McpHttpClientError {
   let init = client.initialize_request()
   let payload = send_json_legacy(fetch, endpoint, session_id, init.message)
+  let response = payload_json(payload)
   ignore(
-    client.accept_initialize_response(init, payload_json(payload)) catch {
-      error => raise McpHttpClientError::Protocol(error.to_string())
+    client.accept_initialize_response(init, response) catch {
+      error => raise protocol_error_to_http(error)
     },
   )
   let initialized = client.initialized_notification()

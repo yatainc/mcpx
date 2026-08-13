@@ -87,6 +87,47 @@ async test "core http: reads response headers case-insensitively" {
 }
 
 ///|
+async test "core http: preserves legacy JSON-RPC error classification" {
+  try
+    list_tools(
+      req => {
+        match rpc_method(req.body) {
+          "initialize" =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}
+              ),
+            )
+          "notifications/initialized" => http_response(status_code=202, body="")
+          _ =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":2,"error":{"code":-32099,"message":"legacy failure"}}
+              ),
+            )
+        }
+      },
+      http_endpoint(
+        url="https://mcp.example/legacy-error",
+        mode=@config.McpConnectionMode::Stateful,
+      ),
+    )
+  catch {
+    McpHttpClientError::RemoteError(code, message) => {
+      inspect(code, content="-32099")
+      inspect(message, content="legacy failure")
+    }
+    _ => fail("expected remote error")
+  } noraise {
+    _ => fail("expected legacy call to fail")
+  }
+}
+
+///|
 async test "core http: explicit stateful initializes without discovery" {
   let seen : Array[HttpRequest] = []
   let tools = list_tools(
