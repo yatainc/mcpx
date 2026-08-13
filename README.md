@@ -6,13 +6,13 @@ Designed for small bundle size and low memory usage, with short-lived, stateless
 ## Installation
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/yata-one/mcpx/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/yatainc/mcpx/main/install.sh | sh
 ```
 
 Run directly:
 
 ```sh
-nix run github:yata-one/mcpx -- --help
+nix run github:yatainc/mcpx -- --help
 ```
 
 ## Usage
@@ -60,7 +60,7 @@ Add `"$schema"` for editor autocompletion and validation:
 
 ```jsonc
 {
-  "$schema": "https://raw.githubusercontent.com/yata-one/mcpx/main/schema.json",
+  "$schema": "https://raw.githubusercontent.com/yatainc/mcpx/main/schema.json",
   "mcpServers": {
     // Required: server name used by `mcpx info/call/search`.
     "github": {

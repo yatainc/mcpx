@@ -3,7 +3,7 @@
 
   nixConfig = {
     extra-substituters = [
-      "https://yata-one.github.io/mcpx"
+      "https://yatainc.github.io/mcpx"
     ];
     extra-trusted-public-keys = [
       "yata-one-mcpx-1:0GPBIC52/PszrTcDzKJIZ7qMmcRvKAWK2WzZYKskgCs="
