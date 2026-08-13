@@ -8,6 +8,12 @@ priv struct ToolCacheEntry {
 let tool_cache : Map[String, ToolCacheEntry] = Map([])
 
 ///|
+let tool_cache_order : Array[String] = []
+
+///|
+const MAX_TOOL_CACHE_ENTRIES : Int = 256
+
+///|
 suberror McpHttpError {
   HttpStatus(Int)
   Network(String)
@@ -115,6 +121,8 @@ fn cache_tool_result(
       tools: clone_tool_list(result.tools),
       expires_at_ms: now_ms() + result.ttl_ms.to_int64(),
     }
+    touch_cache_key(key)
+    evict_tool_cache()
   }
 }
 
@@ -144,8 +152,10 @@ fn cached_tool_definition(
 ///|
 fn cached_tools(key : String) -> Array[@mcp_client.McpToolInfo]? {
   match tool_cache.get(key) {
-    Some(entry) if entry.expires_at_ms > now_ms() =>
+    Some(entry) if entry.expires_at_ms > now_ms() => {
+      touch_cache_key(key)
       Some(clone_tool_list(entry.tools))
+    }
     Some(_) => {
       tool_cache.remove(key)
       None
@@ -191,10 +201,42 @@ fn tool_cache_key(
 ) -> String {
   let pairs = []
   for key, value in headers {
-    pairs.push(key.to_lower() + "=" + value)
+    pairs.push(length_prefixed(key.to_lower()) + length_prefixed(value))
   }
   pairs.sort()
-  url + "\n" + connection_mode_key(mode) + "\n" + pairs.join("\n")
+  let material = length_prefixed(url) +
+    length_prefixed(connection_mode_key(mode)) +
+    pairs.join("")
+  let bytes = @encoding.encode(@encoding.Encoding::UTF8, material)
+  @crypto.sha256(bytes).iter().map(byte => byte.to_hex()).join("")
+}
+
+///|
+fn length_prefixed(value : String) -> String {
+  value.length().to_string() + ":" + value
+}
+
+///|
+fn touch_cache_key(key : String) -> Unit {
+  for i, value in tool_cache_order {
+    if value == key {
+      ignore(tool_cache_order.remove(i))
+      break
+    }
+  }
+  tool_cache_order.push(key)
+}
+
+///|
+fn evict_tool_cache() -> Unit {
+  while tool_cache_order.length() > MAX_TOOL_CACHE_ENTRIES {
+    if tool_cache_order.is_empty() {
+      break
+    }
+    let key = tool_cache_order[0]
+    ignore(tool_cache_order.remove(0))
+    tool_cache.remove(key)
+  }
 }
 
 ///|
