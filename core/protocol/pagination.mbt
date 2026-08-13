@@ -76,7 +76,7 @@ pub fn McpToolPagination::accept_page(
 
 ///|
 pub fn McpToolPagination::tools(self : McpToolPagination) -> Array[McpToolInfo] {
-  self.tools
+  self.tools.copy()
 }
 
 ///|
