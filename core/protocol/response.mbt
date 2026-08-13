@@ -194,13 +194,20 @@ pub fn decode_mcp_result(
     Object(value) => value
     _ => raise McpProtocolError::InvalidResponse("response must be object")
   }
+  if obj.get("jsonrpc") != Some(Json::string("2.0")) {
+    raise McpProtocolError::InvalidResponse("response jsonrpc must be 2.0")
+  }
   match decode_response_id(obj.get("id")) {
     Some(id) if id == expected_id => ()
     _ => raise McpProtocolError::InvalidResponse("unexpected response id")
   }
   match (obj.get("result"), obj.get("error")) {
-    (Some(result), _) => result
-    (_, Some(error)) => raise decode_mcp_error(error)
+    (Some(_), Some(_)) =>
+      raise McpProtocolError::InvalidResponse(
+        "response must not contain both result and error",
+      )
+    (Some(result), None) => result
+    (None, Some(error)) => raise decode_mcp_error(error)
     _ =>
       raise McpProtocolError::InvalidResponse("response missing result/error")
   }

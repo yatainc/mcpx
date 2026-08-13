@@ -235,6 +235,29 @@ test "mcp response: validates complete result type" {
 }
 
 ///|
+test "mcp response: validates JSON-RPC 2.0 envelope" {
+  let wrong_version =
+    #|{"jsonrpc":"1.0","id":1,"result":{}}
+  let missing_version =
+    #|{"id":1,"result":{}}
+  let ambiguous =
+    #|{"jsonrpc":"2.0","id":1,"result":{},"error":{"code":-32601,"message":"ambiguous"}}
+  let invalid : Array[Json] = [
+    @json.parse(wrong_version),
+    @json.parse(missing_version),
+    @json.parse(ambiguous),
+  ]
+  for response in invalid {
+    let result : Result[Json, McpProtocolError] = try
+      decode_mcp_result(response, expected_id=1) |> Ok
+    catch {
+      error => Err(error)
+    }
+    inspect(result is Err(_), content="true")
+  }
+}
+
+///|
 test "mcp client response: rejects id mismatch and surfaces json-rpc errors" {
   let mismatch = Json::object({
     "jsonrpc": Json::string("2.0"),
