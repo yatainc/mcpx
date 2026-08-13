@@ -181,7 +181,7 @@ async fn StdioMcpClient::call_tool_unlocked(
       let request = self.client.tool_call_request(name=tool_name, arguments~)
       write_json_line(self.conn, request.message)
       let id = request.expected_id() catch {
-        _ => raise McpStdioError::Protocol("mcp protocol error")
+        error => raise protocol_error_to_stdio(error)
       }
       let response = read_response_for_id_with_timeout(
         self.conn,
@@ -189,7 +189,7 @@ async fn StdioMcpClient::call_tool_unlocked(
         timeout_ms=self.response_timeout_ms,
       )
       self.client.accept_tool_call_response(request, response) catch {
-        _ => raise McpStdioError::Protocol("mcp protocol error")
+        error => raise protocol_error_to_stdio(error)
       }
     }
     Stateless => {
@@ -212,7 +212,7 @@ async fn StdioMcpClient::call_tool_unlocked(
       match
         @mcp_client.decode_mcp_modern_complete_result(response, expected_id=id) {
         Ok(value) => value
-        Err(_) => raise McpStdioError::Protocol("mcp protocol error")
+        Err(error) => raise protocol_error_to_stdio(error)
       }
     }
   }
@@ -242,7 +242,7 @@ async fn StdioMcpClient::list_tools_unlocked(
       let request = self.client.tools_list_request()
       write_json_line(self.conn, request.message)
       let id = request.expected_id() catch {
-        _ => raise McpStdioError::Protocol("mcp protocol error")
+        error => raise protocol_error_to_stdio(error)
       }
       let response = read_response_for_id_with_timeout(
         self.conn,
@@ -250,7 +250,7 @@ async fn StdioMcpClient::list_tools_unlocked(
         timeout_ms=self.response_timeout_ms,
       )
       self.client.accept_tools_list_response(request, response) catch {
-        _ => raise McpStdioError::Protocol("mcp protocol error")
+        error => raise protocol_error_to_stdio(error)
       }
     }
     Stateless => {
@@ -281,7 +281,7 @@ async fn StdioMcpClient::list_tools_unlocked(
         let page = match
           @mcp_client.decode_mcp_modern_tool_list_page(response, expected_id=id) {
           Ok(value) => value
-          Err(_) => raise McpStdioError::Protocol("mcp protocol error")
+          Err(error) => raise protocol_error_to_stdio(error)
         }
         if tools.length() + page.tools.length() > max_tools {
           raise McpStdioError::Protocol("tools/list exceeds maximum tool count")
@@ -405,6 +405,28 @@ async fn drain_process_stderr(reader : @process.ReadFromProcess) -> Unit {
 }
 
 ///|
+fn protocol_error_to_stdio(
+  error : @mcp_client.McpProtocolError,
+) -> McpStdioError {
+  match error {
+    @mcp_client.McpProtocolError::InvalidResponse(message) =>
+      McpStdioError::Protocol(message)
+    @mcp_client.McpProtocolError::HeaderMismatch(message) =>
+      McpStdioError::Protocol("MCP header mismatch: " + message)
+    @mcp_client.McpProtocolError::MissingRequiredClientCapability(message) =>
+      McpStdioError::Protocol("missing required client capability: " + message)
+    @mcp_client.McpProtocolError::UnsupportedProtocolVersion(_, supported) =>
+      McpStdioError::Protocol(
+        "unsupported MCP protocol version; supported: " + supported.join(", "),
+      )
+    @mcp_client.McpProtocolError::RemoteError(code, message) =>
+      McpStdioError::Protocol(
+        "json-rpc error " + code.to_string() + ": " + message,
+      )
+  }
+}
+
+///|
 fn take_modern_request_id(client : StdioMcpClient) -> Int {
   let id = client.next_request_id.val
   client.next_request_id.val = id + 1
@@ -473,7 +495,7 @@ async fn initialize_stdio(
   let init = client.initialize_request()
   write_json_line(conn, init.message)
   let init_id = init.expected_id() catch {
-    _ => raise McpStdioError::Protocol("mcp protocol error")
+    error => raise protocol_error_to_stdio(error)
   }
   let init_response = read_response_for_id_with_timeout(
     conn,
@@ -482,7 +504,7 @@ async fn initialize_stdio(
   )
   ignore(
     client.accept_initialize_response(init, init_response) catch {
-      _ => raise McpStdioError::Protocol("mcp protocol error")
+      error => raise protocol_error_to_stdio(error)
     },
   )
   write_json_line(conn, client.initialized_notification().message)

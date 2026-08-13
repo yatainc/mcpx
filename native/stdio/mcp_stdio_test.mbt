@@ -257,6 +257,37 @@ async test "mcp stdio: bounds stateless tool pagination" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: preserves modern protocol diagnostics" {
+  let script =
+    #|while IFS= read -r line; do
+    #|  case "$line" in
+    #|    *'"method":"server/discover"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}'
+    #|      ;;
+    #|    *'"method":"tools/list"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"tools":[]}}'
+    #|      ;;
+    #|  esac
+    #|done
+  try
+    stdio_mcp_list_tools(
+      command="/bin/sh",
+      args=["-c", script],
+      env=Map([]),
+      cwd=None,
+      mode=@config.McpConnectionMode::Stateless,
+    )
+  catch {
+    McpStdioError::Protocol(message) =>
+      inspect(message, content="tools/list result missing resultType")
+    _ => fail("expected protocol error")
+  } noraise {
+    _ => fail("expected invalid modern response")
+  }
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "mcp stdio: modern tool results require resultType" {
   for rpc_name in ["tools/list", "tools/call"] {
     let script =
