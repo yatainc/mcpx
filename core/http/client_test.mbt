@@ -147,6 +147,137 @@ async test "core http: method-not-found discovery falls back and reuses session"
 }
 
 ///|
+async test "core http: HTTP 200 method-not-found falls back in auto mode" {
+  let seen : Array[String] = []
+  let tools = list_tools(
+    req => {
+      let rpc_method_name = rpc_method(req.body)
+      seen.push(rpc_method_name)
+      match rpc_method_name {
+        "server/discover" =>
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"not found"}}
+            ),
+          )
+        "initialize" =>
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}
+            ),
+          )
+        "notifications/initialized" => http_response(status_code=202, body="")
+        _ =>
+          http_response(
+            status_code=200,
+            content_type=Some("application/json"),
+            body=(
+              #|{"jsonrpc":"2.0","id":2,"result":{"tools":[]}}
+            ),
+          )
+      }
+    },
+    http_endpoint(url="https://mcp.example/http-200-method-not-found"),
+  )
+  inspect(tools.length(), content="0")
+  inspect(
+    seen.join(","),
+    content="server/discover,initialize,notifications/initialized,tools/list",
+  )
+}
+
+///|
+async test "core http: permitted empty 4xx discovery falls back in auto mode" {
+  for status in [400, 404, 405] {
+    let seen : Array[String] = []
+    ignore(
+      list_tools(
+        req => {
+          let rpc_method_name = rpc_method(req.body)
+          seen.push(rpc_method_name)
+          match rpc_method_name {
+            "server/discover" => http_response(status_code=status, body="")
+            "initialize" =>
+              http_response(
+                status_code=200,
+                content_type=Some("application/json"),
+                body=(
+                  #|{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}
+                ),
+              )
+            "notifications/initialized" =>
+              http_response(status_code=202, body="")
+            _ =>
+              http_response(
+                status_code=200,
+                content_type=Some("application/json"),
+                body=(
+                  #|{"jsonrpc":"2.0","id":2,"result":{"tools":[]}}
+                ),
+              )
+          }
+        },
+        http_endpoint(url="https://mcp.example/empty-4xx-" + status.to_string()),
+      ),
+    )
+    inspect(seen[1], content="initialize")
+  }
+}
+
+///|
+async test "core http: authentication and server errors do not fall back" {
+  for status in [401, 403, 408, 429, 500, 503] {
+    let seen : Array[String] = []
+    try
+      list_tools(
+        req => {
+          seen.push(rpc_method(req.body))
+          http_response(status_code=status, body="")
+        },
+        http_endpoint(
+          url="https://mcp.example/no-fallback-" + status.to_string(),
+        ),
+      )
+    catch {
+      McpHttpClientError::HttpStatus(actual) =>
+        inspect(actual, content=status.to_string())
+      _ => fail("expected HTTP status error")
+    } noraise {
+      _ => fail("expected discovery to fail")
+    }
+    inspect(seen.join(","), content="server/discover")
+  }
+}
+
+///|
+async test "core http: malformed successful discovery does not fall back" {
+  let seen : Array[String] = []
+  try
+    list_tools(
+      req => {
+        seen.push(rpc_method(req.body))
+        http_response(
+          status_code=200,
+          content_type=Some("application/json"),
+          body="not json",
+        )
+      },
+      http_endpoint(url="https://mcp.example/malformed-discovery"),
+    )
+  catch {
+    McpHttpClientError::Protocol(_) => ()
+    _ => fail("expected protocol error")
+  } noraise {
+    _ => fail("expected discovery to fail")
+  }
+  inspect(seen.join(","), content="server/discover")
+}
+
+///|
 async test "core http: explicit stateless rejects initialize-era fallback" {
   let methods : Array[String] = []
   try

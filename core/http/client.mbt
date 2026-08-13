@@ -449,18 +449,30 @@ fn build_modern_headers(
 
 ///|
 fn is_clear_legacy_signal(response : HttpResponse) -> Bool {
+  let error_code = if response.body.trim().is_empty() {
+    None
+  } else {
+    let json = @json.parse(response.body) catch {
+      _ =>
+        return response.status_code == 400 ||
+          response.status_code == 404 ||
+          response.status_code == 405
+    }
+    jsonrpc_error_code(json)
+  }
+  // JSON-RPC method-not-found is a legacy signal regardless of HTTP status.
+  if error_code == Some(-32601) {
+    return true
+  }
   if response.status_code != 400 &&
     response.status_code != 404 &&
     response.status_code != 405 {
     return false
   }
-  if response.body.trim().is_empty() {
-    return response.status_code == 400
-  }
-  let json = @json.parse(response.body) catch { _ => return false }
-  match jsonrpc_error_code(json) {
-    Some(-32601) => true
-    _ => false
+  // These errors prove that the peer understood the modern request.
+  match error_code {
+    Some(-32020) | Some(-32021) | Some(-32022) => false
+    _ => true
   }
 }
 
