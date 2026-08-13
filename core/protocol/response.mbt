@@ -301,9 +301,17 @@ fn decode_server_info(json : Json?) -> (String?, String?) {
 ///|
 fn decode_response_id(json : Json?) -> Int? {
   match json {
-    Some(Number(value, ..)) if value.trunc() == value => Some(value.to_int())
+    Some(Number(value, ..)) if is_supported_json_int(value) =>
+      Some(value.to_int())
     _ => None
   }
+}
+
+///|
+fn is_supported_json_int(value : Double) -> Bool {
+  value.trunc() == value &&
+  value >= (-2147483648).to_double() &&
+  value <= (2147483647 : Int).to_double()
 }
 
 ///|
@@ -311,7 +319,8 @@ fn decode_mcp_error(json : Json) -> McpProtocolError {
   match json {
     Object(obj) => {
       let code = match obj.get("code") {
-        Some(Number(value, ..)) if value.trunc() == value => value.to_int()
+        Some(Number(value, ..)) if is_supported_json_int(value) =>
+          value.to_int()
         _ =>
           return McpProtocolError::InvalidResponse(
             "JSON-RPC error code must be an integer",

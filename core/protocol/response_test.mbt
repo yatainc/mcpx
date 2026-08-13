@@ -277,6 +277,38 @@ test "mcp response: validates JSON-RPC 2.0 envelope" {
 }
 
 ///|
+test "mcp response: rejects integers outside the supported range" {
+  let oversized_id = @json.parse(
+    (
+      #|{"jsonrpc":"2.0","id":2147483648,"result":{}}
+    ),
+  )
+  let id_result : Result[Json, McpProtocolError] = try
+    decode_mcp_result(oversized_id, expected_id=2147483647) |> Ok
+  catch {
+    error => Err(error)
+  }
+  inspect(
+    id_result is Err(McpProtocolError::InvalidResponse(_)),
+    content="true",
+  )
+  let oversized_code = @json.parse(
+    (
+      #|{"jsonrpc":"2.0","id":1,"error":{"code":2147483648,"message":"bad"}}
+    ),
+  )
+  let code_result : Result[Json, McpProtocolError] = try
+    decode_mcp_result(oversized_code, expected_id=1) |> Ok
+  catch {
+    error => Err(error)
+  }
+  inspect(
+    code_result is Err(McpProtocolError::InvalidResponse(_)),
+    content="true",
+  )
+}
+
+///|
 test "mcp response: rejects malformed JSON-RPC errors" {
   let fractional_code =
     #|{"jsonrpc":"2.0","id":1,"error":{"code":4.2,"message":"bad"}}
