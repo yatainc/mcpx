@@ -60,7 +60,10 @@ async test "core http: tool list without cache hints is not cacheable" {
     http_endpoint(url="https://mcp.example/mcp"),
   )
   inspect(result.ttl_ms, content="0")
-  inspect(result.cache_scope, content="private")
+  inspect(
+    result.cache_scope == @protocol.McpCacheScope::Private,
+    content="true",
+  )
 }
 
 ///|
@@ -88,7 +91,7 @@ async test "core http: uses tools list cache hints instead of discovery hints" {
     http_endpoint(url="https://mcp.example/tool-cache-hints"),
   )
   inspect(result.ttl_ms, content="60000")
-  inspect(result.cache_scope, content="public")
+  inspect(result.cache_scope == @protocol.McpCacheScope::Public, content="true")
 }
 
 ///|
@@ -234,7 +237,7 @@ async test "core http: combines paginated modern tool lists" {
   inspect(result.tools.map(tool => tool.name).join(","), content="first,second")
   inspect(cursors.join(","), content=",page-2")
   inspect(result.ttl_ms, content="30000")
-  inspect(result.cache_scope, content="public")
+  inspect(result.cache_scope == @protocol.McpCacheScope::Public, content="true")
 }
 
 ///|

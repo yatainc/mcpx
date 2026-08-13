@@ -390,12 +390,9 @@ async fn fetch_modern_tool_catalog(
       }
     }
   }
-  let scope_text = match cache_scope {
-    Some(@protocol.McpCacheScope::Public) => "public"
-    _ => "private"
-  }
+  let scope = cache_scope.unwrap_or(@protocol.McpCacheScope::Private)
   {
-    result: mcp_tool_list_result(tools~, ttl_ms~, cache_scope=scope_text),
+    result: mcp_tool_list_result(tools~, ttl_ms~, cache_scope=scope),
     next_request_id: request_id + 1,
   }
 }

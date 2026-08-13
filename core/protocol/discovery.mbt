@@ -10,9 +10,9 @@ pub struct McpDiscoverInfo {
   capabilities : Json
   instructions : String?
   response_meta : McpResponseMeta
-  result_type : String
+  result_type : McpResultType
   ttl_ms : Int
-  cache_scope : String
+  cache_scope : McpCacheScope
 } derive(Debug)
 
 ///|
@@ -37,7 +37,7 @@ pub fn decode_mcp_discover_response(
     _ => return Err(InvalidResponse("discover result must be object"))
   }
   let result_type = match result.get("resultType") {
-    Some(String("complete")) => "complete"
+    Some(String("complete")) => McpResultType::Complete
     Some(String(value)) =>
       return Err(InvalidResponse("unsupported discover resultType: " + value))
     _ => return Err(InvalidResponse("discover result missing resultType"))
@@ -83,8 +83,8 @@ pub fn decode_mcp_discover_response(
     _ => 0
   }
   let cache_scope = match result.get("cacheScope") {
-    Some(String("public")) => "public"
-    _ => "private"
+    Some(String("public")) => McpCacheScope::Public
+    _ => McpCacheScope::Private
   }
   Ok({
     protocol_versions: versions,

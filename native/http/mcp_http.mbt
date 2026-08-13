@@ -112,7 +112,7 @@ fn cache_tool_result(
   tool_cache.remove(public_key)
   tool_cache.remove(private_key)
   if result.ttl_ms > 0 {
-    let key = if result.cache_scope == "public" {
+    let key = if result.cache_scope == @mcp_client.McpCacheScope::Public {
       public_key
     } else {
       private_key
