@@ -254,15 +254,13 @@ async fn StdioMcpClient::list_tools_unlocked(
       }
     }
     Stateless => {
-      let tools = []
-      let seen_cursors : Array[String] = []
-      let mut cursor : String? = None
-      let mut page_count = 0
+      let pagination = @mcp_client.mcp_tool_pagination()
+      let limits = @mcp_client.mcp_tool_list_limits(max_pages~, max_tools~)
       for ;; {
-        if page_count >= max_pages {
-          raise McpStdioError::Protocol("tools/list exceeds maximum page count")
+        let cursor = match pagination.begin_page(limits) {
+          Ok(value) => value
+          Err(error) => raise pagination_error_to_stdio(error)
         }
-        page_count = page_count + 1
         let id = take_modern_request_id(self)
         write_json_line(
           self.conn,
@@ -283,23 +281,10 @@ async fn StdioMcpClient::list_tools_unlocked(
           Ok(value) => value
           Err(error) => raise protocol_error_to_stdio(error)
         }
-        if tools.length() + page.tools.length() > max_tools {
-          raise McpStdioError::Protocol("tools/list exceeds maximum tool count")
-        }
-        for tool in page.tools {
-          tools.push(tool)
-        }
-        match page.next_cursor {
-          None => break tools
-          Some(next) => {
-            if seen_cursors.contains(next) {
-              raise McpStdioError::Protocol(
-                "tools/list pagination cursor repeated",
-              )
-            }
-            seen_cursors.push(next)
-            cursor = Some(next)
-          }
+        match pagination.accept_page(page, limits) {
+          Ok(true) => continue
+          Ok(false) => break pagination.tools()
+          Err(error) => raise pagination_error_to_stdio(error)
         }
       }
     }
@@ -401,6 +386,20 @@ async fn drain_process_stderr(reader : @process.ReadFromProcess) -> Unit {
       Some(_) => ()
       None => break
     }
+  }
+}
+
+///|
+fn pagination_error_to_stdio(
+  error : @mcp_client.McpToolPaginationError,
+) -> McpStdioError {
+  match error {
+    @mcp_client.McpToolPaginationError::TooManyPages =>
+      McpStdioError::Protocol("tools/list exceeds maximum page count")
+    @mcp_client.McpToolPaginationError::TooManyTools =>
+      McpStdioError::Protocol("tools/list exceeds maximum tool count")
+    @mcp_client.McpToolPaginationError::RepeatedCursor =>
+      McpStdioError::Protocol("tools/list pagination cursor repeated")
   }
 }
 
