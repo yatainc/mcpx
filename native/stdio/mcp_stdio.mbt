@@ -1,10 +1,4 @@
 ///|
-const MAX_TOOL_LIST_PAGES : Int = 1000
-
-///|
-const MAX_TOOL_LIST_TOOLS : Int = 100000
-
-///|
 pub suberror McpStdioError {
   SpawnFailed(String)
   ReadFailed(String)
@@ -112,8 +106,8 @@ pub async fn[X] stdio_mcp_connect(
 ///|
 fn new_legacy_client() -> @mcp_client.McpClient {
   @mcp_client.mcp_client(
-    client_name="mcpx",
-    client_version="0.1.4",
+    client_name=@mcp_client.MCPX_CLIENT_NAME,
+    client_version=@mcp_client.MCPX_CLIENT_VERSION,
     protocol_version=@mcp_client.MCP_PROTOCOL_VERSION_LEGACY,
   )
 }
@@ -148,8 +142,8 @@ pub async fn StdioMcpClient::call_tool(
           id~,
           name=tool_name,
           arguments~,
-          client_name="mcpx",
-          client_version="0.1.4",
+          client_name=@mcp_client.MCPX_CLIENT_NAME,
+          client_version=@mcp_client.MCPX_CLIENT_VERSION,
         ),
       )
       let response = read_response_for_id_with_timeout(
@@ -173,8 +167,8 @@ pub async fn StdioMcpClient::call_tool(
 ///|
 pub async fn StdioMcpClient::list_tools(
   self : StdioMcpClient,
-  max_pages? : Int = MAX_TOOL_LIST_PAGES,
-  max_tools? : Int = MAX_TOOL_LIST_TOOLS,
+  max_pages? : Int = @mcp_client.MCP_TOOL_LIST_MAX_PAGES,
+  max_tools? : Int = @mcp_client.MCP_TOOL_LIST_MAX_TOOLS,
 ) -> Array[@mcp_client.McpToolInfo] raise McpStdioError {
   match self.lifecycle {
     Initialize => {
@@ -207,8 +201,8 @@ pub async fn StdioMcpClient::list_tools(
           self.conn,
           @mcp_client.mcp_tools_list_request(
             id~,
-            client_name="mcpx",
-            client_version="0.1.4",
+            client_name=@mcp_client.MCPX_CLIENT_NAME,
+            client_version=@mcp_client.MCPX_CLIENT_VERSION,
             cursor~,
           ),
         )
@@ -304,8 +298,8 @@ pub async fn stdio_mcp_list_tools(
   mode? : @config.McpConnectionMode = @config.McpConnectionMode::Stateful,
   probe_timeout_ms? : Int = 1000,
   response_timeout_ms? : Int = 30000,
-  max_pages? : Int = MAX_TOOL_LIST_PAGES,
-  max_tools? : Int = MAX_TOOL_LIST_TOOLS,
+  max_pages? : Int = @mcp_client.MCP_TOOL_LIST_MAX_PAGES,
+  max_tools? : Int = @mcp_client.MCP_TOOL_LIST_MAX_TOOLS,
 ) -> Array[@mcp_client.McpToolInfo] raise McpStdioError {
   @async.with_task_group(group => {
     let client = stdio_mcp_connect(
@@ -360,8 +354,8 @@ async fn probe_modern_stdio(
 ) -> StdioProbeOutcome raise McpStdioError {
   let context = @mcp_client.mcp_request_context(
     protocol=@mcp_client.McpProtocolVersion::V2026_07_28,
-    client_name="mcpx",
-    client_version="0.1.4",
+    client_name=@mcp_client.MCPX_CLIENT_NAME,
+    client_version=@mcp_client.MCPX_CLIENT_VERSION,
   )
   write_json_line(conn, @mcp_client.mcp_discover_request(id=1, context))
   let response = read_response_for_id(conn, expected_id=1)

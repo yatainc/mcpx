@@ -1,13 +1,4 @@
 ///|
-const MCPX_CLIENT_VERSION : String = "0.1.4"
-
-///|
-const MAX_TOOL_LIST_PAGES : Int = 1000
-
-///|
-const MAX_TOOL_LIST_TOOLS : Int = 100000
-
-///|
 priv enum Negotiation {
   Modern(@protocol.McpProtocolVersion)
   InitializeEra(@protocol.McpProtocolVersion)
@@ -31,8 +22,8 @@ pub async fn list_tools(
 pub async fn list_tools_with_cache_hint(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
-  max_pages? : Int = MAX_TOOL_LIST_PAGES,
-  max_tools? : Int = MAX_TOOL_LIST_TOOLS,
+  max_pages? : Int = @protocol.MCP_TOOL_LIST_MAX_PAGES,
+  max_tools? : Int = @protocol.MCP_TOOL_LIST_MAX_TOOLS,
 ) -> McpToolListResult raise McpHttpClientError {
   match negotiate(fetch, endpoint) {
     Modern(version) =>
@@ -280,8 +271,8 @@ async fn send_discover(
 ) -> HttpResponse raise McpHttpClientError {
   let context = @protocol.mcp_request_context(
     protocol=version,
-    client_name="mcpx",
-    client_version=MCPX_CLIENT_VERSION,
+    client_name=@protocol.MCPX_CLIENT_NAME,
+    client_version=@protocol.MCPX_CLIENT_VERSION,
   )
   post_json(
     fetch,
@@ -319,8 +310,8 @@ async fn fetch_modern_tool_catalog(
   endpoint : Endpoint,
   version : @protocol.McpProtocolVersion,
   first_request_id? : Int = 2,
-  max_pages? : Int = MAX_TOOL_LIST_PAGES,
-  max_tools? : Int = MAX_TOOL_LIST_TOOLS,
+  max_pages? : Int = @protocol.MCP_TOOL_LIST_MAX_PAGES,
+  max_tools? : Int = @protocol.MCP_TOOL_LIST_MAX_TOOLS,
 ) -> ModernToolCatalog raise McpHttpClientError {
   let tools = []
   let seen_cursors : Array[String] = []
@@ -338,8 +329,8 @@ async fn fetch_modern_tool_catalog(
     page_count = page_count + 1
     let request = @protocol.mcp_tools_list_request(
       id=request_id,
-      client_name="mcpx",
-      client_version=MCPX_CLIENT_VERSION,
+      client_name=@protocol.MCPX_CLIENT_NAME,
+      client_version=@protocol.MCPX_CLIENT_VERSION,
       cursor~,
     )
     let response = post_json(
@@ -423,8 +414,8 @@ async fn call_tool_modern(
     id=request_id,
     name=tool_name,
     arguments~,
-    client_name="mcpx",
-    client_version=MCPX_CLIENT_VERSION,
+    client_name=@protocol.MCPX_CLIENT_NAME,
+    client_version=@protocol.MCPX_CLIENT_VERSION,
   )
   let headers = build_modern_headers(
     endpoint.headers,
@@ -458,8 +449,8 @@ async fn list_tools_legacy(
 ) -> Array[@protocol.McpToolInfo] raise McpHttpClientError {
   let session_id = Ref(None)
   let client = @protocol.mcp_client(
-    client_name="mcpx",
-    client_version=MCPX_CLIENT_VERSION,
+    client_name=@protocol.MCPX_CLIENT_NAME,
+    client_version=@protocol.MCPX_CLIENT_VERSION,
     protocol_version=@protocol.mcp_protocol_version_to_string(version),
   )
   initialize_legacy(fetch, endpoint, client, session_id)
@@ -480,8 +471,8 @@ async fn call_tool_legacy(
 ) -> Json raise McpHttpClientError {
   let session_id = Ref(None)
   let client = @protocol.mcp_client(
-    client_name="mcpx",
-    client_version=MCPX_CLIENT_VERSION,
+    client_name=@protocol.MCPX_CLIENT_NAME,
+    client_version=@protocol.MCPX_CLIENT_VERSION,
     protocol_version=@protocol.mcp_protocol_version_to_string(version),
   )
   initialize_legacy(fetch, endpoint, client, session_id)
