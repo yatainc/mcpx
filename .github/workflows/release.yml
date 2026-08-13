@@ -48,7 +48,6 @@ jobs:
           manifest_version="$(sed -n 's/^version = "\([^"]*\)"$/\1/p' moon.mod)"
           test -n "$manifest_version"
           test "${GITHUB_REF_NAME}" = "v${manifest_version}"
-          test -f ".github/release-notes/${GITHUB_REF_NAME}.md"
           nix develop --command moon fmt --check
           nix develop --command moon check --target native --warn-list +73 --deny-warn
           nix develop --command moon check --target wasm-gc --warn-list +73 --deny-warn
@@ -102,18 +101,13 @@ jobs:
           cd artifacts
           sha256sum *.tar.gz > SHA256SUMS
 
-      - name: Checkout release notes
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           files: |
             artifacts/*.tar.gz
             artifacts/SHA256SUMS
-          body_path: .github/release-notes/${{ github.ref_name }}.md
+          generate_release_notes: true
 
   action-timeline:
     name: Show workflow timeline
