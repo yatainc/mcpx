@@ -25,7 +25,7 @@ pub struct McpClient {
 pub fn mcp_client(
   client_name~ : String,
   client_version~ : String,
-  protocol_version? : String = "2025-03-26",
+  protocol_version? : String = MCP_PROTOCOL_VERSION,
 ) -> McpClient {
   { client_name, client_version, protocol_version, session: mcp_session() }
 }
@@ -68,7 +68,7 @@ pub fn McpClient::tools_list_request(self : McpClient) -> McpClientRequest {
   {
     kind: McpClientRequestKind::ToolsList,
     id: Some(id),
-    message: mcp_tools_list_request(id~),
+    message: mcp_tools_list_request_legacy(id~),
   }
 }
 
@@ -82,7 +82,7 @@ pub fn McpClient::tool_call_request(
   {
     kind: McpClientRequestKind::ToolsCall(name),
     id: Some(id),
-    message: mcp_tool_call_request(id~, name~, arguments~),
+    message: mcp_tool_call_request_legacy(id~, name~, arguments~),
   }
 }
 

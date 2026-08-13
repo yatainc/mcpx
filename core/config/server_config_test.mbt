@@ -27,6 +27,7 @@ test "server config: decodes remote OAuth server shape" {
       #|          scopes: [],
       #|        },
       #|      ),
+      #|      protocol_mode: None,
       #|      lifecycle: None,
       #|      allowed_tools: [],
       #|      disabled_tools: [],
@@ -34,8 +35,68 @@ test "server config: decodes remote OAuth server shape" {
       #|    },
       #|  },
       #|}
+
     ),
   )
+}
+
+///|
+test "server config: decodes protocol connection modes" {
+  let decode_mode = mode_text => {
+    let text =
+      "{\"mcpServers\":{\"server\":{\"transport\":\"http\",\"protocol\":{\"mode\":\"" +
+      mode_text + "\"}}}}"
+    decode_mcpx_config(@json.parse(text)).servers.get(
+      "server",
+    ).unwrap().protocol_mode
+  }
+  inspect(decode_mode("auto") == Some(McpConnectionMode::Auto), content="true")
+  inspect(
+    decode_mode("stateful") == Some(McpConnectionMode::Stateful),
+    content="true",
+  )
+  inspect(
+    decode_mode("stateless") == Some(McpConnectionMode::Stateless),
+    content="true",
+  )
+}
+
+///|
+test "server config: applies transport protocol mode defaults" {
+  let config = decode_mcpx_config(
+    @json.parse(
+      "{\"mcpServers\":{\"remote\":{\"transport\":\"http\"},\"local\":{\"transport\":\"stdio\",\"command\":\"server\"}}}",
+    ),
+  )
+  inspect(
+    effective_connection_mode(config.servers.get("remote").unwrap()) ==
+    McpConnectionMode::Auto,
+    content="true",
+  )
+  inspect(
+    effective_connection_mode(config.servers.get("local").unwrap()) ==
+    McpConnectionMode::Stateful,
+    content="true",
+  )
+}
+
+///|
+test "server config: rejects unsupported protocol connection mode" {
+  let mut raised = false
+  try
+    ignore(
+      decode_mcpx_config(
+        @json.parse(
+          "{\"mcpServers\":{\"server\":{\"transport\":\"http\",\"protocol\":{\"mode\":\"future\"}}}}",
+        ),
+      ),
+    )
+  catch {
+    _ => raised = true
+  } noraise {
+    _ => ()
+  }
+  inspect(raised, content="true")
 }
 
 ///|
@@ -80,12 +141,14 @@ test "server config: resolves env templates in url headers and static OAuth clie
       #|        scopes: [],
       #|      },
       #|    ),
+      #|    protocol_mode: None,
       #|    lifecycle: None,
       #|    allowed_tools: [],
       #|    disabled_tools: [],
       #|    description: None,
       #|  },
       #|)
+
     ),
   )
 }
@@ -116,12 +179,14 @@ test "server config: decodes stdio env/cwd and resolves templates" {
       #|    cwd: Some("/srv/mcp"),
       #|    headers: {},
       #|    auth: None,
+      #|    protocol_mode: None,
       #|    lifecycle: None,
       #|    allowed_tools: [],
       #|    disabled_tools: [],
       #|    description: None,
       #|  },
       #|)
+
     ),
   )
 }
@@ -256,12 +321,14 @@ test "server config: auto keep-alive for known stdio commands unless dynamic chr
       #|    cwd: None,
       #|    headers: {},
       #|    auth: None,
+      #|    protocol_mode: None,
       #|    lifecycle: Some({ mode: KeepAlive, idle_timeout_ms: None }),
       #|    allowed_tools: [],
       #|    disabled_tools: [],
       #|    description: None,
       #|  },
       #|)
+
     ),
   )
   @debug.debug_inspect(
@@ -280,12 +347,14 @@ test "server config: auto keep-alive for known stdio commands unless dynamic chr
       #|    cwd: None,
       #|    headers: {},
       #|    auth: None,
+      #|    protocol_mode: None,
       #|    lifecycle: Some({ mode: Ephemeral, idle_timeout_ms: None }),
       #|    allowed_tools: [],
       #|    disabled_tools: [],
       #|    description: None,
       #|  },
       #|)
+
     ),
   )
 }
@@ -312,12 +381,14 @@ test "server config: keep-alive env overrides by server or canonical name" {
       #|    cwd: None,
       #|    headers: {},
       #|    auth: None,
+      #|    protocol_mode: None,
       #|    lifecycle: None,
       #|    allowed_tools: [],
       #|    disabled_tools: [],
       #|    description: None,
       #|  },
       #|)
+
     ),
   )
 }

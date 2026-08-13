@@ -57,7 +57,7 @@ test "cli render: command-specific help text" {
       #|
       #|Usage:
       #|  mcpx auth <server> [--no-browser] [--json]
-      #|  mcpx auth <server> --code <code> --state <state>
+      #|  mcpx auth <server> --code <code> --state <state> [--iss <issuer>]
     ),
   )
   inspect(

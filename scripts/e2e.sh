@@ -65,6 +65,12 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
 
+        if method == "server/discover":
+            self.send_response(400)
+            self.send_header("content-length", "0")
+            self.end_headers()
+            return
+
         if method == "initialize":
             send_json({
                 "jsonrpc": "2.0",

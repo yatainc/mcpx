@@ -63,6 +63,7 @@ async fn run_info(
                 headers~,
                 tool=command.tool,
                 filter_server=Some(resolved_server),
+                mode=@config.effective_connection_mode(resolved_server),
               )
             }
           }
@@ -184,6 +185,7 @@ async fn run_info_stdio(
     args=server.args,
     env=server.env,
     cwd=server.cwd,
+    mode=@config.effective_connection_mode(server),
   ) catch {
     _ => return error_result("mcp stdio error")
   }
@@ -197,8 +199,9 @@ async fn run_info_url(
   headers~ : Map[String, String],
   tool~ : String?,
   filter_server~ : @config.McpServerConfig?,
+  mode? : @config.McpConnectionMode = @config.McpConnectionMode::Auto,
 ) -> String {
-  let tools = @mcp_http.http_mcp_list_tools(url~, headers~) catch {
+  let tools = @mcp_http.http_mcp_list_tools(url~, headers~, mode~) catch {
     error => return mcp_http_error_result(server_name, error)
   }
   info_tools_result(server_name, tools, tool, filter_server~)
@@ -286,6 +289,19 @@ fn tool_schema_result(
   lines.push("")
   lines.push("Arguments:")
   append_schema_argument_lines(lines, tool.input_schema)
+  if should_display_complete_input_schema(tool.input_schema) {
+    lines.push("")
+    lines.push("Input Schema:")
+    lines.push(tool.input_schema.stringify(indent=2))
+  }
+  match tool.output_schema {
+    Some(schema) => {
+      lines.push("")
+      lines.push("Output Schema:")
+      lines.push(schema.stringify(indent=2))
+    }
+    None => ()
+  }
   lines.join("\n")
 }
 
@@ -364,6 +380,44 @@ fn append_schema_argument_lines(lines : Array[String], schema : Json) -> Unit {
       }
     _ => lines.push("  (none)")
   }
+}
+
+///|
+fn should_display_complete_input_schema(schema : Json) -> Bool {
+  schema_requires_complete_display(schema, depth=0)
+}
+
+///|
+fn schema_requires_complete_display(schema : Json, depth~ : Int) -> Bool {
+  if depth > 64 {
+    return true
+  }
+  let obj = match schema {
+    Object(value) => value
+    _ => return true
+  }
+  for key, value in obj {
+    if key == "properties" {
+      match value {
+        Object(properties) =>
+          for _, property_schema in properties {
+            if schema_requires_complete_display(
+                property_schema,
+                depth=depth + 1,
+              ) {
+              return true
+            }
+          }
+        _ => return true
+      }
+    } else if key != "type" &&
+      key != "required" &&
+      key != "description" &&
+      key != "title" {
+      return true
+    }
+  }
+  false
 }
 
 ///|

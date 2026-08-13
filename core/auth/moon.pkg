@@ -1,5 +1,6 @@
 import {
   "yatainc/mcpx/core/host",
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {

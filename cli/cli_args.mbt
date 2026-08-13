@@ -39,6 +39,7 @@ pub struct AuthCommand {
   json_output : Bool
   code : String?
   state : String?
+  issuer : String?
 } derive(Debug)
 
 ///|
@@ -151,6 +152,7 @@ fn parse_auth_command(
       let mut json_output = false
       let mut code : String? = None
       let mut state : String? = None
+      let mut issuer : String? = None
       for i = 2; i < args.length(); {
         match args[i] {
           "--no-browser" => no_browser = true
@@ -171,11 +173,28 @@ fn parse_auth_command(
               }
               None => return Err(CliParseError::MissingArgument("state"))
             }
+          "--iss" =>
+            match args.get(i + 1) {
+              Some(value) => {
+                issuer = Some(value)
+                continue i + 2
+              }
+              None => return Err(CliParseError::MissingArgument("iss"))
+            }
           option => return Err(CliParseError::UnknownOption(option))
         }
         continue i + 1
       }
-      Ok(McpxCommand::Auth({ server, no_browser, json_output, code, state }))
+      Ok(
+        McpxCommand::Auth({
+          server,
+          no_browser,
+          json_output,
+          code,
+          state,
+          issuer,
+        }),
+      )
     }
   }
 }

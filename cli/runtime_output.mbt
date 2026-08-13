@@ -31,10 +31,14 @@ fn mcp_http_skip_message(
         None => "returned HTTP " + status_code.to_string()
       }
     None =>
-      if @mcp_http.mcp_http_is_protocol_error(error) {
-        "MCP protocol error"
-      } else {
-        "mcp http error"
+      match @mcp_http.mcp_http_negotiation_message(error) {
+        Some(message) => "MCP negotiation error: " + message
+        None =>
+          if @mcp_http.mcp_http_is_protocol_error(error) {
+            "MCP protocol error"
+          } else {
+            "mcp http error"
+          }
       }
   }
 }

@@ -74,6 +74,7 @@ test "cli args: auth is explicit and can be headless json" {
       #|      json_output: true,
       #|      code: None,
       #|      state: None,
+      #|      issuer: None,
       #|    },
       #|  ),
       #|)
@@ -94,11 +95,24 @@ test "cli args: auth can complete no-browser OAuth with code and state" {
       #|      json_output: false,
       #|      code: Some("code-1"),
       #|      state: Some("state-1"),
+      #|      issuer: None,
       #|    },
       #|  ),
       #|)
     ),
   )
+}
+
+///|
+test "cli args: auth completion accepts RFC 9207 issuer" {
+  match
+    parse_mcpx_args([
+      "auth", "github", "--code", "code-1", "--state", "state-1", "--iss", "https://auth.example",
+    ]) {
+    Ok(McpxCommand::Auth(command)) =>
+      inspect(command.issuer.unwrap(), content="https://auth.example")
+    _ => fail("expected auth command")
+  }
 }
 
 ///|

@@ -196,6 +196,8 @@ test "credentials: stores pending OAuth flow by server and state" {
       client_id="client-1",
       client_secret=Some("secret-1"),
       token_endpoint="https://auth.example/token",
+      authorization_issuer=Some("https://auth.example"),
+      require_authorization_issuer=true,
       redirect_uri="http://127.0.0.1:8765/callback",
       code_verifier="verifier-1",
       state="state-1",
@@ -205,7 +207,7 @@ test "credentials: stores pending OAuth flow by server and state" {
   inspect(
     file.to_json().stringify(),
     content=(
-      #|{"entries":{},"version":1,"pendingOAuth":{"github|state-1":{"serverName":"github","serverUrl":"https://mcp.github.com/mcp","clientInfo":{"client_id":"client-1","client_secret":"secret-1"},"tokenEndpoint":"https://auth.example/token","redirectUri":"http://127.0.0.1:8765/callback","codeVerifier":"verifier-1","state":"state-1","createdAt":"1000"}}}
+      #|{"entries":{},"version":1,"pendingOAuth":{"github|state-1":{"serverName":"github","serverUrl":"https://mcp.github.com/mcp","clientInfo":{"client_id":"client-1","client_secret":"secret-1"},"tokenEndpoint":"https://auth.example/token","authorizationIssuer":"https://auth.example","requireAuthorizationIssuer":true,"redirectUri":"http://127.0.0.1:8765/callback","codeVerifier":"verifier-1","state":"state-1","createdAt":"1000"}}}
     ),
   )
   let decoded = decode_credentials_file(file.to_json())

@@ -60,6 +60,7 @@ async fn run_call(
                 headers~,
                 tool_name=command.tool,
                 arguments~,
+                mode=@config.effective_connection_mode(resolved_server),
               )
             }
           }
@@ -163,6 +164,7 @@ async fn run_call_stdio(
     args=server.args,
     env=server.env,
     cwd=server.cwd,
+    mode=@config.effective_connection_mode(server),
     tool_name=command.tool,
     arguments~,
   ) catch {
@@ -198,12 +200,14 @@ async fn run_call_json(
   headers~ : Map[String, String],
   tool_name~ : String,
   arguments~ : Json,
+  mode? : @config.McpConnectionMode = @config.McpConnectionMode::Auto,
 ) -> String {
   let result = @mcp_http.http_mcp_call_tool(
     url~,
     headers~,
     tool_name~,
     arguments~,
+    mode~,
   ) catch {
     error => return mcp_http_error_result(server_name, error)
   }

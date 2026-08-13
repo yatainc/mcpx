@@ -31,6 +31,8 @@ pub struct PendingOAuthFlow {
   server_url : String?
   client_info : OAuthClientSecretInfo
   token_endpoint : String
+  authorization_issuer : String?
+  require_authorization_issuer : Bool
   redirect_uri : String
   code_verifier : String
   state : String
@@ -105,6 +107,8 @@ pub fn pending_oauth_flow(
   client_id~ : String,
   client_secret? : String? = None,
   token_endpoint~ : String,
+  authorization_issuer? : String? = None,
+  require_authorization_issuer? : Bool = false,
   redirect_uri~ : String,
   code_verifier~ : String,
   state~ : String,
@@ -115,6 +119,8 @@ pub fn pending_oauth_flow(
     server_url,
     client_info: { client_id, client_secret },
     token_endpoint,
+    authorization_issuer,
+    require_authorization_issuer,
     redirect_uri,
     code_verifier,
     state,
@@ -389,6 +395,13 @@ pub impl ToJson for PendingOAuthFlow with fn to_json(self) {
   }
   obj["clientInfo"] = self.client_info.to_json()
   obj["tokenEndpoint"] = Json::string(self.token_endpoint)
+  match self.authorization_issuer {
+    Some(value) => obj["authorizationIssuer"] = Json::string(value)
+    None => ()
+  }
+  if self.require_authorization_issuer {
+    obj["requireAuthorizationIssuer"] = Json::boolean(true)
+  }
   obj["redirectUri"] = Json::string(self.redirect_uri)
   obj["codeVerifier"] = Json::string(self.code_verifier)
   obj["state"] = Json::string(self.state)
@@ -486,6 +499,14 @@ fn decode_pending_oauth_flow(
     server_url: optional_string(obj.get("serverUrl"), "serverUrl"),
     client_info: decode_client_secret_info(obj.get("clientInfo")),
     token_endpoint: expect_string(obj.get("tokenEndpoint"), "tokenEndpoint"),
+    authorization_issuer: optional_string(
+      obj.get("authorizationIssuer"),
+      "authorizationIssuer",
+    ),
+    require_authorization_issuer: optional_bool(
+      obj.get("requireAuthorizationIssuer"),
+      "requireAuthorizationIssuer",
+    ),
     redirect_uri: expect_string(obj.get("redirectUri"), "redirectUri"),
     code_verifier: expect_string(obj.get("codeVerifier"), "codeVerifier"),
     state: expect_string(obj.get("state"), "state"),
@@ -573,6 +594,15 @@ fn optional_string(
     Some(String(value)) => Some(value)
     _ =>
       raise CredentialsError::InvalidCredentialsJson(field + " must be string")
+  }
+}
+
+///|
+fn optional_bool(json : Json?, field : String) -> Bool raise CredentialsError {
+  match json {
+    None | Some(Null) | Some(False) => false
+    Some(True) => true
+    _ => raise CredentialsError::InvalidCredentialsJson(field + " must be bool")
   }
 }
 

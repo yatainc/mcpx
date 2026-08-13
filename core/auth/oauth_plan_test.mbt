@@ -45,6 +45,28 @@ test "oauth plan: builds PKCE authorization URL" {
 }
 
 ///|
+test "oauth plan: percent-encodes UTF-8 authorization parameters" {
+  let metadata = oauth_metadata(
+    authorization_endpoint="https://auth.example/authorize",
+    token_endpoint="https://auth.example/token",
+  )
+  let url = oauth_authorization_url(
+    metadata,
+    client_id="検索",
+    redirect_uri="http://localhost/callback",
+    state="状態",
+    code_challenge="challenge",
+    scopes=["読み取り"],
+  )
+  inspect(url.contains("client_id=%E6%A4%9C%E7%B4%A2"), content="true")
+  inspect(url.contains("state=%E7%8A%B6%E6%85%8B"), content="true")
+  inspect(
+    url.contains("scope=%E8%AA%AD%E3%81%BF%E5%8F%96%E3%82%8A"),
+    content="true",
+  )
+}
+
+///|
 test "oauth plan: omits scope parameter when scopes are empty" {
   let metadata = oauth_metadata(
     authorization_endpoint="https://auth.example/authorize",
@@ -69,7 +91,7 @@ test "oauth plan: dynamic client registration request is JSON" {
       redirect_uri="http://127.0.0.1:8765/callback",
     ).stringify(),
     content=(
-      #|{"client_name":"mcpx","redirect_uris":["http://127.0.0.1:8765/callback"],"grant_types":["authorization_code","refresh_token"],"response_types":["code"],"token_endpoint_auth_method":"none"}
+      #|{"client_name":"mcpx","application_type":"native","redirect_uris":["http://127.0.0.1:8765/callback"],"grant_types":["authorization_code","refresh_token"],"response_types":["code"],"token_endpoint_auth_method":"none"}
     ),
   )
 }
@@ -109,9 +131,73 @@ test "oauth plan: decodes authorization server metadata" {
       #|    token_endpoint: "https://auth.example/token",
       #|    registration_endpoint: Some("https://auth.example/register"),
       #|    scopes_supported: ["repo", "read:user"],
+      #|    issuer: None,
+      #|    authorization_response_iss_parameter_supported: false,
       #|  },
       #|)
     ),
+  )
+}
+
+///|
+test "oauth plan: validates RFC 9207 authorization response issuer" {
+  let metadata = oauth_metadata(
+    authorization_endpoint="https://auth.example/authorize",
+    token_endpoint="https://auth.example/token",
+    issuer=Some("https://auth.example"),
+    authorization_response_iss_parameter_supported=true,
+  )
+  inspect(
+    validate_authorization_response_issuer(
+      metadata,
+      Some("https://auth.example"),
+    )
+    is Ok(_),
+    content="true",
+  )
+  inspect(
+    validate_authorization_response_issuer(metadata, None) is Err(_),
+    content="true",
+  )
+  inspect(
+    validate_authorization_response_issuer(
+      metadata,
+      Some("https://attacker.example"),
+    )
+    is Err(_),
+    content="true",
+  )
+}
+
+///|
+test "oauth plan: rejects unexpected issuer even without advertised support" {
+  let metadata = oauth_metadata(
+    authorization_endpoint="https://auth.example/authorize",
+    token_endpoint="https://auth.example/token",
+    issuer=Some("https://auth.example"),
+  )
+  inspect(
+    validate_authorization_response_issuer(
+      metadata,
+      Some("https://attacker.example"),
+    )
+    is Err(_),
+    content="true",
+  )
+}
+
+///|
+test "oauth plan: decodes RFC 9207 metadata" {
+  let decoded = decode_oauth_metadata({
+    "issuer": "https://auth.example",
+    "authorization_endpoint": "https://auth.example/authorize",
+    "token_endpoint": "https://auth.example/token",
+    "authorization_response_iss_parameter_supported": true,
+  }).unwrap()
+  inspect(decoded.issuer.unwrap(), content="https://auth.example")
+  inspect(
+    decoded.authorization_response_iss_parameter_supported,
+    content="true",
   )
 }
 

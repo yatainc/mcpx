@@ -6,7 +6,7 @@ test "bench wasm MCP HTTP call host-action reduce flow" (it : @bench.T) {
     "jsonrpc": Json::string("2.0"),
     "id": Json::number(1.0, repr="1"),
     "result": Json::object({
-      "protocolVersion": Json::string("2025-03-26"),
+      "protocolVersion": Json::string("2026-07-28"),
       "capabilities": Json::empty_object(),
       "serverInfo": Json::object({ "name": Json::string("srv") }),
     }),

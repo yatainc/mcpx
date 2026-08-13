@@ -1,11 +1,11 @@
 ///|
 test "mcp client: pure initialize list and call sequence" {
-  let client = mcp_client(client_name="mcpx", client_version="0.1.4")
+  let client = mcp_client(client_name="mcpx", client_version="0.1.3")
   let init = client.initialize_request()
   inspect(
     init.message.stringify(),
     content=(
-      #|{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"mcpx","version":"0.1.4"}}}
+      #|{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2026-07-28","capabilities":{},"clientInfo":{"name":"mcpx","version":"0.1.3"}}}
     ),
   )
   ignore(

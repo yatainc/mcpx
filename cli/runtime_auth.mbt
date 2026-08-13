@@ -10,9 +10,19 @@ async fn run_auth(
   home : String,
   config_home : String?,
 ) -> String {
+  if command.issuer is Some(_) && command.code is None {
+    return error_result("OAuth code is required")
+  }
   match (command.code, command.state) {
     (Some(code), Some(state)) =>
-      return complete_oauth_auth(command.server, code, state, home, config_home)
+      return complete_oauth_auth(
+        command.server,
+        code,
+        state,
+        command.issuer,
+        home,
+        config_home,
+      )
     (Some(_), None) => return error_result("OAuth state is required")
     (None, Some(_)) => return error_result("OAuth code is required")
     (None, None) => ()
@@ -79,6 +89,8 @@ async fn run_auth(
         client_id~,
         client_secret~,
         token_endpoint=metadata.token_endpoint,
+        authorization_issuer=metadata.issuer,
+        require_authorization_issuer=metadata.authorization_response_iss_parameter_supported,
         redirect_uri~,
         code_verifier=verifier,
         state~,
@@ -110,6 +122,7 @@ async fn run_auth(
           command.server,
           callback.code,
           callback.state,
+          callback.issuer,
           home,
           config_home,
         )
@@ -123,6 +136,7 @@ async fn complete_oauth_auth(
   server_name : String,
   code : String,
   state : String,
+  response_issuer : String?,
   home : String,
   config_home : String?,
 ) -> String {
@@ -136,6 +150,20 @@ async fn complete_oauth_auth(
     @auth.find_pending_oauth_flow(snapshot.file, server_name~, state~) {
     Some(value) => value
     None => return error_result("pending OAuth flow not found: " + server_name)
+  }
+  let issuer_metadata = @auth.oauth_metadata(
+    authorization_endpoint="",
+    token_endpoint=flow.token_endpoint,
+    issuer=flow.authorization_issuer,
+    authorization_response_iss_parameter_supported=flow.require_authorization_issuer,
+  )
+  match
+    @auth.validate_authorization_response_issuer(
+      issuer_metadata, response_issuer,
+    ) {
+    Ok(_) => ()
+    Err(_) =>
+      return error_result("OAuth authorization response issuer mismatch")
   }
   let issued_at = current_time_seconds()
   let body = @auth.authorization_code_token_request_body(
@@ -216,6 +244,8 @@ fn save_pending_oauth_flow(
   client_id~ : String,
   client_secret~ : String?,
   token_endpoint~ : String,
+  authorization_issuer~ : String?,
+  require_authorization_issuer~ : Bool,
   redirect_uri~ : String,
   code_verifier~ : String,
   state~ : String,
@@ -232,6 +262,8 @@ fn save_pending_oauth_flow(
       client_id~,
       client_secret~,
       token_endpoint~,
+      authorization_issuer~,
+      require_authorization_issuer~,
       redirect_uri~,
       code_verifier~,
       state~,
@@ -263,6 +295,8 @@ fn same_pending_oauth_flow(
   left.client_info.client_id == right.client_info.client_id &&
   left.client_info.client_secret == right.client_info.client_secret &&
   left.token_endpoint == right.token_endpoint &&
+  left.authorization_issuer == right.authorization_issuer &&
+  left.require_authorization_issuer == right.require_authorization_issuer &&
   left.redirect_uri == right.redirect_uri &&
   left.code_verifier == right.code_verifier &&
   left.state == right.state &&
@@ -595,6 +629,7 @@ async fn refresh_oauth_credentials(
 ///|
 async fn fetch_oauth_metadata(
   metadata_url : String,
+  expected_issuer? : String? = None,
 ) -> Result[@auth.OAuthMetadata, String] {
   let (response, data) = @http.get(metadata_url, headers={
     "accept": "application/json",
@@ -607,9 +642,17 @@ async fn fetch_oauth_metadata(
   let metadata_json = data.json() catch {
     _ => return Err("invalid OAuth metadata")
   }
-  match @auth.decode_oauth_metadata(metadata_json) {
-    Ok(value) => Ok(value)
-    Err(_) => Err("invalid OAuth metadata")
+  let metadata = match @auth.decode_oauth_metadata(metadata_json) {
+    Ok(value) => value
+    Err(_) => return Err("invalid OAuth metadata")
+  }
+  match expected_issuer {
+    Some(expected) =>
+      match metadata.issuer {
+        Some(actual) if actual == expected => Ok(metadata)
+        _ => Err("OAuth metadata issuer mismatch")
+      }
+    None => Ok(metadata)
   }
 }
 
@@ -681,6 +724,8 @@ async fn resolve_oauth_metadata(
       }
       match discover_oauth_metadata(url) {
         Ok(value) => Ok(value)
+        Err("OAuth metadata issuer mismatch") =>
+          Err("OAuth metadata issuer mismatch")
         Err(_) => Err("OAuth metadata URL is required: " + server_name)
       }
     }
@@ -721,7 +766,10 @@ async fn discover_oauth_metadata(
     Some(value) => value
     None => return Err("empty authorization_servers")
   }
-  fetch_oauth_metadata(oauth_authorization_server_metadata_url(issuer))
+  fetch_oauth_metadata(
+    oauth_authorization_server_metadata_url(issuer),
+    expected_issuer=Some(issuer),
+  )
 }
 
 ///|

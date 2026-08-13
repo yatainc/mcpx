@@ -12,7 +12,7 @@ curl -fsSL https://raw.githubusercontent.com/yatainc/mcpx/main/install.sh | sh
 Run directly:
 
 ```sh
-nix run github:yatainc/mcpx -- --help
+nix run --accept-flake-config github:yatainc/mcpx -- --help
 ```
 
 ## Usage
@@ -97,6 +97,12 @@ Add `"$schema"` for editor autocompletion and validation:
       // Optional: executable arguments.
       "args": ["/path/to/server.js"],
 
+      // Optional connection handling. HTTP defaults to "auto".
+      // For stdio, omit this or use "stateful" for the current release.
+      "protocol": {
+        "mode": "stateful"
+      },
+
       // Optional: process env; ${VAR} is supported.
       "env": {
         "API_TOKEN": "${API_TOKEN}"
@@ -113,6 +119,23 @@ Add `"$schema"` for editor autocompletion and validation:
   }
 }
 ```
+
+### MCP protocol modes
+
+`protocol.mode` controls the MCP connection lifecycle. Accepted values are `auto`,
+`stateful`, and `stateless`; the resulting protocol version determines request
+encoding.
+
+HTTP defaults to `auto`: it tries MCP `2026-07-28` discovery and falls back to the
+initialize lifecycle only for explicit legacy signals. `stateful` selects the
+initialize lifecycle directly and retains a server-issued session ID. `stateless`
+requires MCP `2026-07-28`, never sends a session ID, and does not silently downgrade
+to an initialize-era protocol.
+
+For stdio, omitted mode and explicit `stateful` preserve initialize-era behavior.
+Explicit `auto` tries `server/discover` and falls back on JSON-RPC method-not-found;
+`stateless` requires MCP `2026-07-28`. This is independent of stdio
+`lifecycle.mode`, which only controls process reuse.
 
 ### Environment values
 
@@ -172,7 +195,8 @@ bash scripts/benchmark.sh
 
 ## Roadmap
 
-- [ ] adopt MCP `2026-07-28` stateless protocol
+- [x] support MCP `2026-07-28` discovery, `tools/list`, and `tools/call` over HTTP
+- [x] add MCP `2026-07-28` stdio negotiation
 - [ ] publish the JS build as a library package
 - [ ] provide an npm package that downloads/installs the native CLI
 

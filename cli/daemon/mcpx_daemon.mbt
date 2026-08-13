@@ -399,6 +399,7 @@ async fn create_entry(
     args=server.args,
     env=server.env,
     cwd=server.cwd,
+    mode=@config.effective_connection_mode(server),
   ) catch {
     _ => raise McpxDaemonError::Stdio("mcp stdio error")
   }
@@ -538,6 +539,10 @@ fn tool_info_json(tool : @mcp_client.McpToolInfo) -> Json {
     None => ()
   }
   obj["inputSchema"] = tool.input_schema
+  match tool.output_schema {
+    Some(value) => obj["outputSchema"] = value
+    None => ()
+  }
   Json::object(obj)
 }
 

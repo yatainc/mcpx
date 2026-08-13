@@ -33,7 +33,9 @@ async test "mcpx runtime: info uses configured remote HTTP server" {
           Object(obj) => obj.get("id").unwrap_or(Json::number(1.0, repr="1"))
           _ => Json::number(1.0, repr="1")
         }
-        if rpc_method == "initialize" {
+        if rpc_method == "server/discover" {
+          conn..send_response(400, "Bad Request").end_response()
+        } else if rpc_method == "initialize" {
           conn.send_response(200, "OK", extra_headers={
             "content-type": "application/json",
             "Mcp-Session-Id": "sid-list",
@@ -171,7 +173,9 @@ async test "mcpx runtime: info can use direct remote URL without config" {
           Object(obj) => obj.get("id").unwrap_or(Json::number(1.0, repr="1"))
           _ => Json::number(1.0, repr="1")
         }
-        if rpc_method == "initialize" {
+        if rpc_method == "server/discover" {
+          conn..send_response(400, "Bad Request").end_response()
+        } else if rpc_method == "initialize" {
           conn.send_response(200, "OK", extra_headers={
             "content-type": "application/json",
           })

@@ -14,6 +14,7 @@ pub struct McpServerConfig {
   cwd : String?
   headers : Map[String, String]
   auth : ServerAuthConfig?
+  protocol_mode : McpConnectionMode?
   lifecycle : ServerLifecycle?
   allowed_tools : Array[String]
   disabled_tools : Array[String]
@@ -30,6 +31,13 @@ pub(all) enum ServerTransport {
 pub(all) enum ServerAuthKind {
   OAuth
 } derive(Debug)
+
+///|
+pub(all) enum McpConnectionMode {
+  Auto
+  Stateful
+  Stateless
+} derive(Debug, Eq)
 
 ///|
 pub struct ServerAuthConfig {
@@ -68,6 +76,7 @@ pub fn mcp_server_config(
   cwd? : String? = None,
   headers? : Map[String, String] = Map([]),
   auth? : ServerAuthConfig? = None,
+  protocol_mode? : McpConnectionMode? = None,
   lifecycle? : ServerLifecycle? = None,
   allowed_tools? : Array[String] = [],
   disabled_tools? : Array[String] = [],
@@ -83,6 +92,7 @@ pub fn mcp_server_config(
     cwd,
     headers,
     auth,
+    protocol_mode,
     lifecycle,
     allowed_tools,
     disabled_tools,
@@ -176,6 +186,7 @@ pub fn resolve_server_env(
     cwd,
     headers,
     auth,
+    protocol_mode: server.protocol_mode,
     lifecycle,
     allowed_tools: server.allowed_tools,
     disabled_tools: server.disabled_tools,
@@ -462,6 +473,7 @@ fn decode_server_config(
     cwd: optional_string(obj.get("cwd"), "cwd"),
     headers: optional_string_map(obj.get("headers"), "headers"),
     auth: optional_auth(obj.get("auth")),
+    protocol_mode: optional_protocol_mode(obj.get("protocol")),
     lifecycle: optional_lifecycle(obj.get("lifecycle")),
     allowed_tools: optional_string_array(
       obj.get("allowedTools"),
@@ -484,6 +496,38 @@ fn decode_transport(value : String?) -> ServerTransport raise ConfigDecodeError 
       raise ConfigDecodeError::InvalidConfigJson(
         "unsupported transport: " + other,
       )
+  }
+}
+
+///|
+pub fn effective_connection_mode(server : McpServerConfig) -> McpConnectionMode {
+  match server.protocol_mode {
+    Some(mode) => mode
+    None =>
+      match server.transport {
+        Http => McpConnectionMode::Auto
+        Stdio => McpConnectionMode::Stateful
+      }
+  }
+}
+
+///|
+fn optional_protocol_mode(
+  json : Json?,
+) -> McpConnectionMode? raise ConfigDecodeError {
+  match json {
+    None | Some(Null) => None
+    Some(Object(obj)) =>
+      match expect_string(obj.get("mode"), "protocol.mode") {
+        "auto" => Some(McpConnectionMode::Auto)
+        "stateful" => Some(McpConnectionMode::Stateful)
+        "stateless" => Some(McpConnectionMode::Stateless)
+        other =>
+          raise ConfigDecodeError::InvalidConfigJson(
+            "unsupported protocol mode: " + other,
+          )
+      }
+    _ => raise ConfigDecodeError::InvalidConfigJson("protocol must be object")
   }
 }
 
@@ -735,6 +779,13 @@ pub impl ToJson for McpServerConfig with fn to_json(self) {
     Some(auth) => obj["auth"] = auth.to_json()
     None => ()
   }
+  match self.protocol_mode {
+    Some(mode) =>
+      obj["protocol"] = Json::object({
+        "mode": Json::string(connection_mode_to_string(mode)),
+      })
+    None => ()
+  }
   match self.lifecycle {
     Some(lifecycle) => obj["lifecycle"] = lifecycle.to_json()
     None => ()
@@ -790,6 +841,15 @@ fn server_transport_to_string(transport : ServerTransport) -> String {
   match transport {
     Stdio => "stdio"
     Http => "http"
+  }
+}
+
+///|
+fn connection_mode_to_string(mode : McpConnectionMode) -> String {
+  match mode {
+    Auto => "auto"
+    Stateful => "stateful"
+    Stateless => "stateless"
   }
 }
 

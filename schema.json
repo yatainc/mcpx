@@ -55,6 +55,9 @@
         "auth": {
           "$ref": "#/$defs/auth"
         },
+        "protocol": {
+          "$ref": "#/$defs/protocol"
+        },
         "lifecycle": {
           "$ref": "#/$defs/lifecycle"
         },
@@ -100,6 +103,19 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "OAuth scopes to request."
+        }
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "description": "MCP connection lifecycle preference. The selected lifecycle determines protocol-version negotiation and session handling.",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["auto", "stateful", "stateless"],
+          "description": "'auto' tries 2026-07-28 discovery with explicit legacy fallback, 'stateful' directly uses initialize-era MCP and retains server-issued sessions, and 'stateless' requires 2026-07-28 without downgrade or session IDs."
         }
       }
     },

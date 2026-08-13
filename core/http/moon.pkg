@@ -1,5 +1,9 @@
 import {
   "yatainc/mcpx/core/protocol",
+  "yatainc/mcpx/core/config",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/base64",
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {
