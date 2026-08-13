@@ -55,7 +55,7 @@ async fn negotiate(
     error => raise error
   }
   match outcome {
-    DiscoverHttpOutcome::LegacySignal => {
+    DiscoverHttpOutcome::LegacySignal =>
       if endpoint.mode == @config.McpConnectionMode::Auto {
         HttpProtocolLifecycle::InitializeEra(
           @protocol.McpProtocolVersion::V2025_11_25,
@@ -65,7 +65,6 @@ async fn negotiate(
           "stateless", "initialize-era",
         )
       }
-    }
     DiscoverHttpOutcome::Discover(discover) =>
       negotiation_from_discover(endpoint.mode, discover)
   }
