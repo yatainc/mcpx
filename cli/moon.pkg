@@ -61,6 +61,7 @@ options(
     "runtime_wbtest.mbt": [ "native", "llvm" ],
     "runtime_call_wbtest.mbt": [ "native", "llvm" ],
     "runtime_info_wbtest.mbt": [ "native", "llvm" ],
+    "runtime_info_schema_wbtest.mbt": [ "native", "llvm" ],
     "runtime_search_wbtest.mbt": [ "native", "llvm" ],
     "search_bench_wbtest.mbt": [ "native", "llvm" ],
     "runtime_stdio_wbtest.mbt": [ "native", "llvm" ],
