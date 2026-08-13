@@ -603,6 +603,11 @@ fn build_headers_legacy(
   session_id : String?,
 ) -> Map[String, String] {
   let headers = base_headers.copy()
+  for
+    key in ["Mcp-Session-Id", "MCP-Protocol-Version", "Mcp-Method", "Mcp-Name"] {
+    remove_header_case_insensitive(headers, key)
+  }
+  remove_headers_with_prefix_case_insensitive(headers, "Mcp-Param-")
   set_header_case_insensitive(headers, "content-type", "application/json")
   set_header_case_insensitive(
     headers, "accept", "application/json, text/event-stream",
