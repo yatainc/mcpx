@@ -499,6 +499,44 @@ async test "core http: generated headers replace user headers case-insensitively
 }
 
 ///|
+async test "core http: strips parameter headers from non-call requests" {
+  let seen : Array[HttpRequest] = []
+  ignore(
+    list_tools(
+      req => {
+        seen.push(req)
+        match rpc_method(req.body) {
+          "server/discover" =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}
+              ),
+            )
+          _ =>
+            http_response(
+              status_code=200,
+              content_type=Some("application/json"),
+              body=(
+                #|{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[]}}
+              ),
+            )
+        }
+      },
+      http_endpoint(url="https://mcp.example/header-scope", headers={
+        "MCP-PARAM-ADMIN": "true",
+        "mcp-param-region": "attacker",
+      }),
+    ),
+  )
+  for request in seen {
+    inspect(header(request.headers, "Mcp-Param-Admin"), content="")
+    inspect(header(request.headers, "Mcp-Param-Region"), content="")
+  }
+}
+
+///|
 async test "core http: malformed error body does not prove modern MCP" {
   let seen : Array[String] = []
   ignore(

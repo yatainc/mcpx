@@ -599,6 +599,7 @@ fn build_modern_headers(
     key in ["Mcp-Session-Id", "MCP-Protocol-Version", "Mcp-Method", "Mcp-Name"] {
     remove_header_case_insensitive(headers, key)
   }
+  remove_headers_with_prefix_case_insensitive(headers, "Mcp-Param-")
   headers["MCP-Protocol-Version"] = @protocol.mcp_protocol_version_to_string(
     version,
   )
