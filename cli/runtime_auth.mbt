@@ -629,6 +629,7 @@ async fn refresh_oauth_credentials(
 ///|
 async fn fetch_oauth_metadata(
   metadata_url : String,
+  expected_issuer? : String? = None,
 ) -> Result[@auth.OAuthMetadata, String] {
   let (response, data) = @http.get(metadata_url, headers={
     "accept": "application/json",
@@ -641,9 +642,17 @@ async fn fetch_oauth_metadata(
   let metadata_json = data.json() catch {
     _ => return Err("invalid OAuth metadata")
   }
-  match @auth.decode_oauth_metadata(metadata_json) {
-    Ok(value) => Ok(value)
-    Err(_) => Err("invalid OAuth metadata")
+  let metadata = match @auth.decode_oauth_metadata(metadata_json) {
+    Ok(value) => value
+    Err(_) => return Err("invalid OAuth metadata")
+  }
+  match expected_issuer {
+    Some(expected) =>
+      match metadata.issuer {
+        Some(actual) if actual == expected => Ok(metadata)
+        _ => Err("OAuth metadata issuer mismatch")
+      }
+    None => Ok(metadata)
   }
 }
 
@@ -715,6 +724,8 @@ async fn resolve_oauth_metadata(
       }
       match discover_oauth_metadata(url) {
         Ok(value) => Ok(value)
+        Err("OAuth metadata issuer mismatch") =>
+          Err("OAuth metadata issuer mismatch")
         Err(_) => Err("OAuth metadata URL is required: " + server_name)
       }
     }
@@ -755,7 +766,10 @@ async fn discover_oauth_metadata(
     Some(value) => value
     None => return Err("empty authorization_servers")
   }
-  fetch_oauth_metadata(oauth_authorization_server_metadata_url(issuer))
+  fetch_oauth_metadata(
+    oauth_authorization_server_metadata_url(issuer),
+    expected_issuer=Some(issuer),
+  )
 }
 
 ///|

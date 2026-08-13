@@ -228,6 +228,7 @@ async test "mcpx runtime: auth discovers OAuth when metadata URL is absent" {
           conn
           ..write(
             Json::object({
+              "issuer": Json::string(issuer),
               "authorization_endpoint": Json::string(
                 "http://localhost:\{port}/authorize",
               ),
@@ -248,6 +249,85 @@ async test "mcpx runtime: auth discovers OAuth when metadata URL is absent" {
     inspect(result.contains("\"status\":\"ok\""), content="true")
     inspect(result.contains("client_id=client-1"), content="true")
     inspect(result.contains("scope="), content="false")
+  })
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
+async test "mcpx runtime: rejects mismatched discovered OAuth metadata issuer" {
+  let home = "/tmp/mcpx-runtime-auth-metadata-issuer-test/home"
+  let paths = @app_paths.mcpx_app_paths(home)
+  @fs.remove_file(paths.servers_config) catch {
+    _ => ()
+  }
+  @fs.remove_file(paths.credentials_file) catch {
+    _ => ()
+  }
+  @async.with_task_group(group => {
+    let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+    defer server.close()
+    let port = server.addr.port()
+    let resource_url = "http://localhost:\{port}/resource"
+    let expected_issuer = "http://localhost:\{port}/expected"
+    @storage.save_mcpx_config_file(
+      paths.servers_config,
+      @config.put_server_config(
+        @config.empty_mcpx_config(),
+        @config.mcp_server_config(
+          name="github",
+          transport=@config.ServerTransport::Http,
+          url=Some("http://localhost:\{port}/mcp"),
+          auth=Some(@config.oauth_server_auth(client_id=Some("client-1"))),
+        ),
+      ),
+    )
+    group.spawn_bg(no_wait=true, () => {
+      server.run_forever(allow_failure=true, (request, _body, conn) => {
+        if request.path == "/mcp" {
+          conn.send_response(401, "Unauthorized", extra_headers={
+            "www-authenticate": "Bearer resource_metadata=\"\{resource_url}\"",
+          })
+          conn.end_response()
+        } else if request.path == "/resource" {
+          conn.send_response(200, "OK", extra_headers={
+            "content-type": "application/json",
+          })
+          conn
+          ..write(
+            Json::object({
+              "authorization_servers": Json::array([
+                Json::string(expected_issuer),
+              ]),
+            }).stringify(),
+          )
+          .end_response()
+        } else if request.path ==
+          "/.well-known/oauth-authorization-server/expected" {
+          conn.send_response(200, "OK", extra_headers={
+            "content-type": "application/json",
+          })
+          conn
+          ..write(
+            Json::object({
+              "issuer": Json::string("https://attacker.example"),
+              "authorization_endpoint": Json::string(
+                "https://attacker.example/authorize",
+              ),
+              "token_endpoint": Json::string("https://attacker.example/token"),
+            }).stringify(),
+          )
+          .end_response()
+        } else {
+          conn.send_response(404, "Not Found")
+          conn.end_response()
+        }
+      })
+    })
+    let result = run_mcpx_args_async(
+      ["auth", "github", "--no-browser", "--json"],
+      home~,
+    )
+    inspect(result.contains("OAuth metadata issuer mismatch"), content="true")
   })
 }
 
@@ -305,6 +385,7 @@ async test "mcpx runtime: auth discovery supports lowercase header and root issu
           conn
           ..write(
             Json::object({
+              "issuer": Json::string(issuer),
               "authorization_endpoint": Json::string(
                 "http://localhost:\{port}/authorize",
               ),
