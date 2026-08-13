@@ -140,7 +140,6 @@ async fn call_tool_modern(
     "tools/call",
     Some(tool_name),
   )
-  remove_headers_with_prefix_case_insensitive(headers, "Mcp-Param-")
   for key, value in parameter_headers {
     remove_header_case_insensitive(headers, key)
     headers[key] = value

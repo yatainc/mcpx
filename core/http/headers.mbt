@@ -28,11 +28,6 @@ fn build_modern_headers(
   rpc_name : String?,
 ) -> Map[String, String] {
   let headers = build_headers_legacy(base_headers, None)
-  for
-    key in ["Mcp-Session-Id", "MCP-Protocol-Version", "Mcp-Method", "Mcp-Name"] {
-    remove_header_case_insensitive(headers, key)
-  }
-  remove_headers_with_prefix_case_insensitive(headers, "Mcp-Param-")
   headers["MCP-Protocol-Version"] = @protocol.mcp_protocol_version_to_string(
     version,
   )
