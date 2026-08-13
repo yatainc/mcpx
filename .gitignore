@@ -17,3 +17,7 @@ pkg.generated.mbti
 # codex
 CONTINUITY.md
 .tmp/
+
+# APM dependencies
+apm_modules/
+.agents/skills/

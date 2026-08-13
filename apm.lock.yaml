@@ -1,0 +1,125 @@
+lockfile_version: '1'
+generated_at: '2026-08-13T13:15:48.216087+00:00'
+apm_version: 0.28.0
+dependencies:
+- repo_url: moonbitlang/moonbit-agent-guide
+  name: moonbit-agent-guide
+  host: github.com
+  resolved_commit: 3ef82069d0f9e659bc60bc083dc8b2470448bd68
+  version: unknown
+  virtual_path: moonbit-agent-guide
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/moonbit-agent-guide
+  - .agents/skills/moonbit-agent-guide/.gitignore
+  - .agents/skills/moonbit-agent-guide/LICENSE
+  - .agents/skills/moonbit-agent-guide/README.md
+  - .agents/skills/moonbit-agent-guide/SKILL.mbt.md
+  - .agents/skills/moonbit-agent-guide/SKILL.md
+  - .agents/skills/moonbit-agent-guide/ide.md
+  - .agents/skills/moonbit-agent-guide/references/advanced-moonbit-build.md
+  - .agents/skills/moonbit-agent-guide/references/moonbit-language-fundamentals.mbt.md
+  - .agents/skills/moonbit-agent-guide/references/moonbit-language-fundamentals.md
+  deployed_file_hashes:
+    .agents/skills/moonbit-agent-guide/.gitignore: sha256:0d85bcad78281a70f6540deb184a1b9398e34acaa5ff6dd3f544d6b21b6f92ca
+    .agents/skills/moonbit-agent-guide/LICENSE: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    .agents/skills/moonbit-agent-guide/README.md: sha256:eb1b649a7203ed9e2b3dd774d1c144343f74d605fa3eda7d733216445b9b6ee6
+    .agents/skills/moonbit-agent-guide/SKILL.mbt.md: sha256:3ae06bb3d68d1859e9d61ae0cc88af36edaf312b747f882bf205e34a424c4aaa
+    .agents/skills/moonbit-agent-guide/SKILL.md: sha256:3ae06bb3d68d1859e9d61ae0cc88af36edaf312b747f882bf205e34a424c4aaa
+    .agents/skills/moonbit-agent-guide/ide.md: sha256:56fa73e1b8d472bf5b72e444c862bc54b3311fa2d5c78b853a6557c872289c70
+    .agents/skills/moonbit-agent-guide/references/advanced-moonbit-build.md: sha256:a7d71b0738b814414edc5cfcbeff66931870da4d515f7aa864e6e51a3e8ed708
+    .agents/skills/moonbit-agent-guide/references/moonbit-language-fundamentals.mbt.md: sha256:9d4e3fb88a61916552a8f4d27d9e1383c926fd641fde11032e998c4ffd7d09bd
+    .agents/skills/moonbit-agent-guide/references/moonbit-language-fundamentals.md: sha256:9d4e3fb88a61916552a8f4d27d9e1383c926fd641fde11032e998c4ffd7d09bd
+  content_hash: sha256:68bcf18038dced6fff0d99abb57ff8e8a82c38c8216385b921e363a278e3bbf6
+deployments:
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/moonbit-agent-guide
+  runtime: null
+  scope: project
+  owners:
+  - moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  active_owner: moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/moonbit-agent-guide/.gitignore
+  runtime: null
+  scope: project
+  owners:
+  - moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  active_owner: moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  content_hash: sha256:0d85bcad78281a70f6540deb184a1b9398e34acaa5ff6dd3f544d6b21b6f92ca
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/moonbit-agent-guide/LICENSE
+  runtime: null
+  scope: project
+  owners:
+  - moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  active_owner: moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  content_hash: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/moonbit-agent-guide/README.md
+  runtime: null
+  scope: project
+  owners:
+  - moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  active_owner: moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  content_hash: sha256:eb1b649a7203ed9e2b3dd774d1c144343f74d605fa3eda7d733216445b9b6ee6
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/moonbit-agent-guide/SKILL.mbt.md
+  runtime: null
+  scope: project
+  owners:
+  - moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  active_owner: moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  content_hash: sha256:3ae06bb3d68d1859e9d61ae0cc88af36edaf312b747f882bf205e34a424c4aaa
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/moonbit-agent-guide/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  active_owner: moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  content_hash: sha256:3ae06bb3d68d1859e9d61ae0cc88af36edaf312b747f882bf205e34a424c4aaa
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/moonbit-agent-guide/ide.md
+  runtime: null
+  scope: project
+  owners:
+  - moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  active_owner: moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  content_hash: sha256:56fa73e1b8d472bf5b72e444c862bc54b3311fa2d5c78b853a6557c872289c70
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/moonbit-agent-guide/references/advanced-moonbit-build.md
+  runtime: null
+  scope: project
+  owners:
+  - moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  active_owner: moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  content_hash: sha256:a7d71b0738b814414edc5cfcbeff66931870da4d515f7aa864e6e51a3e8ed708
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/moonbit-agent-guide/references/moonbit-language-fundamentals.mbt.md
+  runtime: null
+  scope: project
+  owners:
+  - moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  active_owner: moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  content_hash: sha256:9d4e3fb88a61916552a8f4d27d9e1383c926fd641fde11032e998c4ffd7d09bd
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/moonbit-agent-guide/references/moonbit-language-fundamentals.md
+  runtime: null
+  scope: project
+  owners:
+  - moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  active_owner: moonbitlang/moonbit-agent-guide/moonbit-agent-guide
+  content_hash: sha256:9d4e3fb88a61916552a8f4d27d9e1383c926fd641fde11032e998c4ffd7d09bd
