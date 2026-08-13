@@ -313,20 +313,17 @@ async fn fetch_modern_tool_catalog(
   max_pages? : Int = @protocol.MCP_TOOL_LIST_MAX_PAGES,
   max_tools? : Int = @protocol.MCP_TOOL_LIST_MAX_TOOLS,
 ) -> ModernToolCatalog raise McpHttpClientError {
-  let tools = []
-  let seen_cursors : Array[String] = []
-  let mut cursor : String? = None
+  let pagination = @protocol.mcp_tool_pagination()
+  let limits = @protocol.mcp_tool_list_limits(max_pages~, max_tools~)
+  let accepted_tools : Array[@protocol.McpToolInfo] = []
   let mut request_id = first_request_id
   let mut ttl_ms = 0
   let mut cache_scope : @protocol.McpCacheScope? = None
-  let mut page_count = 0
   for ;; {
-    if page_count >= max_pages {
-      raise McpHttpClientError::Protocol(
-        "tools/list exceeds maximum page count",
-      )
+    let cursor = match pagination.begin_page(limits) {
+      Ok(value) => value
+      Err(error) => raise pagination_error_to_http(error)
     }
-    page_count = page_count + 1
     let request = @protocol.mcp_tools_list_request(
       id=request_id,
       client_name=@protocol.MCPX_CLIENT_NAME,
@@ -355,14 +352,16 @@ async fn fetch_modern_tool_catalog(
         )
       Some(_) => ()
     }
-    if tools.length() + page.tools.length() > max_tools {
-      raise McpHttpClientError::Protocol(
-        "tools/list exceeds maximum tool count",
-      )
+    let previous_tool_count = pagination.tools().length()
+    let has_next = match pagination.accept_page(page, limits) {
+      Ok(value) => value
+      Err(error) => raise pagination_error_to_http(error)
     }
-    for tool in page.tools {
+    let all_tools = pagination.tools()
+    for index in previous_tool_count..<all_tools.length() {
+      let tool = all_tools[index]
       match inspect_mcp_tool_header_bindings(tool.input_schema) {
-        Ok(_) => tools.push(tool)
+        Ok(_) => accepted_tools.push(tool)
         Err(_) => ()
       }
     }
@@ -375,23 +374,19 @@ async fn fetch_modern_tool_catalog(
     } else {
       ttl_ms
     }
-    match page.next_cursor {
-      None => break
-      Some(next) => {
-        if seen_cursors.contains(next) {
-          raise McpHttpClientError::Protocol(
-            "tools/list pagination cursor repeated",
-          )
-        }
-        seen_cursors.push(next)
-        cursor = Some(next)
-        request_id = request_id + 1
-      }
+    if has_next {
+      request_id = request_id + 1
+    } else {
+      break
     }
   }
   let scope = cache_scope.unwrap_or(@protocol.McpCacheScope::Private)
   {
-    result: mcp_tool_list_result(tools~, ttl_ms~, cache_scope=scope),
+    result: mcp_tool_list_result(
+      tools=accepted_tools,
+      ttl_ms~,
+      cache_scope=scope,
+    ),
     next_request_id: request_id + 1,
   }
 }
@@ -740,6 +735,20 @@ fn remove_headers_with_prefix_case_insensitive(
   }
   for key in removals {
     headers.remove(key)
+  }
+}
+
+///|
+fn pagination_error_to_http(
+  error : @protocol.McpToolPaginationError,
+) -> McpHttpClientError {
+  match error {
+    @protocol.McpToolPaginationError::TooManyPages =>
+      McpHttpClientError::Protocol("tools/list exceeds maximum page count")
+    @protocol.McpToolPaginationError::TooManyTools =>
+      McpHttpClientError::Protocol("tools/list exceeds maximum tool count")
+    @protocol.McpToolPaginationError::RepeatedCursor =>
+      McpHttpClientError::Protocol("tools/list pagination cursor repeated")
   }
 }
 
