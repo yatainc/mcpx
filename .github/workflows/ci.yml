@@ -30,7 +30,7 @@ on:
       - "package.nix"
       - "moon.mod"
       - "moon.pkg"
-      - ".github/workflows/**"},{
+      - ".github/workflows/**"
 
 permissions: {}
 
