@@ -1,0 +1,56 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/core/tools"
+
+import {
+  "moonbitlang/core/debug",
+  "yatainc/mcpx/core/protocol",
+}
+
+// Values
+pub const MCP_TOOL_LIST_MAX_PAGES : Int = 1000
+
+pub const MCP_TOOL_LIST_MAX_TOOLS : Int = 100000
+
+pub async fn call(async (String?) -> Json, async (Map[String, String]) -> Json, tool_name~ : String, arguments~ : Json, tool_definition? : McpToolInfo?, on_catalog_refresh? : (McpToolListResult) -> Unit) -> Json
+
+pub fn call_params(String, Json) -> Map[String, Json]
+
+pub fn decode_list_result(Json, modern? : Bool) -> McpToolListPage raise @protocol.McpProtocolError
+
+pub async fn list(async (String?) -> Json, max_pages? : Int, max_tools? : Int) -> Array[McpToolInfo]
+
+pub async fn list_catalog(async (String?) -> Json, max_pages? : Int, max_tools? : Int) -> McpToolListResult
+
+pub fn list_params(cursor? : String?) -> Map[String, Json]
+
+pub fn mcp_tool_info(name~ : String, description? : String?, input_schema~ : Json, output_schema? : Json?) -> McpToolInfo
+
+pub fn mcp_tool_list_result(tools~ : Array[McpToolInfo], ttl_ms? : Int, cache_scope? : @protocol.McpCacheScope) -> McpToolListResult
+
+// Errors
+
+// Types and methods
+pub struct McpToolInfo {
+  name : String
+  description : String?
+  input_schema : Json
+  output_schema : Json?
+} derive(@debug.Debug)
+pub impl ToJson for McpToolInfo
+
+pub struct McpToolListPage {
+  tools : Array[McpToolInfo]
+  next_cursor : String?
+  ttl_ms : Int
+  cache_scope : @protocol.McpCacheScope
+} derive(@debug.Debug)
+
+pub struct McpToolListResult {
+  tools : Array[McpToolInfo]
+  ttl_ms : Int
+  cache_scope : @protocol.McpCacheScope
+} derive(@debug.Debug)
+
+// Type aliases
+
+// Traits

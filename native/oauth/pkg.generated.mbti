@@ -1,0 +1,38 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/native/oauth"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn base64url(BytesView) -> String
+
+pub async fn open_authorization_url(String) -> Unit
+
+pub fn pkce_s256_challenge(String) -> String
+
+pub fn random_urlsafe_token(Int) -> String raise OAuthPkceError
+
+pub async fn wait_for_oauth_callback(port~ : Int, path~ : String, expected_state~ : String, timeout_ms~ : Int, trigger~ : async (String) -> Unit) -> OAuthCallbackCode raise OAuthCallbackError
+
+// Errors
+pub suberror OAuthCallbackError {
+  Timeout
+  StateMismatch
+  MissingCode
+  InvalidRequest
+} derive(@debug.Debug)
+
+type OAuthPkceError derive(@debug.Debug)
+
+// Types and methods
+pub struct OAuthCallbackCode {
+  code : String
+  state : String
+  issuer : String?
+} derive(@debug.Debug)
+
+// Type aliases
+
+// Traits

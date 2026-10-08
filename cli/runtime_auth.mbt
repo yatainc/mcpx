@@ -378,26 +378,6 @@ async fn register_oauth_client(
 }
 
 ///|
-fn auth_hint_result(hint : @auth.AuthHint) -> String {
-  let lines = ["Error: " + hint.summary]
-  if !hint.suggested_commands.is_empty() {
-    lines.push("")
-    lines.push("Try:")
-    for command in hint.suggested_commands {
-      lines.push("  " + command)
-    }
-  }
-  match hint.config_hint {
-    Some(value) => {
-      lines.push("")
-      lines.push(value)
-    }
-    None => ()
-  }
-  lines.join("\n")
-}
-
-///|
 fn auth_start_result(
   server_name : String,
   authorization_url : String,

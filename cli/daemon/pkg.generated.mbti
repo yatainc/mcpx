@@ -1,0 +1,36 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/cli/daemon"
+
+import {
+  "moonbitlang/core/debug",
+  "yatainc/mcpx/core/config",
+  "yatainc/mcpx/core/tools",
+}
+
+// Values
+pub async fn daemon_call_tool(home~ : String, config_home? : String?, server_name~ : String, server~ : @config.McpServerConfig, tool_name~ : String, arguments~ : Json) -> Json raise McpxDaemonError
+
+pub async fn daemon_list_tools(home~ : String, config_home? : String?, server_name~ : String, server~ : @config.McpServerConfig) -> Array[@tools.McpToolInfo] raise McpxDaemonError
+
+pub async fn daemon_ping(home~ : String, config_home? : String?) -> Bool
+
+pub async fn daemon_stop(home~ : String, config_home? : String?) -> Bool raise McpxDaemonError
+
+pub fn describe_mcpx_daemon_error(McpxDaemonError) -> String
+
+pub async fn run_mcpx_daemon_foreground(home~ : String, config_home? : String?) -> Unit
+
+// Errors
+pub suberror McpxDaemonError {
+  Unavailable
+  ConnectFailed(String)
+  InvalidResponse(String)
+  RemoteError(String)
+  Stdio(String)
+} derive(@debug.Debug)
+
+// Types and methods
+
+// Type aliases
+
+// Traits

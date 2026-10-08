@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/js/http"
+
+import {
+  "moonbitlang/async/js_async",
+  "yatainc/mcpx/core/tools",
+}
+
+// Values
+pub async fn call_tool_js(JsFetch, url~ : String, tool_name~ : String, arguments~ : Json) -> Json
+
+pub async fn list_tools_js(JsFetch, url~ : String) -> Array[@tools.McpToolInfo]
+
+pub fn mcpx_js_call_tool(JsFetch, String, String, String) -> @js_async.Promise[String]
+
+pub fn mcpx_js_list_tools(JsFetch, String) -> @js_async.Promise[String]
+
+// Errors
+
+// Types and methods
+#external
+pub type JsFetch
+
+// Type aliases
+
+// Traits

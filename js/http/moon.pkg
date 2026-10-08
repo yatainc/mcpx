@@ -2,7 +2,7 @@ import {
   "moonbitlang/async/js_async",
   "moonbitlang/core/json",
   "yatainc/mcpx/core/http" @core_http,
-  "yatainc/mcpx/core/protocol",
+  "yatainc/mcpx/core/tools",
 }
 
 import {

@@ -6,8 +6,8 @@ test "native tool cache: expires entries using injected clock" {
     "https://example.test/mcp",
     Map([]),
     Auto,
-    @core_http.mcp_tool_list_result(
-      tools=[@mcp_client.mcp_tool_info(name="search", input_schema={})],
+    @tools.mcp_tool_list_result(
+      tools=[@tools.mcp_tool_info(name="search", input_schema={})],
       ttl_ms=10,
     ),
   )
@@ -31,8 +31,8 @@ test "native tool cache: public refresh supersedes private variants" {
     url,
     { "Authorization": "Bearer old" },
     Auto,
-    @core_http.mcp_tool_list_result(
-      tools=[@mcp_client.mcp_tool_info(name="private", input_schema={})],
+    @tools.mcp_tool_list_result(
+      tools=[@tools.mcp_tool_info(name="private", input_schema={})],
       ttl_ms=100,
       cache_scope=Private,
     ),
@@ -41,8 +41,8 @@ test "native tool cache: public refresh supersedes private variants" {
     url,
     { "Authorization": "Bearer new" },
     Auto,
-    @core_http.mcp_tool_list_result(
-      tools=[@mcp_client.mcp_tool_info(name="public", input_schema={})],
+    @tools.mcp_tool_list_result(
+      tools=[@tools.mcp_tool_info(name="public", input_schema={})],
       ttl_ms=10,
       cache_scope=Public,
     ),
@@ -62,8 +62,8 @@ test "native tool cache: evicts least recently used entries" {
       url,
       Map([]),
       Auto,
-      @core_http.mcp_tool_list_result(
-        tools=[@mcp_client.mcp_tool_info(name=url, input_schema={})],
+      @tools.mcp_tool_list_result(
+        tools=[@tools.mcp_tool_info(name=url, input_schema={})],
         ttl_ms=10,
       ),
     )
@@ -73,8 +73,8 @@ test "native tool cache: evicts least recently used entries" {
     "https://three",
     Map([]),
     Auto,
-    @core_http.mcp_tool_list_result(
-      tools=[@mcp_client.mcp_tool_info(name="three", input_schema={})],
+    @tools.mcp_tool_list_result(
+      tools=[@tools.mcp_tool_info(name="three", input_schema={})],
       ttl_ms=10,
     ),
   )

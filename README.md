@@ -184,14 +184,35 @@ stored machine-managed and is not printed.
 ## Development
 
 ```sh
+moon install
 moon fmt
-moon test
-moon check --target native --deny-warn --fmt
-moon check --target wasm-gc
-moon check --target js
+moon check --target all --frozen --warn-list +73 --deny-warn
+bash scripts/update-api.sh
+moon test --target native --frozen --warn-list +73 --deny-warn --no-parallelize
+moon test --target js --frozen --warn-list +73 --deny-warn
+moon test --target wasm-gc --frozen --warn-list +73 --deny-warn
 bash scripts/e2e.sh
 bash scripts/benchmark.sh
 ```
+
+Tools definitions, pagination, catalog validation, and refresh/retry decisions
+live in portable `core/tools`. `core/protocol` owns common JSON-RPC and MCP
+metadata; `core/http` owns HTTP negotiation and exchange. Native stdio owns its
+connection, request IDs, locking, and operation timeout independently of HTTP.
+
+The native `cli/tools` package executes resolved Tool commands and formats their
+results. The CLI root resolves config, environment, and OAuth and routes commands;
+it has a single execution path, not a separate JSON command-plan API.
+Set `MCPX_BIN=/path/to/mcpx` when running `scripts/e2e.sh` to test an existing
+artifact instead of rebuilding the checkout.
+
+`bash scripts/update-api.sh` refreshes generated interfaces from fresh compiler
+output: native where supported, then JS/Wasm. Unlike `moon info --target`, it also
+updates platform-only packages whose canonical Wasm interface is unavailable.
+
+The benchmark script includes moved Tools and SSE cases. CLI call benchmarks now
+measure parsing only, since the unused command-plan renderer was removed; their
+timings are not comparable to the previous parse-and-render workload.
 
 ## Roadmap
 

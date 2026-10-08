@@ -1,7 +1,7 @@
 ///|
 priv struct ToolCacheEntry {
   catalog_id : String
-  tools : Array[@mcp_client.McpToolInfo]
+  tools : Array[@tools.McpToolInfo]
   expires_at_ms : Int64
 }
 
@@ -36,7 +36,7 @@ fn ToolCatalogCache::get(
   url : String,
   headers : Map[String, String],
   mode : @config.McpConnectionMode,
-) -> Array[@mcp_client.McpToolInfo]? {
+) -> Array[@tools.McpToolInfo]? {
   let public_key = tool_cache_key(url, mode, Map([]))
   let private_key = tool_cache_key(url, mode, headers)
   match self.get_by_key(public_key) {
@@ -51,7 +51,7 @@ fn ToolCatalogCache::put(
   url : String,
   headers : Map[String, String],
   mode : @config.McpConnectionMode,
-  result : @core_http.McpToolListResult,
+  result : @tools.McpToolListResult,
 ) -> Unit {
   let public_key = tool_cache_key(url, mode, Map([]))
   let private_key = tool_cache_key(url, mode, headers)
@@ -82,7 +82,7 @@ fn ToolCatalogCache::put(
 fn ToolCatalogCache::get_by_key(
   self : ToolCatalogCache,
   key : String,
-) -> Array[@mcp_client.McpToolInfo]? {
+) -> Array[@tools.McpToolInfo]? {
   match self.entries.get(key) {
     Some(entry) if entry.expires_at_ms > (self.clock)() => {
       self.touch(key)
@@ -112,15 +112,8 @@ fn ToolCatalogCache::remove_catalog(
   self : ToolCatalogCache,
   catalog_id : String,
 ) -> Unit {
-  let removals = []
-  for key, entry in self.entries {
-    if entry.catalog_id == catalog_id {
-      removals.push(key)
-    }
-  }
-  for key in removals {
-    self.remove(key)
-  }
+  self.entries.retain((_, entry) => entry.catalog_id != catalog_id)
+  self.order.retain(key => self.entries.contains(key))
 }
 
 ///|
@@ -145,10 +138,10 @@ fn ToolCatalogCache::evict(self : ToolCatalogCache) -> Unit {
 
 ///|
 fn clone_tool_list(
-  tools : Array[@mcp_client.McpToolInfo],
-) -> Array[@mcp_client.McpToolInfo] {
+  tools : Array[@tools.McpToolInfo],
+) -> Array[@tools.McpToolInfo] {
   tools.map(tool => {
-    @mcp_client.mcp_tool_info(
+    @tools.mcp_tool_info(
       name=tool.name,
       description=tool.description,
       input_schema=clone_json(tool.input_schema),
@@ -224,7 +217,7 @@ fn ToolCatalogCache::find_tool(
   headers : Map[String, String],
   mode : @config.McpConnectionMode,
   tool_name : String,
-) -> @mcp_client.McpToolInfo? {
+) -> @tools.McpToolInfo? {
   match self.get(url, headers, mode) {
     Some(tools) =>
       match tools.search_by(tool => tool.name == tool_name) {

@@ -2,7 +2,8 @@ import {
   "moonbitlang/async",
   "moonbitlang/async/process",
   "moonbitlang/core/json",
-  "yatainc/mcpx/core/protocol" @mcp_client,
+  "yatainc/mcpx/core/protocol",
+  "yatainc/mcpx/core/tools",
   "yatainc/mcpx/core/config",
 }
 
@@ -13,10 +14,3 @@ import {
 } for "test"
 
 supported_targets = "native+llvm"
-
-options(
-  targets: {
-    "mcp_stdio.mbt": [ "native", "llvm" ],
-    "mcp_stdio_test.mbt": [ "native", "llvm" ],
-  },
-)

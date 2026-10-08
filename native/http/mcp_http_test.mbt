@@ -4,7 +4,8 @@ async test "mcp http: preserves network errors" {
   try
     http_mcp_list_tools(url="http://127.0.0.1:1/unreachable", headers=Map([]))
   catch {
-    error => inspect(mcp_http_is_network_error(error), content="true")
+    Network(_) => ()
+    _ => fail("expected network error")
   } noraise {
     _ => fail("expected request failure")
   }

@@ -74,14 +74,12 @@ fn mcp_host_result_json(host_result_json : String) -> Json raise EmbeddedError {
   let status_code = expect_int_field(host_result_obj, "statusCode")
   let content_type = optional_string_field(host_result_obj, "contentType")
   let body = expect_string_field(host_result_obj, "body")
-  let payload = match
-    @mcp_client.decode_mcp_transport_payload(
-      @mcp_client.mcp_transport_response(status_code~, content_type~, body~),
-    ) {
-    Ok(value) => value
-    Err(_) => raise ExpectedObject
+  let payload = @http.decode_payload(
+    @http.http_response(status_code~, content_type~, body~),
+  ) catch {
+    _ => raise ExpectedObject
   }
-  @mcp_client.expect_json_payload(payload) catch {
+  @http.expect_json(payload) catch {
     _ => raise ExpectedObject
   }
 }

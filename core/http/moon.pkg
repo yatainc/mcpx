@@ -1,5 +1,6 @@
 import {
   "yatainc/mcpx/core/protocol",
+  "yatainc/mcpx/core/tools",
   "yatainc/mcpx/core/config",
   "moonbitlang/core/json",
   "moonbitlang/core/encoding/base64",
@@ -9,3 +10,8 @@ import {
 import {
   "moonbitlang/async",
 } for "test"
+
+import {
+  "moonbitlang/core/bench",
+  "moonbitlang/core/debug",
+} for "wbtest"

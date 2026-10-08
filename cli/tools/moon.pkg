@@ -1,0 +1,16 @@
+import {
+  "moonbitlang/core/json",
+  "yatainc/mcpx/core/auth",
+  "yatainc/mcpx/core/config",
+  "yatainc/mcpx/core/http" @core_http,
+  "yatainc/mcpx/core/tools" @core_tools,
+  "yatainc/mcpx/native/http" @mcp_http,
+  "yatainc/mcpx/native/stdio" @mcp_stdio,
+  "yatainc/mcpx/cli/daemon" @mcpx_daemon,
+}
+
+import {
+  "moonbitlang/core/debug",
+} for "wbtest"
+
+supported_targets = "native+llvm"

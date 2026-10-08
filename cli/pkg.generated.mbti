@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/cli"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+type AuthCommand derive(@debug.Debug)
+
+type CliParseError derive(@debug.Debug)
+
+type DaemonCommand derive(@debug.Debug)
+
+type DaemonMode derive(@debug.Debug)
+
+type McpxCommand derive(@debug.Debug)
+
+type SearchCommand derive(@debug.Debug)
+
+// Type aliases
+
+// Traits

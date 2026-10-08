@@ -1,0 +1,40 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/cli/tools"
+
+import {
+  "moonbitlang/core/debug",
+  "yatainc/mcpx/core/config",
+}
+
+// Values
+pub async fn call_daemon(CallCommand, @config.McpServerConfig, String, String?, stdin_json? : String?) -> String
+
+pub async fn call_http(CallCommand, url~ : String, headers~ : Map[String, String], server? : @config.McpServerConfig?, mode? : @config.McpConnectionMode, stdin_json? : String?) -> String
+
+pub async fn call_stdio(CallCommand, @config.McpServerConfig, stdin_json? : String?) -> String
+
+pub async fn info_daemon(String, @config.McpServerConfig, String, String?, String?) -> String
+
+pub async fn info_http(server_name~ : String, url~ : String, headers~ : Map[String, String], tool~ : String?, filter_server~ : @config.McpServerConfig?, mode? : @config.McpConnectionMode) -> String
+
+pub async fn info_stdio(String, @config.McpServerConfig, String?) -> String
+
+// Errors
+
+// Types and methods
+pub(all) struct CallCommand {
+  server : String
+  url : String?
+  tool : String
+  arguments_json : String?
+} derive(@debug.Debug)
+
+pub(all) struct InfoCommand {
+  server : String?
+  url : String?
+  tool : String?
+} derive(@debug.Debug)
+
+// Type aliases
+
+// Traits

@@ -14,12 +14,7 @@ async fn run() -> Unit {
     return
   }
   let stdin_json = read_piped_stdin()
-  let output = run_mcpx_args_async_with_stdin(
-    args,
-    home~,
-    config_home~,
-    stdin_json~,
-  ) catch {
+  let output = execute_mcpx(args, home~, config_home~, stdin_json~) catch {
     err => {
       let message = err.to_string()
       "Error: " + message

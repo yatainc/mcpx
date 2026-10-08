@@ -1,0 +1,15 @@
+import {
+  "moonbitlang/core/json",
+  "moonbitlang/core/hashset",
+  "yatainc/mcpx/core/protocol",
+}
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/bench",
+} for "test"
+
+import {
+  "moonbitlang/core/debug",
+} for "wbtest"

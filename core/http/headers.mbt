@@ -54,15 +54,7 @@ fn remove_header_case_insensitive(
   headers : Map[String, String],
   target : String,
 ) -> Unit {
-  let removals = []
-  for key, _ in headers {
-    if key.equal_ignore_ascii_case(target) {
-      removals.push(key)
-    }
-  }
-  for key in removals {
-    headers.remove(key)
-  }
+  headers.retain((key, _) => !key.equal_ignore_ascii_case(target))
 }
 
 ///|
@@ -71,15 +63,7 @@ fn remove_headers_with_prefix_case_insensitive(
   prefix : String,
 ) -> Unit {
   let normalized = prefix.to_lower()
-  let removals = []
-  for key, _ in headers {
-    if key.to_lower().has_prefix(normalized) {
-      removals.push(key)
-    }
-  }
-  for key in removals {
-    headers.remove(key)
-  }
+  headers.retain((key, _) => !key.to_lower().has_prefix(normalized))
 }
 
 ///|

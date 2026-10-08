@@ -36,7 +36,7 @@ test "HTTP response: preserves valid remote errors on non-success status" {
       expected_id=3,
     )
   catch {
-    RemoteError(code, message) => {
+    @protocol.RemoteError(code, message) => {
       inspect(code, content="-32602")
       inspect(message, content="bad params")
     }

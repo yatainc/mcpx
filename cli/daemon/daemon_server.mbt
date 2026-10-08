@@ -89,7 +89,7 @@ async fn handle_list_tools(
     Ok(value) => value
     Err(message) => return error_response(message)
   }
-  let result : Result[Array[@mcp_client.McpToolInfo], _] = try
+  let result : Result[Array[@tools.McpToolInfo], _] = try
     ({
       let entry = pool.entry(group, key, server)
       entry.val.mutex.acquire()
@@ -105,10 +105,7 @@ async fn handle_list_tools(
     error => Err(error)
   }
   match result {
-    Ok(tools) =>
-      ok_response(
-        Json::object({ "tools": Json::array(tools.map(tool_info_json)) }),
-      )
+    Ok(tools) => ok_response(Json::object({ "tools": tools.to_json() }))
     Err(error) => error_response(error.to_string())
   }
 }

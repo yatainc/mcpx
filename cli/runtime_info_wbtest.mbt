@@ -85,7 +85,7 @@ async test "mcpx runtime: info uses configured remote HTTP server" {
         }
       })
     })
-    let result = run_mcpx_args_async(["info", "github"], home~)
+    let result = execute_mcpx(["info", "github"], home~)
     inspect(
       result,
       content=(
@@ -94,7 +94,7 @@ async test "mcpx runtime: info uses configured remote HTTP server" {
         #|    Search things
       ),
     )
-    let schema = run_mcpx_args_async(["info", "github", "search"], home~)
+    let schema = execute_mcpx(["info", "github", "search"], home~)
     inspect(
       schema,
       content=(
@@ -141,7 +141,7 @@ async test "mcpx runtime: info without target lists configured servers" {
     ),
   )
   inspect(
-    run_mcpx_args_async(["info"], home~),
+    execute_mcpx(["info"], home~),
     content=(
       #|Servers:
       #|  github                 GitHub Issues, PRs, and code search
@@ -223,10 +223,7 @@ async test "mcpx runtime: info can use direct remote URL without config" {
         }
       })
     })
-    let result = run_mcpx_args_async(
-      ["info", "http://localhost:\{port}/mcp"],
-      home~,
-    )
+    let result = execute_mcpx(["info", "http://localhost:\{port}/mcp"], home~)
     inspect(
       result,
       content=(

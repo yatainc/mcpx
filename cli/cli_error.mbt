@@ -1,5 +1,5 @@
 ///|
-pub fn format_mcpx_parse_error(error : CliParseError) -> String {
+fn format_mcpx_parse_error(error : CliParseError) -> String {
   match error {
     MissingArgument(name) => "missing argument: " + name
     InvalidTarget(target) =>

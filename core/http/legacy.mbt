@@ -3,20 +3,17 @@ async fn list_tools_legacy(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
   version : @protocol.McpProtocolVersion,
-) -> Array[@protocol.McpToolInfo] raise McpHttpClientError {
+) -> Array[@tools.McpToolInfo] {
   let session_id = Ref(None)
-  let client = @protocol.mcp_client(
-    client_name=@protocol.MCPX_CLIENT_NAME,
-    client_version=@protocol.MCPX_CLIENT_VERSION,
-    protocol_version=@protocol.mcp_protocol_version_to_string(version),
+  initialize_legacy(fetch, endpoint, version, session_id)
+  let payload = send_json_legacy(
+    fetch,
+    endpoint,
+    session_id,
+    @protocol.mcp_request(2, "tools/list", Some(@tools.list_params().to_json())),
   )
-  initialize_legacy(fetch, endpoint, client, session_id)
-  let list = client.tools_list_request()
-  let payload = send_json_legacy(fetch, endpoint, session_id, list.message)
-  let response = payload_json(payload)
-  client.accept_tools_list_response(list, response) catch {
-    error => raise protocol_error_to_http(error)
-  }
+  let result = @protocol.decode_mcp_result(expect_json(payload), expected_id=2)
+  @tools.decode_list_result(result).tools
 }
 
 ///|
@@ -26,39 +23,53 @@ async fn call_tool_legacy(
   version : @protocol.McpProtocolVersion,
   tool_name~ : String,
   arguments~ : Json,
-) -> Json raise McpHttpClientError {
+) -> Json {
   let session_id = Ref(None)
-  let client = @protocol.mcp_client(
-    client_name=@protocol.MCPX_CLIENT_NAME,
-    client_version=@protocol.MCPX_CLIENT_VERSION,
-    protocol_version=@protocol.mcp_protocol_version_to_string(version),
+  initialize_legacy(fetch, endpoint, version, session_id)
+  let payload = send_json_legacy(
+    fetch,
+    endpoint,
+    session_id,
+    @protocol.mcp_request(
+      2,
+      "tools/call",
+      Some(@tools.call_params(tool_name, arguments).to_json()),
+    ),
   )
-  initialize_legacy(fetch, endpoint, client, session_id)
-  let call = client.tool_call_request(name=tool_name, arguments~)
-  let payload = send_json_legacy(fetch, endpoint, session_id, call.message)
-  let response = payload_json(payload)
-  client.accept_tool_call_response(call, response) catch {
-    error => raise protocol_error_to_http(error)
-  }
+  @protocol.decode_mcp_result(expect_json(payload), expected_id=2)
 }
 
 ///|
 async fn initialize_legacy(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
-  client : @protocol.McpClient,
+  version : @protocol.McpProtocolVersion,
   session_id : Ref[String?],
-) -> Unit raise McpHttpClientError {
-  let init = client.initialize_request()
-  let payload = send_json_legacy(fetch, endpoint, session_id, init.message)
-  let response = payload_json(payload)
-  ignore(
-    client.accept_initialize_response(init, response) catch {
-      error => raise protocol_error_to_http(error)
-    },
+) -> Unit {
+  let payload = send_json_legacy(
+    fetch,
+    endpoint,
+    session_id,
+    @protocol.mcp_initialize_request(
+      id=1,
+      client_name=@protocol.MCPX_CLIENT_NAME,
+      client_version=@protocol.MCPX_CLIENT_VERSION,
+      protocol_version=@protocol.mcp_protocol_version_to_string(version),
+    ),
   )
-  let initialized = client.initialized_notification()
-  ignore(send_json_legacy(fetch, endpoint, session_id, initialized.message))
+  ignore(
+    @protocol.decode_mcp_initialize_result(
+      @protocol.decode_mcp_result(expect_json(payload), expected_id=1),
+    ),
+  )
+  ignore(
+    send_json_legacy(
+      fetch,
+      endpoint,
+      session_id,
+      @protocol.mcp_initialized_notification(),
+    ),
+  )
 }
 
 ///|
@@ -67,28 +78,16 @@ async fn send_json_legacy(
   endpoint : Endpoint,
   session_id : Ref[String?],
   message : Json,
-) -> @protocol.McpTransportPayload raise McpHttpClientError {
-  let retain_session = endpoint.mode != Stateless
-  let active_session = if retain_session { session_id.val } else { None }
+) -> Payload {
   let response = post_json(
     fetch,
     endpoint,
-    build_headers_legacy(endpoint.headers, active_session),
+    build_headers_legacy(endpoint.headers, session_id.val),
     message,
   )
-  if retain_session {
-    update_session_id(session_id, response.headers)
-  }
-  response_payload(response)
-}
-
-///|
-fn update_session_id(
-  session_id : Ref[String?],
-  headers : Map[String, String],
-) -> Unit {
-  match header(headers, "Mcp-Session-Id") {
+  match header(response.headers, "Mcp-Session-Id") {
     Some(value) => session_id.val = Some(value)
     None => ()
   }
+  response_payload(response)
 }

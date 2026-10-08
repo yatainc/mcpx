@@ -26,7 +26,7 @@ async test "mcpx runtime: search finds servers by description" {
       ),
     ),
   )
-  let result = run_mcpx_args_async(["search", "git"], home~)
+  let result = execute_mcpx(["search", "git"], home~)
   inspect(result.contains("github:"), content="true")
   inspect(result.contains("GitHub Issues"), content="true")
   inspect(!result.contains("playwright"), content="true")
@@ -51,7 +51,7 @@ async test "mcpx runtime: search shows no description when missing" {
       ),
     ),
   )
-  let result = run_mcpx_args_async(["search", "local"], home~)
+  let result = execute_mcpx(["search", "local"], home~)
   inspect(result.contains("local-tools:"), content="true")
   inspect(result.contains("(no description)"), content="true")
 }
@@ -75,7 +75,7 @@ async test "mcpx runtime: search no match message" {
       ),
     ),
   )
-  let result = run_mcpx_args_async(["search", "nonexistent"], home~)
+  let result = execute_mcpx(["search", "nonexistent"], home~)
   inspect(result.contains("No servers matched"), content="true")
 }
 
@@ -115,7 +115,7 @@ async test "mcpx runtime: search sorts by relevance" {
       ),
     ),
   )
-  let result = run_mcpx_args_async(["search", "git"], home~)
+  let result = execute_mcpx(["search", "git"], home~)
   let lines = result.split("\n").iter().to_array()
   // github has exact name match → highest score, appears first
   // gitlab has prefix match → second

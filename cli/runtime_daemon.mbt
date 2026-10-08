@@ -5,7 +5,7 @@ async fn run_daemon(
   config_home : String?,
 ) -> String {
   match command.mode {
-    Help => run_mcpx_command(Daemon(command))
+    Help => daemon_help_text()
     Status => {
       let running = @mcpx_daemon.daemon_ping(home~, config_home~) catch {
         _ => false
@@ -22,7 +22,7 @@ async fn run_daemon(
 }
 
 ///|
-pub async fn run_internal_daemon_async(
+async fn run_internal_daemon_async(
   home~ : String,
   config_home? : String? = None,
 ) -> Unit {

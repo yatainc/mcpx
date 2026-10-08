@@ -10,14 +10,14 @@ priv enum StdioProbeOutcome {
 async fn probe_modern_stdio(
   conn : StdioConnection,
 ) -> StdioProbeOutcome raise McpStdioError {
-  let context = @mcp_client.mcp_request_context(
+  let context = @protocol.mcp_request_context(
     protocol=V2026_07_28,
-    client_name=@mcp_client.MCPX_CLIENT_NAME,
-    client_version=@mcp_client.MCPX_CLIENT_VERSION,
+    client_name=@protocol.MCPX_CLIENT_NAME,
+    client_version=@protocol.MCPX_CLIENT_VERSION,
   )
-  write_json_line(conn, @mcp_client.mcp_discover_request(id=1, context))
+  write_json_line(conn, @protocol.mcp_discover_request(id=1, context))
   let response = read_response_for_id(conn, expected_id=1)
-  match @mcp_client.decode_mcp_discover_response(response, expected_id=1) {
+  match @protocol.decode_mcp_discover_response(response, expected_id=1) {
     Ok(discover) =>
       if discover.protocol_versions.contains(V2026_07_28) {
         Modern

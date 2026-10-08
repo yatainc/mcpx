@@ -1,245 +1,60 @@
 ///|
-priv struct ValidatedHttpTool {
-  info : @protocol.McpToolInfo
-  header_plan : McpToolHeaderPlan
+priv struct ModernHttp {
+  fetch : async (HttpRequest) -> HttpResponse
+  endpoint : Endpoint
+  version : @protocol.McpProtocolVersion
+  mut next_id : Int
 }
 
 ///|
-priv struct ModernToolCatalog {
-  result : McpToolListResult
-  validated_tools : Array[ValidatedHttpTool]
-  next_request_id : Int
-}
-
-///|
-fn validate_http_tool(
-  tool : @protocol.McpToolInfo,
-) -> Result[ValidatedHttpTool, String] {
-  match parse_mcp_tool_header_plan(tool.input_schema) {
-    Ok(header_plan) => Ok({ info: tool, header_plan })
-    Err(message) => Err(message)
-  }
-}
-
-///|
-async fn list_tools_modern(
+fn modern_http(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
   version : @protocol.McpProtocolVersion,
-  max_pages~ : Int,
-  max_tools~ : Int,
-) -> McpToolListResult raise McpHttpClientError {
-  fetch_modern_tool_catalog(fetch, endpoint, version, max_pages~, max_tools~).result
+) -> ModernHttp {
+  { fetch, endpoint, version, next_id: 2 }
 }
 
 ///|
-async fn fetch_modern_tool_catalog(
-  fetch : async (HttpRequest) -> HttpResponse,
-  endpoint : Endpoint,
-  version : @protocol.McpProtocolVersion,
-  first_request_id? : Int = 2,
-  max_pages? : Int = @protocol.MCP_TOOL_LIST_MAX_PAGES,
-  max_tools? : Int = @protocol.MCP_TOOL_LIST_MAX_TOOLS,
-) -> ModernToolCatalog raise McpHttpClientError {
-  let pagination = @protocol.mcp_tool_pagination()
-  let limits = @protocol.mcp_tool_list_limits(max_pages~, max_tools~)
-  let validated_tools : Array[ValidatedHttpTool] = []
-  let mut request_id = first_request_id
-  let mut ttl_ms = 0
-  let mut cache_scope : @protocol.McpCacheScope? = None
-  for ;; {
-    let cursor = match pagination.begin_page(limits) {
-      Ok(value) => value
-      Err(error) => raise pagination_error_to_http(error)
-    }
-    let request = @protocol.mcp_tools_list_request(
-      id=request_id,
-      client_name=@protocol.MCPX_CLIENT_NAME,
-      client_version=@protocol.MCPX_CLIENT_VERSION,
-      cursor~,
-    )
-    let response = post_json(
-      fetch,
-      endpoint,
-      build_modern_headers(endpoint.headers, version, "tools/list", None),
-      request,
-    )
-    let page = match
-      @protocol.decode_mcp_modern_tool_list_page(
-        response_json(response, expected_id=request_id),
-        expected_id=request_id,
-      ) {
-      Ok(value) => value
-      Err(error) => raise protocol_error_to_http(error)
-    }
-    match cache_scope {
-      None => cache_scope = Some(page.cache_scope)
-      Some(value) if value != page.cache_scope =>
-        raise Protocol("tools/list pagination cacheScope changed")
-      Some(_) => ()
-    }
-    let has_next = match pagination.accept_page(page, limits) {
-      Ok(value) => value
-      Err(error) => raise pagination_error_to_http(error)
-    }
-    for tool in page.tools {
-      match validate_http_tool(tool) {
-        Ok(validated) => validated_tools.push(validated)
-        Err(_) => ()
-      }
-    }
-    ttl_ms = if request_id == first_request_id {
-      page.ttl_ms
-    } else if ttl_ms == 0 || page.ttl_ms == 0 {
-      0
-    } else if page.ttl_ms < ttl_ms {
-      page.ttl_ms
-    } else {
-      ttl_ms
-    }
-    if has_next {
-      request_id = request_id + 1
-    } else {
-      break
-    }
-  }
-  let scope = cache_scope.unwrap_or(Private)
-  {
-    result: mcp_tool_list_result(
-      tools=validated_tools.map(tool => tool.info),
-      ttl_ms~,
-      cache_scope=scope,
-    ),
-    validated_tools,
-    next_request_id: request_id + 1,
-  }
-}
-
-///|
-async fn call_tool_modern(
-  fetch : async (HttpRequest) -> HttpResponse,
-  endpoint : Endpoint,
-  version : @protocol.McpProtocolVersion,
-  request_id~ : Int,
-  parameter_headers~ : Map[String, String],
-  tool_name~ : String,
-  arguments~ : Json,
-) -> Json raise McpHttpClientError {
-  let request = @protocol.mcp_tool_call_request(
-    id=request_id,
-    name=tool_name,
-    arguments~,
+async fn ModernHttp::request(
+  self : ModernHttp,
+  rpc_method : String,
+  params : Map[String, Json],
+  name? : String? = None,
+  parameter_values? : Map[String, String] = Map([]),
+) -> Json {
+  let id = self.next_id
+  self.next_id += 1
+  let context = @protocol.mcp_request_context(
+    protocol=self.version,
     client_name=@protocol.MCPX_CLIENT_NAME,
     client_version=@protocol.MCPX_CLIENT_VERSION,
   )
   let headers = build_modern_headers(
-    endpoint.headers,
-    version,
-    "tools/call",
-    Some(tool_name),
+    self.endpoint.headers,
+    self.version,
+    rpc_method,
+    name,
   )
-  for key, value in parameter_headers {
-    remove_header_case_insensitive(headers, key)
-    headers[key] = value
+  for key, value in parameter_values {
+    set_header_case_insensitive(
+      headers,
+      "Mcp-Param-" + key,
+      encode_mcp_http_header_value(value),
+    )
   }
-  let response = post_json(fetch, endpoint, headers, request)
-  let json = response_json(response, expected_id=request_id)
-  match
-    @protocol.decode_mcp_modern_complete_result(json, expected_id=request_id) {
-    Ok(value) => value
-    Err(error) => raise protocol_error_to_http(error)
-  }
-}
-
-///|
-fn pagination_error_to_http(
-  error : @protocol.McpToolPaginationError,
-) -> McpHttpClientError {
-  match error {
-    TooManyPages => Protocol("tools/list exceeds maximum page count")
-    TooManyTools => Protocol("tools/list exceeds maximum tool count")
-    RepeatedCursor => Protocol("tools/list pagination cursor repeated")
-  }
-}
-
-///|
-async fn call_tool_modern_with_catalog(
-  fetch : async (HttpRequest) -> HttpResponse,
-  endpoint : Endpoint,
-  version : @protocol.McpProtocolVersion,
-  tool_name~ : String,
-  arguments~ : Json,
-  tool_definition~ : @protocol.McpToolInfo?,
-  on_catalog_refresh~ : (McpToolListResult) -> Unit,
-) -> Json raise McpHttpClientError {
-  let (validated_tool, first_call_id) = match tool_definition {
-    Some(tool) if tool.name == tool_name => {
-      let validated = match validate_http_tool(tool) {
-        Ok(value) => value
-        Err(message) => raise Protocol(message)
-      }
-      (validated, 2)
-    }
-    Some(_) =>
-      raise Protocol("cached tool definition name does not match: " + tool_name)
-    None => {
-      let catalog = fetch_modern_tool_catalog(fetch, endpoint, version)
-      on_catalog_refresh(catalog.result)
-      let tool = match
-        catalog.validated_tools.search_by(tool => tool.info.name == tool_name) {
-        Some(index) => catalog.validated_tools[index]
-        None =>
-          raise Protocol("tool not found in validated tools/list: " + tool_name)
-      }
-      (tool, catalog.next_request_id)
-    }
-  }
-  let parameter_headers = match
-    validated_tool.header_plan.build_headers(arguments) {
-    Ok(value) => value
-    Err(message) => raise Protocol(message)
-  }
-  call_tool_modern(
-    fetch,
-    endpoint,
-    version,
-    request_id=first_call_id,
-    parameter_headers~,
-    tool_name~,
-    arguments~,
-  ) catch {
-    HeaderMismatch(_) => {
-      let refreshed = fetch_modern_tool_catalog(
-        fetch,
-        endpoint,
-        version,
-        first_request_id=first_call_id + 1,
-      )
-      let refreshed_tool = match
-        refreshed.validated_tools.search_by(tool => tool.info.name == tool_name) {
-        Some(index) => refreshed.validated_tools[index]
-        None =>
-          raise Protocol(
-            "tool not found after header schema refresh: " + tool_name,
-          )
-      }
-      let refreshed_headers = match
-        refreshed_tool.header_plan.build_headers(arguments) {
-        Ok(value) => value
-        Err(message) => raise Protocol(message)
-      }
-      let result = call_tool_modern(
-        fetch,
-        endpoint,
-        version,
-        request_id=refreshed.next_request_id,
-        parameter_headers=refreshed_headers,
-        tool_name~,
-        arguments~,
-      )
-      on_catalog_refresh(refreshed.result)
-      result
-    }
-    error => raise error
-  }
+  let response = post_json(
+    self.fetch,
+    self.endpoint,
+    headers,
+    @protocol.mcp_request(
+      id,
+      rpc_method,
+      Some(@protocol.with_mcp_request_meta(params, context)),
+    ),
+  )
+  @protocol.decode_mcp_result(
+    response_json(response, expected_id=id),
+    expected_id=id,
+  )
 }

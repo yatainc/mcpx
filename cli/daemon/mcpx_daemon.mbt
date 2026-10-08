@@ -41,7 +41,7 @@ fn daemon_pool() -> DaemonPool {
 }
 
 ///|
-pub fn mcpx_daemon_state_path(
+fn mcpx_daemon_state_path(
   home~ : String,
   config_home? : String? = None,
 ) -> String {
@@ -49,10 +49,7 @@ pub fn mcpx_daemon_state_path(
 }
 
 ///|
-pub fn read_mcpx_daemon_port(
-  home~ : String,
-  config_home? : String? = None,
-) -> Int? {
+fn read_mcpx_daemon_port(home~ : String, config_home? : String? = None) -> Int? {
   let path = mcpx_daemon_state_path(home~, config_home~)
   if !@fs.path_exists(path) {
     return None
@@ -108,7 +105,7 @@ pub async fn daemon_ping(home~ : String, config_home? : String? = None) -> Bool 
 }
 
 ///|
-pub async fn ensure_mcpx_daemon_running(
+async fn ensure_mcpx_daemon_running(
   home~ : String,
   config_home? : String? = None,
 ) -> Bool raise McpxDaemonError {
@@ -160,7 +157,7 @@ async fn start_daemon_process() -> Unit raise McpxDaemonError {
 pub async fn daemon_call_tool(
   home~ : String,
   config_home? : String? = None,
-  key~ : String,
+  server_name~ : String,
   server~ : @config.McpServerConfig,
   tool_name~ : String,
   arguments~ : Json,
@@ -168,7 +165,7 @@ pub async fn daemon_call_tool(
   ignore(ensure_mcpx_daemon_running(home~, config_home~))
   let req = Json::object({
     "op": Json::string("call_tool"),
-    "key": Json::string(key),
+    "key": Json::string(daemon_pool_key(server_name, server)),
     "server": server.to_json(),
     "tool": Json::string(tool_name),
     "args": arguments,
@@ -181,13 +178,13 @@ pub async fn daemon_call_tool(
 pub async fn daemon_list_tools(
   home~ : String,
   config_home? : String? = None,
-  key~ : String,
+  server_name~ : String,
   server~ : @config.McpServerConfig,
-) -> Array[@mcp_client.McpToolInfo] raise McpxDaemonError {
+) -> Array[@tools.McpToolInfo] raise McpxDaemonError {
   ignore(ensure_mcpx_daemon_running(home~, config_home~))
   let req = Json::object({
     "op": Json::string("list_tools"),
-    "key": Json::string(key),
+    "key": Json::string(daemon_pool_key(server_name, server)),
     "server": server.to_json(),
   })
   let response = request(home~, config_home~, req)

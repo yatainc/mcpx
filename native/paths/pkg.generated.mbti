@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/native/paths"
+
+// Values
+pub fn mcpx_app_paths(String, config_home? : String?) -> McpxAppPaths
+
+// Errors
+
+// Types and methods
+pub struct McpxAppPaths {
+  config_dir : String
+  servers_config : String
+  env_file : String
+  credentials_file : String
+}
+
+// Type aliases
+
+// Traits

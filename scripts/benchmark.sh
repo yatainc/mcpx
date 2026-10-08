@@ -7,6 +7,8 @@ cd "$root"
 PATH="$HOME/.moon/bin:$PATH"
 
 bench_packages=(
+  core/tools
+  core/http
   core/protocol
   core/config
   cli

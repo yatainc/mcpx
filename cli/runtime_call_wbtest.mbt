@@ -75,7 +75,7 @@ async test "mcpx runtime: call uses configured remote HTTP server" {
         }
       })
     })
-    let result = run_mcpx_args_async(
+    let result = execute_mcpx(
       ["call", "github", "search", "{\"q\":\"moonbit\"}"],
       home~,
     )
@@ -147,7 +147,7 @@ async test "mcpx runtime: call can use direct remote URL without config" {
         }
       })
     })
-    let result = run_mcpx_args_async(
+    let result = execute_mcpx(
       ["call", "http://localhost:\{port}/mcp", "search", "{\"q\":\"moonbit\"}"],
       home~,
     )
@@ -243,10 +243,7 @@ async test "mcpx runtime: call resolves headers from .env before HTTP request" {
       })
     })
     ignore(
-      run_mcpx_args_async(
-        ["call", "github", "search", "{\"q\":\"moonbit\"}"],
-        home~,
-      ),
+      execute_mcpx(["call", "github", "search", "{\"q\":\"moonbit\"}"], home~),
     )
     inspect(seen_auth.join(","), content="Bearer file-token")
   })
@@ -274,38 +271,11 @@ async test "mcpx runtime: call rejects disabled configured tools before connect"
     ),
   )
   inspect(
-    run_mcpx_args_async(["call", "github", "delete_repo"], home~),
+    execute_mcpx(["call", "github", "delete_repo"], home~),
     content=(
       #|Error: tool is disabled by config: github/delete_repo
     ),
   )
-}
-
-///|
-#cfg(all(target="native", not(platform="windows")))
-test "mcpx runtime: call arguments can come from stdin when JSON arg omitted" {
-  match parse_mcpx_args(["call", "github", "search"]) {
-    Ok(Call(command)) =>
-      inspect(
-        resolve_call_arguments_for_test(
-          command,
-          stdin_json=Some("{\"q\":\"stdin\"}"),
-        ).stringify(),
-        content="{\"q\":\"stdin\"}",
-      )
-    other => @debug.debug_inspect(other, content="UNREACHABLE")
-  }
-  match parse_mcpx_args(["call", "github", "search", "{\"q\":\"argv\"}"]) {
-    Ok(Call(command)) =>
-      inspect(
-        resolve_call_arguments_for_test(
-          command,
-          stdin_json=Some("{\"q\":\"stdin\"}"),
-        ).stringify(),
-        content="{\"q\":\"argv\"}",
-      )
-    other => @debug.debug_inspect(other, content="UNREACHABLE")
-  }
 }
 
 ///|
@@ -434,10 +404,7 @@ async test "mcpx runtime: call uses cached OAuth bearer from credentials file" {
       })
     })
     ignore(
-      run_mcpx_args_async(
-        ["call", "github", "search", "{\"q\":\"moonbit\"}"],
-        home~,
-      ),
+      execute_mcpx(["call", "github", "search", "{\"q\":\"moonbit\"}"], home~),
     )
     inspect(seen_auth.join(","), content="Bearer cached-token")
     let credentials = @storage.load_credentials_file_or_empty(
@@ -482,7 +449,7 @@ async test "mcpx runtime: call returns friendly auth hint on remote 401" {
         conn..write("{\"error\":\"missing token\"}").end_response()
       })
     })
-    let result = run_mcpx_args_async(
+    let result = execute_mcpx(
       ["call", "github", "search", "{\"q\":\"moonbit\"}"],
       home~,
     )
@@ -527,12 +494,12 @@ async test "mcpx runtime: call reports concrete HTTP status errors" {
         conn..write("boom").end_response()
       })
     })
-    let configured = run_mcpx_args_async(
+    let configured = execute_mcpx(
       ["call", "github", "search", "{\"q\":\"moonbit\"}"],
       home~,
     )
     inspect(configured, content="Error: github returned HTTP 500")
-    let direct = run_mcpx_args_async(
+    let direct = execute_mcpx(
       ["call", "http://localhost:\{port}/mcp", "search", "{\"q\":\"moonbit\"}"],
       home~,
     )
@@ -568,7 +535,7 @@ async test "mcpx runtime: call reports MCP protocol errors" {
         conn..write("{\"not\":\"jsonrpc\"}").end_response()
       })
     })
-    let result = run_mcpx_args_async(
+    let result = execute_mcpx(
       ["call", "github", "search", "{\"q\":\"moonbit\"}"],
       home~,
     )
@@ -731,7 +698,7 @@ async test "mcpx runtime: call refreshes near-expiry OAuth token before request"
         }
       })
     })
-    let result = run_mcpx_args_async(
+    let result = execute_mcpx(
       ["call", "github", "search", "{\"q\":\"moonbit\"}"],
       home~,
     )

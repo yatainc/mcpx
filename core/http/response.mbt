@@ -1,16 +1,13 @@
 ///|
-fn response_json(
-  response : HttpResponse,
-  expected_id? : Int = 1,
-) -> Json raise McpHttpClientError {
-  payload_json(response_payload(response, expected_id~))
+fn response_json(response : HttpResponse, expected_id? : Int = 1) -> Json raise {
+  expect_json(response_payload(response, expected_id~))
 }
 
 ///|
 fn response_payload(
   response : HttpResponse,
   expected_id? : Int = 1,
-) -> @protocol.McpTransportPayload raise McpHttpClientError {
+) -> Payload raise {
   if response.status_code != 200 && response.status_code != 202 {
     let json = @json.parse(response.body) catch {
       _ => raise HttpStatus(response.status_code)
@@ -18,33 +15,10 @@ fn response_payload(
     if jsonrpc_error_code(json) is None {
       raise HttpStatus(response.status_code)
     }
-    ignore(
-      @protocol.decode_mcp_result(json, expected_id~) catch {
-        error => raise protocol_error_to_http(error)
-      },
-    )
+    ignore(@protocol.decode_mcp_result(json, expected_id~))
     raise HttpStatus(response.status_code)
   }
-  match
-    @protocol.decode_mcp_transport_payload(
-      @protocol.mcp_transport_response(
-        status_code=response.status_code,
-        content_type=response.content_type,
-        body=response.body,
-      ),
-    ) {
-    Ok(value) => value
-    Err(error) => raise protocol_error_to_http(error)
-  }
-}
-
-///|
-fn payload_json(
-  payload : @protocol.McpTransportPayload,
-) -> Json raise McpHttpClientError {
-  @protocol.expect_json_payload(payload) catch {
-    error => raise protocol_error_to_http(error)
-  }
+  decode_payload(response)
 }
 
 ///|
@@ -64,16 +38,32 @@ fn jsonrpc_error_code(json : Json) -> Int? {
 }
 
 ///|
-fn protocol_error_to_http(
-  error : @protocol.McpProtocolError,
-) -> McpHttpClientError {
+fn protocol_error_to_http(error : Error) -> McpHttpClientError {
   match error {
-    HeaderMismatch(message) => HeaderMismatch(message)
-    MissingRequiredClientCapability(message) =>
+    @protocol.InvalidResponse(message) | Protocol(message) => Protocol(message)
+    @protocol.HeaderMismatch(message) | HeaderMismatch(message) =>
+      HeaderMismatch(message)
+    @protocol.MissingRequiredClientCapability(message)
+    | MissingRequiredClientCapability(message) =>
       MissingRequiredClientCapability(message)
-    UnsupportedProtocolVersion(_, supported) =>
+    @protocol.UnsupportedProtocolVersion(_, supported)
+    | UnsupportedProtocolVersion(supported) =>
       UnsupportedProtocolVersion(supported)
-    RemoteError(code, message) => RemoteError(code, message)
-    InvalidResponse(message) => Protocol(message)
+    @protocol.RemoteError(code, message) | RemoteError(code, message) =>
+      RemoteError(code, message)
+    HttpStatus(code) => HttpStatus(code)
+    Network(message) => Network(message)
+    ModeProtocolIncompatible(mode, protocol) =>
+      ModeProtocolIncompatible(mode, protocol)
+    _ => Network(error.to_string())
+  }
+}
+
+///|
+async fn[T] with_http_errors(
+  operation : async () -> T,
+) -> T raise McpHttpClientError {
+  operation() catch {
+    error => raise protocol_error_to_http(error)
   }
 }

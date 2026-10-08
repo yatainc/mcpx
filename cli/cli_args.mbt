@@ -1,10 +1,10 @@
 ///|
-pub(all) enum McpxCommand {
+enum McpxCommand {
   Help
   Version
   CallHelp
-  Call(CallCommand)
-  Info(InfoCommand)
+  Call(@tool_cli.CallCommand)
+  Info(@tool_cli.InfoCommand)
   SearchHelp
   Search(SearchCommand)
   AuthHelp
@@ -13,27 +13,12 @@ pub(all) enum McpxCommand {
 } derive(Debug)
 
 ///|
-pub struct CallCommand {
-  server : String
-  url : String?
-  tool : String
-  arguments_json : String?
-} derive(Debug)
-
-///|
-pub struct InfoCommand {
-  server : String?
-  url : String?
-  tool : String?
-} derive(Debug)
-
-///|
-pub struct SearchCommand {
+struct SearchCommand {
   pattern : String
 } derive(Debug)
 
 ///|
-pub struct AuthCommand {
+struct AuthCommand {
   server : String
   no_browser : Bool
   json_output : Bool
@@ -43,19 +28,19 @@ pub struct AuthCommand {
 } derive(Debug)
 
 ///|
-pub struct DaemonCommand {
+struct DaemonCommand {
   mode : DaemonMode
 } derive(Debug)
 
 ///|
-pub(all) enum DaemonMode {
+enum DaemonMode {
   Help
   Status
   Stop
 } derive(Debug)
 
 ///|
-pub(all) enum CliParseError {
+enum CliParseError {
   MissingArgument(String)
   InvalidTarget(String)
   UnknownOption(String)
@@ -63,9 +48,7 @@ pub(all) enum CliParseError {
 } derive(Debug)
 
 ///|
-pub fn parse_mcpx_args(
-  args : Array[String],
-) -> Result[McpxCommand, CliParseError] {
+fn parse_mcpx_args(args : Array[String]) -> Result[McpxCommand, CliParseError] {
   match args.get(0) {
     None => Ok(Help)
     Some("--help") =>

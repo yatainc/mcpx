@@ -18,7 +18,7 @@ async test "mcpx runtime: call uses configured stdio server" {
       ),
     ),
   )
-  let result = run_mcpx_args_async(
+  let result = execute_mcpx(
     ["call", "local", "search", "{\"q\":\"moonbit\"}"],
     home~,
   )
@@ -51,7 +51,7 @@ async test "mcpx runtime: info uses configured stdio server" {
       ),
     ),
   )
-  let result = run_mcpx_args_async(["info", "local"], home~)
+  let result = execute_mcpx(["info", "local"], home~)
   inspect(
     result,
     content=(
@@ -121,7 +121,7 @@ async test "mcpx runtime: stdio resolves .env into env args and cwd" {
     paths.env_file,
     "EXPECTED_TOKEN=secret-token\nEXPECTED_CWD=/\n",
   )
-  let result = run_mcpx_args_async(["call", "local", "check", "{}"], home~)
+  let result = execute_mcpx(["call", "local", "check", "{}"], home~)
   inspect(result, content="Result:\n{\"ok\":true}")
 }
 
@@ -152,7 +152,7 @@ async test "mcpx runtime: keep-alive stdio calls are routed through daemon" {
   @fs.remove_file(paths.servers_config) catch {
     _ => ()
   }
-  @fs.remove_file(@mcpx_daemon.mcpx_daemon_state_path(home~)) catch {
+  @fs.remove_file(paths.config_dir + "/daemon.json") catch {
     _ => ()
   }
   @storage.save_mcpx_config_file(
@@ -172,10 +172,9 @@ async test "mcpx runtime: keep-alive stdio calls are routed through daemon" {
     group.spawn_bg(no_wait=true, () => {
       @mcpx_daemon.run_mcpx_daemon_foreground(home~)
     })
-    let port = wait_for_runtime_daemon_port(home)
-    inspect(port > 0, content="true")
-    let first = run_mcpx_args_async(["call", "local", "count", "{}"], home~)
-    let second = run_mcpx_args_async(["call", "local", "count", "{}"], home~)
+    inspect(wait_for_runtime_daemon(home), content="true")
+    let first = execute_mcpx(["call", "local", "count", "{}"], home~)
+    let second = execute_mcpx(["call", "local", "count", "{}"], home~)
     inspect(
       first + "|" + second,
       content=(
@@ -186,19 +185,6 @@ async test "mcpx runtime: keep-alive stdio calls are routed through daemon" {
     )
     ignore(@mcpx_daemon.daemon_stop(home~))
   })
-}
-
-///|
-async fn wait_for_runtime_daemon_port(home : String) -> Int {
-  for i in 0..<100 {
-    ignore(i)
-    match @mcpx_daemon.read_mcpx_daemon_port(home~) {
-      Some(port) => break port
-      None => @async.sleep(20)
-    }
-  } nobreak {
-    0
-  }
 }
 
 ///|

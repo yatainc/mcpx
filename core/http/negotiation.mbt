@@ -14,7 +14,7 @@ priv enum DiscoverHttpOutcome {
 async fn negotiate(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
-) -> HttpProtocolLifecycle raise McpHttpClientError {
+) -> HttpProtocolLifecycle {
   // An explicit stateful preference selects the initialize lifecycle directly.
   // Only auto mode may downgrade from discovery to initialize-era MCP.
   if endpoint.mode == Stateful {
@@ -23,7 +23,7 @@ async fn negotiate(
   let requested = @protocol.McpProtocolVersion::V2026_07_28
   let response = send_discover(fetch, endpoint, requested)
   let outcome = parse_discover_http_response(response, expected_id=1) catch {
-    UnsupportedProtocolVersion(supported) => {
+    @protocol.UnsupportedProtocolVersion(_, supported) => {
       let parsed = supported.map(@protocol.parse_mcp_protocol_version)
       match select_compatible_version(endpoint.mode, parsed) {
         Some(version) if version == requested => {
@@ -156,11 +156,11 @@ async fn send_discover(
 ///|
 fn decode_discover_http_response(
   response : HttpResponse,
-) -> @protocol.McpDiscoverInfo raise McpHttpClientError {
+) -> @protocol.McpDiscoverInfo raise {
   let json = response_json(response)
   match @protocol.decode_mcp_discover_response(json, expected_id=1) {
     Ok(value) => value
-    Err(error) => raise protocol_error_to_http(error)
+    Err(error) => raise error
   }
 }
 
@@ -168,7 +168,7 @@ fn decode_discover_http_response(
 fn parse_discover_http_response(
   response : HttpResponse,
   expected_id~ : Int,
-) -> DiscoverHttpOutcome raise McpHttpClientError {
+) -> DiscoverHttpOutcome raise {
   let permits_legacy_signal = response.status_code == 400 ||
     response.status_code == 404 ||
     response.status_code == 405
@@ -179,7 +179,7 @@ fn parse_discover_http_response(
     let json = @json.parse(response.body) catch { _ => return LegacySignal }
     try @protocol.decode_mcp_result(json, expected_id~) catch {
       InvalidResponse(_) => return LegacySignal
-      error => raise protocol_error_to_http(error)
+      error => raise error
     } noraise {
       _ => raise HttpStatus(response.status_code)
     }

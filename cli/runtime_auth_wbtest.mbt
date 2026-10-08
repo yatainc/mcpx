@@ -69,7 +69,7 @@ async test "mcpx runtime: auth no-browser starts OAuth and replaces old pending 
         .end_response()
       })
     })
-    let result = run_mcpx_args_async(
+    let result = execute_mcpx(
       ["auth", "github", "--no-browser", "--json"],
       home~,
     )
@@ -161,7 +161,7 @@ async test "mcpx runtime: auth no-browser json supports dynamic client registrat
         }
       })
     })
-    let result = run_mcpx_args_async(
+    let result = execute_mcpx(
       ["auth", "github", "--no-browser", "--json"],
       home~,
     )
@@ -242,7 +242,7 @@ async test "mcpx runtime: auth discovers OAuth when metadata URL is absent" {
         }
       })
     })
-    let result = run_mcpx_args_async(
+    let result = execute_mcpx(
       ["auth", "github", "--no-browser", "--json"],
       home~,
     )
@@ -323,7 +323,7 @@ async test "mcpx runtime: rejects mismatched discovered OAuth metadata issuer" {
         }
       })
     })
-    let result = run_mcpx_args_async(
+    let result = execute_mcpx(
       ["auth", "github", "--no-browser", "--json"],
       home~,
     )
@@ -399,7 +399,7 @@ async test "mcpx runtime: auth discovery supports lowercase header and root issu
         }
       })
     })
-    let result = run_mcpx_args_async(
+    let result = execute_mcpx(
       ["auth", "github", "--no-browser", "--json"],
       home~,
     )
@@ -443,7 +443,7 @@ async test "mcpx runtime: auth discovery fails when challenge has no resource me
         conn.end_response()
       })
     })
-    let result = run_mcpx_args_async(
+    let result = execute_mcpx(
       ["auth", "github", "--no-browser", "--json"],
       home~,
     )
@@ -476,10 +476,7 @@ async test "mcpx runtime: auth config is required before OAuth discovery" {
       ),
     ),
   )
-  let result = run_mcpx_args_async(
-    ["auth", "github", "--no-browser", "--json"],
-    home~,
-  )
+  let result = execute_mcpx(["auth", "github", "--no-browser", "--json"], home~)
   inspect(result.contains("server has no OAuth config: github"), content="true")
 }
 
@@ -507,7 +504,7 @@ async test "mcpx runtime: auth rejects mismatched RFC 9207 issuer before exchang
       ),
     ),
   )
-  let result = run_mcpx_args_async(
+  let result = execute_mcpx(
     [
       "auth", "github", "--code", "code-1", "--state", "state-1", "--iss", "https://attacker.example",
     ],
@@ -589,7 +586,7 @@ async test "mcpx runtime: auth code exchange stores credentials and removes pend
         .end_response()
       })
     })
-    let result = run_mcpx_args_async(
+    let result = execute_mcpx(
       ["auth", "github", "--code", "code-1", "--state", "state-1"],
       home~,
     )
@@ -719,7 +716,7 @@ async test "mcpx runtime: interactive auth uses browser callback listener" {
         }
       })
     })
-    let result = run_mcpx_args_async(["auth", "github"], home~)
+    let result = execute_mcpx(["auth", "github"], home~)
     inspect(result, content="Auth complete: github")
     let credentials = @storage.load_credentials_file_or_empty(
       paths.credentials_file,

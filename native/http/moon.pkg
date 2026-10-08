@@ -5,23 +5,14 @@ import {
   "moonbitlang/x/encoding",
   "yatainc/mcpx/core/http" @core_http,
   "yatainc/mcpx/core/config",
-  "yatainc/mcpx/core/protocol" @mcp_client,
+  "yatainc/mcpx/core/tools",
 }
 
 import {
   "moonbitlang/async",
-  "moonbitlang/async/http" @async_http,
   "moonbitlang/async/socket",
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
 } for "test"
 
 supported_targets = "native+llvm"
-
-options(
-  targets: {
-    "mcp_http.mbt": [ "native", "llvm" ],
-    "mcp_http_test.mbt": [ "native", "llvm" ],
-    "mcp_http_cache_test.mbt": [ "native", "llvm" ],
-  },
-)

@@ -39,22 +39,6 @@ fn copy_optional_fields(
 }
 
 ///|
-fn tool_info_json(tool : @mcp_client.McpToolInfo) -> Json {
-  let obj = Map([])
-  obj["name"] = Json::string(tool.name)
-  match tool.description {
-    Some(value) => obj["description"] = Json::string(value)
-    None => ()
-  }
-  obj["inputSchema"] = tool.input_schema
-  match tool.output_schema {
-    Some(value) => obj["outputSchema"] = value
-    None => ()
-  }
-  Json::object(obj)
-}
-
-///|
 fn mcp_http_headers() -> Map[String, String] {
   {
     "content-type": "application/json",

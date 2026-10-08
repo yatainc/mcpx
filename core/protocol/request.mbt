@@ -1,23 +1,5 @@
 ///|
-pub struct McpToolInfo {
-  name : String
-  description : String?
-  input_schema : Json
-  output_schema : Json?
-} derive(Debug)
-
-///|
-pub fn mcp_tool_info(
-  name~ : String,
-  description? : String? = None,
-  input_schema~ : Json,
-  output_schema? : Json? = None,
-) -> McpToolInfo {
-  { name, description, input_schema, output_schema }
-}
-
-///|
-pub suberror McpProtocolError {
+pub(all) suberror McpProtocolError {
   InvalidResponse(String)
   HeaderMismatch(String)
   MissingRequiredClientCapability(String)
@@ -26,10 +8,10 @@ pub suberror McpProtocolError {
 } derive(Debug)
 
 ///|
-pub const MCP_PROTOCOL_VERSION : String = MCP_PROTOCOL_VERSION_2026_07_28
+const MCP_PROTOCOL_VERSION : String = "2026-07-28"
 
 ///|
-pub const MCP_PROTOCOL_VERSION_LEGACY : String = MCP_PROTOCOL_VERSION_2025_11_25
+pub const MCP_PROTOCOL_VERSION_LEGACY : String = "2025-11-25"
 
 ///|
 pub fn mcp_initialize_request(
@@ -38,14 +20,18 @@ pub fn mcp_initialize_request(
   client_version~ : String,
   protocol_version? : String = MCP_PROTOCOL_VERSION,
 ) -> Json {
-  let params = Map([])
-  params["protocolVersion"] = Json::string(protocol_version)
-  params["capabilities"] = Json::object(Map([]))
-  let client_info = Map([])
-  client_info["name"] = Json::string(client_name)
-  client_info["version"] = Json::string(client_version)
-  params["clientInfo"] = Json::object(client_info)
-  mcp_request(id, "initialize", Some(Json::object(params)))
+  mcp_request(
+    id,
+    "initialize",
+    Some({
+      "protocolVersion": protocol_version.to_json(),
+      "capabilities": {},
+      "clientInfo": {
+        "name": client_name.to_json(),
+        "version": client_version.to_json(),
+      },
+    }),
+  )
 }
 
 ///|
@@ -54,63 +40,12 @@ pub fn mcp_initialized_notification() -> Json {
 }
 
 ///|
-pub fn mcp_tools_list_request_legacy(id~ : Int) -> Json {
-  mcp_request(id, "tools/list", Some(Json::object(Map([]))))
-}
-
-///|
-pub fn mcp_tools_list_request(
-  id~ : Int,
-  client_name~ : String,
-  client_version~ : String,
-  cursor? : String? = None,
-) -> Json {
-  let params = Map([])
-  match cursor {
-    Some(value) => params["cursor"] = Json::string(value)
-    None => ()
-  }
-  params["_meta"] = mcp_request_meta(
-    mcp_request_context(protocol=V2026_07_28, client_name~, client_version~),
-  )
-  mcp_request(id, "tools/list", Some(Json::object(params)))
-}
-
-///|
-pub fn mcp_tool_call_request_legacy(
-  id~ : Int,
-  name~ : String,
-  arguments~ : Json,
-) -> Json {
-  let params = Map([])
-  params["name"] = Json::string(name)
-  params["arguments"] = arguments
-  mcp_request(id, "tools/call", Some(Json::object(params)))
-}
-
-///|
-pub fn mcp_tool_call_request(
-  id~ : Int,
-  name~ : String,
-  arguments~ : Json,
-  client_name~ : String,
-  client_version~ : String,
-) -> Json {
-  let params = Map([])
-  params["name"] = Json::string(name)
-  params["arguments"] = arguments
-  params["_meta"] = mcp_request_meta(
-    mcp_request_context(protocol=V2026_07_28, client_name~, client_version~),
-  )
-  mcp_request(id, "tools/call", Some(Json::object(params)))
-}
-
-///|
 pub fn mcp_request(id : Int, rpc_method : String, params : Json?) -> Json {
-  let obj = Map([])
-  obj["jsonrpc"] = Json::string("2.0")
-  obj["id"] = json_int(id)
-  obj["method"] = Json::string(rpc_method)
+  let obj : Map[String, Json] = {
+    "jsonrpc": "2.0",
+    "id": id.to_json(),
+    "method": rpc_method.to_json(),
+  }
   match params {
     Some(value) => obj["params"] = value
     None => ()
@@ -119,18 +54,14 @@ pub fn mcp_request(id : Int, rpc_method : String, params : Json?) -> Json {
 }
 
 ///|
-pub fn mcp_notification(rpc_method : String, params : Json?) -> Json {
-  let obj = Map([])
-  obj["jsonrpc"] = Json::string("2.0")
-  obj["method"] = Json::string(rpc_method)
+fn mcp_notification(rpc_method : String, params : Json?) -> Json {
+  let obj : Map[String, Json] = {
+    "jsonrpc": "2.0",
+    "method": rpc_method.to_json(),
+  }
   match params {
     Some(value) => obj["params"] = value
     None => ()
   }
   Json::object(obj)
-}
-
-///|
-fn json_int(value : Int) -> Json {
-  Json::number(Double::from_int(value), repr=value.to_string())
 }

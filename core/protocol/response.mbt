@@ -1,23 +1,8 @@
 ///|
-pub(all) enum McpResultType {
-  Complete
-  InputRequired
-  Extension(String)
-} derive(Debug, Eq)
-
-///|
 pub(all) enum McpCacheScope {
   Public
   Private
 } derive(Debug, Eq)
-
-///|
-pub struct McpToolListPage {
-  tools : Array[McpToolInfo]
-  next_cursor : String?
-  ttl_ms : Int
-  cache_scope : McpCacheScope
-} derive(Debug)
 
 ///|
 pub struct McpInitializeInfo {
@@ -28,154 +13,56 @@ pub struct McpInitializeInfo {
 } derive(Debug)
 
 ///|
-pub fn decode_mcp_initialize_response(
-  response : Json,
-  expected_id~ : Int,
-) -> Result[McpInitializeInfo, McpProtocolError] {
-  let result = decode_mcp_result(response, expected_id~) catch {
-    error => return Err(error)
-  }
-  match result {
-    Object(obj) => {
-      let protocol_version = match obj.get("protocolVersion") {
-        Some(String(value)) => value
-        _ =>
-          return Err(
-            InvalidResponse("initialize result missing protocolVersion"),
-          )
-      }
-      let capabilities = obj.get("capabilities").unwrap_or(Json::empty_object())
-      let (server_name, server_version) = decode_server_info(
-        obj.get("serverInfo"),
-      )
-      Ok({ protocol_version, server_name, server_version, capabilities })
-    }
-    _ => Err(InvalidResponse("initialize result must be object"))
-  }
-}
-
-///|
-pub fn decode_mcp_tool_list_response(
-  response : Json,
-  expected_id~ : Int,
-) -> Result[Array[McpToolInfo], McpProtocolError] {
-  match decode_mcp_tool_list_page_inner(response, expected_id~, modern=false) {
-    Ok(page) => Ok(page.tools)
-    Err(error) => Err(error)
-  }
-}
-
-///|
-pub fn decode_mcp_modern_tool_list_page(
-  response : Json,
-  expected_id~ : Int,
-) -> Result[McpToolListPage, McpProtocolError] {
-  decode_mcp_tool_list_page_inner(response, expected_id~, modern=true)
-}
-
-///|
-fn decode_mcp_tool_list_page_inner(
-  response : Json,
-  expected_id~ : Int,
-  modern~ : Bool,
-) -> Result[McpToolListPage, McpProtocolError] {
-  let result = decode_mcp_result(response, expected_id~) catch {
-    error => return Err(error)
-  }
+pub fn decode_mcp_initialize_result(
+  result : Json,
+) -> McpInitializeInfo raise McpProtocolError {
   let obj = match result {
     Object(value) => value
-    _ => return Err(InvalidResponse("tools/list result must be object"))
+    _ => raise InvalidResponse("initialize result must be object")
   }
-  match decode_result_type(obj.get("resultType")) {
-    Some(Complete) => ()
-    Some(InputRequired) =>
-      return Err(
-        InvalidResponse("tools/list resultType input_required is not complete"),
-      )
-    Some(Extension(value)) =>
-      return Err(InvalidResponse("unsupported tools/list resultType: " + value))
-    None =>
-      if modern {
-        return Err(InvalidResponse("tools/list result missing resultType"))
-      } else {
-        ()
+  let protocol_version = match obj.get("protocolVersion") {
+    Some(String(value)) => value
+    _ => raise InvalidResponse("initialize result missing protocolVersion")
+  }
+  let capabilities = obj.get("capabilities").unwrap_or(Json::empty_object())
+  let (server_name, server_version) = match obj.get("serverInfo") {
+    Some(Object(info)) => {
+      let name = match info.get("name") {
+        Some(String(value)) => Some(value)
+        _ => None
       }
-  }
-  let tools_json = match obj.get("tools") {
-    Some(Array(value)) => value
-    _ => return Err(InvalidResponse("tools/list result missing tools"))
-  }
-  let tools = []
-  for tool in tools_json {
-    match decode_mcp_tool(tool) {
-      Ok(value) => tools.push(value)
-      Err(error) => return Err(error)
+      let version = match info.get("version") {
+        Some(String(value)) => Some(value)
+        _ => None
+      }
+      (name, version)
     }
+    _ => (None, None)
   }
-  let next_cursor = match obj.get("nextCursor") {
-    Some(String(value)) => Some(value)
-    Some(_) =>
-      return Err(InvalidResponse("tools/list nextCursor must be string"))
-    None => None
-  }
-  let ttl_ms = match obj.get("ttlMs") {
-    Some(Number(value, ..)) if is_supported_json_int(value) && value >= 0.0 =>
-      value.to_int()
-    _ => 0
-  }
-  let cache_scope = match obj.get("cacheScope") {
-    Some(String("public")) => McpCacheScope::Public
-    _ => Private
-  }
-  Ok({ tools, next_cursor, ttl_ms, cache_scope })
+  { protocol_version, server_name, server_version, capabilities }
 }
 
 ///|
-fn decode_result_type(value : Json?) -> McpResultType? {
-  match value {
-    Some(String("complete")) => Some(Complete)
-    Some(String("input_required")) => Some(InputRequired)
-    Some(String(other)) => Some(Extension(other))
-    _ => None
-  }
-}
-
-///|
-pub fn decode_mcp_complete_result(
-  response : Json,
-  expected_id~ : Int,
-) -> Result[Json, McpProtocolError] {
-  decode_mcp_complete_result_inner(response, expected_id~, modern=false)
-}
-
-///|
-pub fn decode_mcp_modern_complete_result(
-  response : Json,
-  expected_id~ : Int,
-) -> Result[Json, McpProtocolError] {
-  decode_mcp_complete_result_inner(response, expected_id~, modern=true)
-}
-
-///|
-fn decode_mcp_complete_result_inner(
-  response : Json,
-  expected_id~ : Int,
-  modern~ : Bool,
-) -> Result[Json, McpProtocolError] {
-  let result = decode_mcp_result(response, expected_id~) catch {
-    error => return Err(error)
-  }
+pub fn require_complete_result(
+  result : Json,
+  required? : Bool = true,
+  operation? : String = "",
+) -> Unit raise McpProtocolError {
   let result_type = match result {
-    Object(obj) => decode_result_type(obj.get("resultType"))
+    Object(obj) => obj.get("resultType")
     _ => None
   }
+  let prefix = if operation.is_empty() { "" } else { operation + " " }
   match result_type {
-    None if modern => Err(InvalidResponse("result missing resultType"))
-    None | Some(Complete) => Ok(result)
-    Some(InputRequired) =>
-      Err(InvalidResponse("resultType input_required is not supported"))
-    Some(Extension(value)) =>
-      Err(InvalidResponse("unsupported resultType: " + value))
+    Some(String("complete")) => ()
+    Some(String("input_required")) =>
+      raise InvalidResponse(
+        prefix + "resultType input_required is not supported",
+      )
+    Some(String(value)) =>
+      raise InvalidResponse("unsupported " + prefix + "resultType: " + value)
+    _ if required => raise InvalidResponse(prefix + "result missing resultType")
+    _ => ()
   }
 }
 
@@ -205,82 +92,22 @@ pub fn decode_mcp_result(
 }
 
 ///|
-pub fn mcp_response_id(message : Json) -> Int? {
-  match message {
-    Object(obj) => decode_response_id(obj.get("id"))
-    _ => None
-  }
-}
-
-///|
-fn decode_mcp_tool(json : Json) -> Result[McpToolInfo, McpProtocolError] {
-  let obj = match json {
-    Object(value) => value
-    _ => return Err(InvalidResponse("tool must be object"))
-  }
-  let name = match obj.get("name") {
-    Some(String(value)) => value
-    _ => return Err(InvalidResponse("tool.name must be string"))
-  }
-  let description = match obj.get("description") {
-    Some(String(value)) => Some(value)
-    Some(_) => return Err(InvalidResponse("tool.description must be string"))
-    None => None
-  }
-  let input_schema = match obj.get("inputSchema") {
-    Some(Object(_) as value) => value
-    _ => return Err(InvalidResponse("tool.inputSchema must be object"))
-  }
-  let output_schema = match obj.get("outputSchema") {
-    Some(Object(_) as value) => Some(value)
-    Some(_) => return Err(InvalidResponse("tool.outputSchema must be object"))
-    None => None
-  }
-  Ok({ name, description, input_schema, output_schema })
-}
-
-///|
-fn decode_server_info(json : Json?) -> (String?, String?) {
-  match json {
-    Some(Object(obj)) => {
-      let name = match obj.get("name") {
-        Some(String(value)) => Some(value)
-        _ => None
-      }
-      let version = match obj.get("version") {
-        Some(String(value)) => Some(value)
-        _ => None
-      }
-      (name, version)
-    }
-    _ => (None, None)
-  }
-}
-
-///|
 fn decode_response_id(json : Json?) -> Int? {
   match json {
-    Some(Number(value, ..)) if is_supported_json_int(value) =>
-      Some(value.to_int())
+    Some(Number(value, ..)) if value.trunc() == value &&
+      value >= -2147483648.0 &&
+      value <= 2147483647.0 => Some(value.to_int())
     _ => None
   }
-}
-
-///|
-fn is_supported_json_int(value : Double) -> Bool {
-  value.trunc() == value &&
-  value >= (-2147483648).to_double() &&
-  value <= (2147483647 : Int).to_double()
 }
 
 ///|
 fn decode_mcp_error(json : Json) -> McpProtocolError {
   match json {
     Object(obj) => {
-      let code = match obj.get("code") {
-        Some(Number(value, ..)) if is_supported_json_int(value) =>
-          value.to_int()
-        _ => return InvalidResponse("JSON-RPC error code must be an integer")
+      let code = match decode_response_id(obj.get("code")) {
+        Some(value) => value
+        None => return InvalidResponse("JSON-RPC error code must be an integer")
       }
       let message = match obj.get("message") {
         Some(String(value)) => value
@@ -310,16 +137,15 @@ fn decode_unsupported_version_data(data : Json?) -> (String?, Array[String]) {
         Some(String(value)) => Some(value)
         _ => None
       }
-      let supported = []
-      match obj.get("supported") {
+      let supported = match obj.get("supported") {
         Some(Array(values)) =>
-          for value in values {
+          values.filter_map(value => {
             match value {
-              String(version) => supported.push(version)
-              _ => ()
+              String(version) => Some(version)
+              _ => None
             }
-          }
-        _ => ()
+          })
+        _ => []
       }
       (requested, supported)
     }

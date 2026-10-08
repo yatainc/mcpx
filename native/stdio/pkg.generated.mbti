@@ -1,0 +1,39 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/native/stdio"
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/core/debug",
+  "yatainc/mcpx/core/config",
+  "yatainc/mcpx/core/tools",
+}
+
+// Values
+pub async fn stdio_mcp_call_tool(command~ : String, args~ : Array[String], env~ : Map[String, String], cwd~ : String?, tool_name~ : String, arguments~ : Json, mode? : @config.McpConnectionMode, probe_timeout_ms? : Int, response_timeout_ms? : Int) -> Json raise McpStdioError
+
+pub async fn[X] stdio_mcp_connect(@async.TaskGroup[X], command~ : String, args~ : Array[String], env~ : Map[String, String], cwd~ : String?, mode? : @config.McpConnectionMode, probe_timeout_ms? : Int, response_timeout_ms? : Int) -> StdioMcpClient raise McpStdioError
+
+pub async fn stdio_mcp_list_tools(command~ : String, args~ : Array[String], env~ : Map[String, String], cwd~ : String?, mode? : @config.McpConnectionMode, probe_timeout_ms? : Int, response_timeout_ms? : Int, max_pages? : Int, max_tools? : Int) -> Array[@tools.McpToolInfo] raise McpStdioError
+
+// Errors
+pub suberror McpStdioError {
+  SpawnFailed(String)
+  ReadFailed(String)
+  WriteFailed(String)
+  InvalidJson(String)
+  Protocol(String)
+  Timeout
+  UnexpectedEof
+} derive(@debug.Debug)
+
+// Types and methods
+pub struct StdioMcpClient {
+  // private fields
+}
+pub async fn StdioMcpClient::call_tool(Self, tool_name~ : String, arguments~ : Json) -> Json raise McpStdioError
+pub fn StdioMcpClient::close(Self) -> Unit
+pub async fn StdioMcpClient::list_tools(Self, max_pages? : Int, max_tools? : Int) -> Array[@tools.McpToolInfo] raise McpStdioError
+
+// Type aliases
+
+// Traits

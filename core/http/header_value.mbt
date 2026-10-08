@@ -1,5 +1,5 @@
 ///|
-pub fn encode_mcp_http_header_value(value : String) -> String {
+fn encode_mcp_http_header_value(value : String) -> String {
   if is_plain_mcp_http_header_value(value) {
     value
   } else {

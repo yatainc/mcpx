@@ -63,33 +63,11 @@ fn decode_result(response : Json) -> Json raise McpxDaemonError {
 ///|
 fn decode_tools(
   response : Json,
-) -> Array[@mcp_client.McpToolInfo] raise McpxDaemonError {
+) -> Array[@tools.McpToolInfo] raise McpxDaemonError {
   let result = decode_result(response)
-  let wrapped = Json::object({
-    "jsonrpc": Json::string("2.0"),
-    "id": Json::number(1.0, repr="1"),
-    "result": result,
-  })
-  match @mcp_client.decode_mcp_tool_list_response(wrapped, expected_id=1) {
-    Ok(value) => value
-    Err(_) => raise InvalidResponse("invalid tools")
+  @tools.decode_list_result(result).tools catch {
+    _ => raise InvalidResponse("invalid tools")
   }
-}
-
-///|
-fn tool_info_json(tool : @mcp_client.McpToolInfo) -> Json {
-  let obj = Map([])
-  obj["name"] = Json::string(tool.name)
-  match tool.description {
-    Some(value) => obj["description"] = Json::string(value)
-    None => ()
-  }
-  obj["inputSchema"] = tool.input_schema
-  match tool.output_schema {
-    Some(value) => obj["outputSchema"] = value
-    None => ()
-  }
-  Json::object(obj)
 }
 
 ///|

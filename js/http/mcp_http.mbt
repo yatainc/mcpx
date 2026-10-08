@@ -16,7 +16,7 @@ extern "js" fn call_js_fetch(
 pub async fn list_tools_js(
   fetch : JsFetch,
   url~ : String,
-) -> Array[@protocol.McpToolInfo] {
+) -> Array[@tools.McpToolInfo] {
   @core_http.list_tools(js_fetch_adapter(fetch), @core_http.http_endpoint(url~))
 }
 
@@ -58,8 +58,7 @@ pub fn mcpx_js_list_tools(
 ) -> @js_async.Promise[String] {
   @js_async.Promise::from_async(() => {
     let tools = list_tools_js(fetch, url~)
-    let arr = tools.map(tool_info_json)
-    Json::object({ "status": Json::string("ok"), "tools": Json::array(arr) }).stringify()
+    Json::object({ "status": "ok", "tools": tools.to_json() }).stringify()
   })
 }
 
@@ -131,22 +130,6 @@ fn string_map_to_json(values : Map[String, String]) -> Json {
   let obj : Map[String, Json] = Map([])
   for key, value in values {
     obj[key] = Json::string(value)
-  }
-  Json::object(obj)
-}
-
-///|
-fn tool_info_json(tool : @protocol.McpToolInfo) -> Json {
-  let obj : Map[String, Json] = Map([])
-  obj["name"] = Json::string(tool.name)
-  match tool.description {
-    Some(description) => obj["description"] = Json::string(description)
-    None => ()
-  }
-  obj["inputSchema"] = tool.input_schema
-  match tool.output_schema {
-    Some(value) => obj["outputSchema"] = value
-    None => ()
   }
   Json::object(obj)
 }

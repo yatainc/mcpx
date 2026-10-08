@@ -6,8 +6,12 @@ cd "$root"
 
 PATH="$HOME/.moon/bin:$PATH"
 
-moon build --target native --release cli
-mcpx="$root/_build/native/release/build/cli/cli.exe"
+if [[ -n "${MCPX_BIN:-}" ]]; then
+  mcpx="$MCPX_BIN"
+else
+  moon build --target native --release cli
+  mcpx="$root/_build/native/release/build/cli/cli.exe"
+fi
 
 tmp="$(mktemp -d /tmp/mcpx-e2e.XXXXXX)"
 port_file="$tmp/port.txt"

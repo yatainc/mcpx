@@ -6,23 +6,10 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/x/fs",
   "yatainc/mcpx/core/config",
-  "yatainc/mcpx/core/protocol" @mcp_client,
+  "yatainc/mcpx/core/tools",
   "yatainc/mcpx/native/paths" @app_paths,
   "yatainc/mcpx/native/stdio" @mcp_stdio,
   "yatainc/mcpx/native/storage",
 }
 
-import {
-  "moonbitlang/async",
-  "moonbitlang/x/fs",
-  "yatainc/mcpx/core/config",
-} for "test"
-
 supported_targets = "native+llvm"
-
-options(
-  targets: {
-    "mcpx_daemon.mbt": [ "native", "llvm" ],
-    "mcpx_daemon_test.mbt": [ "native", "llvm" ],
-  },
-)

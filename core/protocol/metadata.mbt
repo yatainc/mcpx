@@ -1,9 +1,9 @@
 ///|
 pub struct McpRequestContext {
-  protocol : McpProtocolVersion
-  client_name : String
-  client_version : String
-  client_capabilities : Map[String, Json]
+  priv protocol : McpProtocolVersion
+  priv client_name : String
+  priv client_version : String
+  priv client_capabilities : Map[String, Json]
 }
 
 ///|
@@ -17,7 +17,7 @@ pub fn mcp_request_context(
 }
 
 ///|
-pub fn mcp_request_meta(context : McpRequestContext) -> Json {
+fn mcp_request_meta(context : McpRequestContext) -> Json {
   let meta = Map([])
   meta["io.modelcontextprotocol/protocolVersion"] = Json::string(
     mcp_protocol_version_to_string(context.protocol),
