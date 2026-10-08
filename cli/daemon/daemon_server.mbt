@@ -60,13 +60,13 @@ async fn handle_call_tool(
   let result : Result[Json, _] = try
     ({
       let entry = pool.entry(group, key, server)
-      entry.val.mutex.acquire()
-      entry.val.mark_used()
+      entry.mutex.acquire()
+      entry.mark_used()
       defer {
-        entry.val.mark_used()
-        entry.val.mutex.release()
+        entry.mark_used()
+        entry.mutex.release()
       }
-      entry.val.client.call_tool(tool_name~, arguments~)
+      entry.client.call_tool(tool_name~, arguments~)
     })
     |> Ok
   catch {
@@ -92,13 +92,13 @@ async fn handle_list_tools(
   let result : Result[Array[@tools.McpToolInfo], _] = try
     ({
       let entry = pool.entry(group, key, server)
-      entry.val.mutex.acquire()
-      entry.val.mark_used()
+      entry.mutex.acquire()
+      entry.mark_used()
       defer {
-        entry.val.mark_used()
-        entry.val.mutex.release()
+        entry.mark_used()
+        entry.mutex.release()
       }
-      entry.val.client.list_tools()
+      entry.client.list_tools()
     })
     |> Ok
   catch {

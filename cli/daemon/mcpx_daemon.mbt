@@ -31,7 +31,7 @@ priv struct DaemonEntry {
 
 ///|
 priv struct DaemonPool {
-  entries : Map[String, Ref[DaemonEntry]]
+  entries : Map[String, DaemonEntry]
   lock : @async.Semaphore
 }
 
@@ -108,14 +108,14 @@ pub async fn daemon_ping(home~ : String, config_home? : String? = None) -> Bool 
 async fn ensure_mcpx_daemon_running(
   home~ : String,
   config_home? : String? = None,
-) -> Bool raise McpxDaemonError {
+) -> Unit raise McpxDaemonError {
   if (daemon_ping(home~, config_home~) catch { _ => false }) {
-    return true
+    return
   }
   start_daemon_process()
   for _ in 0..<100 {
     if (daemon_ping(home~, config_home~) catch { _ => false }) {
-      return true
+      return
     }
     @async.sleep(50) catch {
       _ => raise Unavailable
@@ -162,7 +162,7 @@ pub async fn daemon_call_tool(
   tool_name~ : String,
   arguments~ : Json,
 ) -> Json raise McpxDaemonError {
-  ignore(ensure_mcpx_daemon_running(home~, config_home~))
+  ensure_mcpx_daemon_running(home~, config_home~)
   let req = Json::object({
     "op": Json::string("call_tool"),
     "key": Json::string(daemon_pool_key(server_name, server)),
@@ -181,7 +181,7 @@ pub async fn daemon_list_tools(
   server_name~ : String,
   server~ : @config.McpServerConfig,
 ) -> Array[@tools.McpToolInfo] raise McpxDaemonError {
-  ignore(ensure_mcpx_daemon_running(home~, config_home~))
+  ensure_mcpx_daemon_running(home~, config_home~)
   let req = Json::object({
     "op": Json::string("list_tools"),
     "key": Json::string(daemon_pool_key(server_name, server)),

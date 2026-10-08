@@ -10,7 +10,7 @@ async fn run_daemon(
       let running = @mcpx_daemon.daemon_ping(home~, config_home~) catch {
         _ => false
       }
-      daemon_result("status", running~)
+      daemon_result(running~)
     }
     Stop => {
       let stopped = @mcpx_daemon.daemon_stop(home~, config_home~) catch {
@@ -30,8 +30,7 @@ async fn run_internal_daemon_async(
 }
 
 ///|
-fn daemon_result(action : String, running~ : Bool) -> String {
-  ignore(action)
+fn daemon_result(running~ : Bool) -> String {
   if running {
     "Daemon: running"
   } else {

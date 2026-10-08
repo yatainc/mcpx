@@ -4,13 +4,13 @@ async fn DaemonPool::entry(
   group : @async.TaskGroup[Unit],
   key : String,
   server : @config.McpServerConfig,
-) -> Ref[DaemonEntry] raise McpxDaemonError {
+) -> DaemonEntry raise McpxDaemonError {
   self.lock.acquire() catch {
     _ => raise Unavailable
   }
   let existing = self.entries.get(key)
   match existing {
-    Some(value) if !value.val.is_idle_expired() => {
+    Some(value) if !value.is_idle_expired() => {
       self.lock.release()
       value
     }
@@ -33,7 +33,7 @@ async fn create_and_insert_entry(
   group : @async.TaskGroup[Unit],
   key : String,
   server : @config.McpServerConfig,
-) -> Ref[DaemonEntry] raise McpxDaemonError {
+) -> DaemonEntry raise McpxDaemonError {
   let created = create_entry(group, server)
   pool.lock.acquire() catch {
     _ => raise Unavailable
@@ -45,10 +45,9 @@ async fn create_and_insert_entry(
       value
     }
     None => {
-      let entry = Ref(created)
-      pool.entries[key] = entry
+      pool.entries[key] = created
       pool.lock.release()
-      entry
+      created
     }
   }
 }
@@ -104,8 +103,8 @@ fn DaemonEntry::mark_used(self : DaemonEntry) -> Unit {
 }
 
 ///|
-fn close_entry(entry : Ref[DaemonEntry]) -> Unit {
-  entry.val.client.close()
+fn close_entry(entry : DaemonEntry) -> Unit {
+  entry.client.close()
 }
 
 ///|
