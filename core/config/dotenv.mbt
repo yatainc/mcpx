@@ -4,6 +4,9 @@ pub(all) enum DotenvError {
 } derive(Debug)
 
 ///|
+pub extend DotenvError with Debug::{to_repr}
+
+///|
 pub fn parse_dotenv(text : String) -> Result[Map[String, String], DotenvError] {
   let env : Map[String, String] = Map([])
   let mut line_number = 1

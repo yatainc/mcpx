@@ -1,7 +1,7 @@
 ///|
 test "wasm: schema describes stateless host-action API" {
   inspect(
-    mcpx_tool_schema(),
+    @wasm.mcpx_tool_schema(),
     content=(
       #|{"name":"mcpx","version":1,"api":["mcpx_tool_schema","mcpx_tool_run","mcpx_tool_reduce"],"concept":{"stateless":true,"hostActions":true,"mcpClient":true},"inputSchema":{"type":"object","required":["serverName","credentialsPath","cacheKey"]}}
     ),
@@ -13,7 +13,7 @@ test "wasm: run plans credentials read as host action" {
   let input =
     #|{"serverName":"github","credentialsPath":"/home/me/.config/mcpx/credentials.json","cacheKey":"github|abcd"}
   inspect(
-    mcpx_tool_run(input),
+    @wasm.mcpx_tool_run(input),
     content=(
       #|{"status":"needs_host","state":{"phase":"read_credentials","serverName":"github","credentialsPath":"/home/me/.config/mcpx/credentials.json","cacheKey":"github|abcd"},"actions":[{"kind":"read_text_file","path":"/home/me/.config/mcpx/credentials.json"}]}
     ),
@@ -39,7 +39,7 @@ test "wasm: reduce valid cached credentials to bearer header" {
   let state =
     #|{"phase":"read_credentials","serverName":"github","credentialsPath":"/home/me/.config/mcpx/credentials.json","cacheKey":"github|abcd","nowSeconds":1000}
   inspect(
-    mcpx_tool_reduce(state, Json::object(result).stringify()),
+    @wasm.mcpx_tool_reduce(state, Json::object(result).stringify()),
     content=(
       #|{"status":"ready","headers":{"Authorization":"Bearer access-1"}}
     ),
@@ -53,7 +53,7 @@ test "wasm: reduce missing credentials to explicit auth command" {
   let host_result =
     #|{"ok":false,"error":"not found"}
   inspect(
-    mcpx_tool_reduce(state, host_result),
+    @wasm.mcpx_tool_reduce(state, host_result),
     content=(
       #|{"status":"reauth_required","command":"mcpx auth github","noBrowser":true}
     ),
@@ -65,7 +65,7 @@ test "wasm: run can plan MCP initialize over host HTTP using core client" {
   let input =
     #|{"mode":"mcp_http_initialize","url":"http://localhost:3000/mcp"}
   inspect(
-    mcpx_tool_run(input),
+    @wasm.mcpx_tool_run(input),
     content=(
       #|{"status":"needs_host","state":{"phase":"mcp_http_initialize","url":"http://localhost:3000/mcp","requestId":1},"actions":[{"kind":"http_request","method":"POST","url":"http://localhost:3000/mcp","headers":{"content-type":"application/json","accept":"application/json, text/event-stream"},"body":"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2026-07-28\",\"capabilities\":{},\"clientInfo\":{\"name\":\"mcpx\",\"version\":\"0.2.0\"}}}"}]}
     ),
@@ -92,7 +92,7 @@ test "wasm: reduce MCP initialize response to initialized notification action" {
     "body": Json::string(body),
   }).stringify()
   inspect(
-    mcpx_tool_reduce(state, host_result),
+    @wasm.mcpx_tool_reduce(state, host_result),
     content=(
       #|{"status":"needs_host","state":{"phase":"mcp_http_initialized","url":"http://localhost:3000/mcp"},"actions":[{"kind":"http_request","method":"POST","url":"http://localhost:3000/mcp","headers":{"content-type":"application/json","accept":"application/json, text/event-stream"},"body":"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"}]}
     ),
@@ -103,7 +103,7 @@ test "wasm: reduce MCP initialize response to initialized notification action" {
 test "wasm: MCP HTTP list flow completes through host actions" {
   let input =
     #|{"mode":"mcp_http_list","url":"http://localhost:3000/mcp"}
-  let run = mcpx_tool_run(input)
+  let run = @wasm.mcpx_tool_run(input)
   let run_obj = @json.parse(run)
   let init_state = match run_obj {
     Object(obj) => obj["state"].stringify()
@@ -124,7 +124,7 @@ test "wasm: MCP HTTP list flow completes through host actions" {
     "contentType": Json::string("application/json"),
     "body": Json::string(init_body),
   }).stringify()
-  let initialized = mcpx_tool_reduce(init_state, init_result)
+  let initialized = @wasm.mcpx_tool_reduce(init_state, init_result)
   let initialized_obj = @json.parse(initialized)
   let initialized_state = match initialized_obj {
     Object(obj) => obj["state"].stringify()
@@ -132,7 +132,7 @@ test "wasm: MCP HTTP list flow completes through host actions" {
   }
   let accepted =
     #|{"ok":true,"statusCode":202,"body":""}
-  let list_step = mcpx_tool_reduce(initialized_state, accepted)
+  let list_step = @wasm.mcpx_tool_reduce(initialized_state, accepted)
   inspect(
     list_step,
     content=(
@@ -164,7 +164,7 @@ test "wasm: MCP HTTP list flow completes through host actions" {
     "body": Json::string(list_body),
   }).stringify()
   inspect(
-    mcpx_tool_reduce(list_state, list_result),
+    @wasm.mcpx_tool_reduce(list_state, list_result),
     content=(
       #|{"status":"ready","tools":[{"name":"search","description":"Search things","inputSchema":{"type":"object"}}]}
     ),
@@ -175,7 +175,7 @@ test "wasm: MCP HTTP list flow completes through host actions" {
 test "wasm: MCP HTTP call flow completes through host actions" {
   let input =
     #|{"mode":"mcp_http_call","url":"http://localhost:3000/mcp","toolName":"echo","arguments":{"text":"hi"}}
-  let run = mcpx_tool_run(input)
+  let run = @wasm.mcpx_tool_run(input)
   let run_obj = @json.parse(run)
   let init_state = match run_obj {
     Object(obj) => obj["state"].stringify()
@@ -196,7 +196,7 @@ test "wasm: MCP HTTP call flow completes through host actions" {
     "contentType": Json::string("application/json"),
     "body": Json::string(init_body),
   }).stringify()
-  let initialized = mcpx_tool_reduce(init_state, init_result)
+  let initialized = @wasm.mcpx_tool_reduce(init_state, init_result)
   let initialized_obj = @json.parse(initialized)
   let initialized_state = match initialized_obj {
     Object(obj) => obj["state"].stringify()
@@ -204,7 +204,7 @@ test "wasm: MCP HTTP call flow completes through host actions" {
   }
   let accepted =
     #|{"ok":true,"statusCode":202,"body":""}
-  let call_step = mcpx_tool_reduce(initialized_state, accepted)
+  let call_step = @wasm.mcpx_tool_reduce(initialized_state, accepted)
   inspect(
     call_step,
     content=(
@@ -235,7 +235,7 @@ test "wasm: MCP HTTP call flow completes through host actions" {
     "body": Json::string(call_body),
   }).stringify()
   inspect(
-    mcpx_tool_reduce(call_state, call_result),
+    @wasm.mcpx_tool_reduce(call_state, call_result),
     content=(
       #|{"status":"ready","result":{"content":[{"type":"text","text":"hi"}]}}
     ),

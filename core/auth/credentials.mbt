@@ -6,6 +6,9 @@ pub struct CredentialsFile {
 } derive(Debug)
 
 ///|
+pub extend CredentialsFile with Debug::{to_repr}
+
+///|
 pub struct CredentialsEntry {
   server_name : String
   server_url : String?
@@ -15,15 +18,24 @@ pub struct CredentialsEntry {
 } derive(Debug)
 
 ///|
+pub extend CredentialsEntry with Debug::{to_repr}
+
+///|
 pub struct OAuthClientInfo {
   client_id : String
 } derive(Debug)
+
+///|
+pub extend OAuthClientInfo with Debug::{to_repr}
 
 ///|
 pub struct OAuthClientSecretInfo {
   client_id : String
   client_secret : String?
 } derive(Debug)
+
+///|
+pub extend OAuthClientSecretInfo with Debug::{to_repr}
 
 ///|
 pub struct PendingOAuthFlow {
@@ -40,13 +52,19 @@ pub struct PendingOAuthFlow {
 } derive(Debug)
 
 ///|
+pub extend PendingOAuthFlow with Debug::{to_repr}
+
+///|
 suberror CredentialsError {
   InvalidCredentialsJson(String)
 } derive(Debug)
 
 ///|
+pub extend CredentialsError with Debug::{to_repr}
+
+///|
 pub fn empty_credentials_file() -> CredentialsFile {
-  { version: 1, entries: Map([]), pending_oauth: Map([]) }
+  { version: 1, entries: Map([]), pending_oauth: Map([]), }
 }
 
 ///|
@@ -62,7 +80,7 @@ pub fn credentials_entry(
   {
     server_name,
     server_url,
-    client_info: client_id.map(id => { client_id: id }),
+    client_info: client_id.map(id => { client_id: id, }),
     tokens: oauth_tokens(access_token, refresh_token~, expires_at~),
     updated_at,
   }
@@ -76,7 +94,7 @@ pub fn put_credentials_entry(
 ) -> CredentialsFile {
   let entries = file.entries.copy()
   entries[key] = entry
-  { version: file.version, entries, pending_oauth: file.pending_oauth }
+  { version: file.version, entries, pending_oauth: file.pending_oauth, }
 }
 
 ///|
@@ -92,7 +110,7 @@ pub fn replace_server_credentials_entry(
     }
   }
   entries[key] = entry
-  { version: file.version, entries, pending_oauth: file.pending_oauth }
+  { version: file.version, entries, pending_oauth: file.pending_oauth, }
 }
 
 ///|
@@ -117,7 +135,7 @@ pub fn pending_oauth_flow(
   {
     server_name,
     server_url,
-    client_info: { client_id, client_secret },
+    client_info: { client_id, client_secret, },
     token_endpoint,
     authorization_issuer,
     require_authorization_issuer,
@@ -135,7 +153,7 @@ pub fn put_pending_oauth_flow(
 ) -> CredentialsFile {
   let pending_oauth = file.pending_oauth.copy()
   pending_oauth[pending_oauth_key(flow.server_name, flow.state)] = flow
-  { version: file.version, entries: file.entries, pending_oauth }
+  { version: file.version, entries: file.entries, pending_oauth, }
 }
 
 ///|
@@ -171,7 +189,7 @@ pub fn remove_pending_oauth_flow(
       pending_oauth[key] = flow
     }
   }
-  { version: file.version, entries: file.entries, pending_oauth }
+  { version: file.version, entries: file.entries, pending_oauth, }
 }
 
 ///|
@@ -185,7 +203,7 @@ pub fn remove_server_pending_oauth_flows(
       pending_oauth[key] = flow
     }
   }
-  { version: file.version, entries: file.entries, pending_oauth }
+  { version: file.version, entries: file.entries, pending_oauth, }
 }
 
 ///|

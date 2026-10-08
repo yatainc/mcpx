@@ -83,7 +83,7 @@ fn inspect_header_schema(
             "x-mcp-header requires string, integer, or boolean",
           )
       }
-      bindings.push({ name, path, value_type })
+      bindings.push({ name, path, value_type, })
     }
     Some(_) => raise InvalidResponse("x-mcp-header must be a string")
     None => ()

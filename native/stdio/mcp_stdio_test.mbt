@@ -11,7 +11,7 @@ async test "mcp stdio: initialize then call tool" {
     #|    printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"ok":true,"transport":"stdio"}}'
     #|  fi
     #|done
-  let result = stdio_mcp_call_tool(
+  let result = @stdio.stdio_mcp_call_tool(
     command="/bin/sh",
     args=["-c", script],
     env=Map([]),
@@ -35,7 +35,7 @@ async test "mcp stdio: lists tools after initialize" {
     #|    printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"search","description":"Search things","inputSchema":{"type":"object"}}]}}'
     #|  fi
     #|done
-  let tools = stdio_mcp_list_tools(
+  let tools = @stdio.stdio_mcp_list_tools(
     command="/bin/sh",
     args=["-c", script],
     env=Map([]),
@@ -72,7 +72,7 @@ async test "mcp stdio: auto discovers stateless MCP 2026" {
     #|      ;;
     #|  esac
     #|done
-  let tools = stdio_mcp_list_tools(
+  let tools = @stdio.stdio_mcp_list_tools(
     command="/bin/sh",
     args=["-c", script],
     env=Map([]),
@@ -99,7 +99,7 @@ async test "mcp stdio: paginates stateless tool lists" {
     #|      ;;
     #|  esac
     #|done
-  let tools = stdio_mcp_list_tools(
+  let tools = @stdio.stdio_mcp_list_tools(
     command="/bin/sh",
     args=["-c", script],
     env=Map([]),
@@ -129,7 +129,7 @@ async test "mcp stdio: bounds skipped messages while awaiting responses" {
     #|  esac
     #|done
   try
-    stdio_mcp_list_tools(
+    @stdio.stdio_mcp_list_tools(
       command="/bin/sh",
       args=["-c", script],
       env=Map([]),
@@ -160,7 +160,7 @@ async test "mcp stdio: skips server requests with the expected response id" {
     #|      ;;
     #|  esac
     #|done
-  let tools = stdio_mcp_list_tools(
+  let tools = @stdio.stdio_mcp_list_tools(
     command="/bin/sh",
     args=["-c", script],
     env=Map([]),
@@ -186,7 +186,7 @@ async test "mcp stdio: poisons connection after matching malformed response" {
     #|  esac
     #|done
   @async.with_task_group(group => {
-    let client = stdio_mcp_connect(
+    let client = @stdio.stdio_mcp_connect(
       group,
       command="/bin/sh",
       args=["-c", script],
@@ -234,7 +234,7 @@ async test "mcp stdio: poisons connection after wrong response id" {
     #|  esac
     #|done
   @async.with_task_group(group => {
-    let client = stdio_mcp_connect(
+    let client = @stdio.stdio_mcp_connect(
       group,
       command="/bin/sh",
       args=["-c", script],
@@ -279,7 +279,7 @@ async test "mcp stdio: rejects malformed JSON-RPC messages while waiting" {
     #|  esac
     #|done
   try
-    stdio_mcp_list_tools(
+    @stdio.stdio_mcp_list_tools(
       command="/bin/sh",
       args=["-c", script],
       env=Map([]),
@@ -311,7 +311,7 @@ async test "mcp stdio: rejects requests with scalar params" {
     #|  esac
     #|done
   try
-    stdio_mcp_list_tools(
+    @stdio.stdio_mcp_list_tools(
       command="/bin/sh",
       args=["-c", script],
       env=Map([]),
@@ -343,7 +343,7 @@ async test "mcp stdio: rejects requests without JSON-RPC version" {
     #|  esac
     #|done
   try
-    stdio_mcp_list_tools(
+    @stdio.stdio_mcp_list_tools(
       command="/bin/sh",
       args=["-c", script],
       env=Map([]),
@@ -374,7 +374,7 @@ async test "mcp stdio: poisons connection after malformed operation JSON" {
     #|  esac
     #|done
   @async.with_task_group(group => {
-    let client = stdio_mcp_connect(
+    let client = @stdio.stdio_mcp_connect(
       group,
       command="/bin/sh",
       args=["-c", script],
@@ -415,7 +415,7 @@ async test "mcp stdio: times out silent tool operations" {
     #|  esac
     #|done
   try
-    stdio_mcp_list_tools(
+    @stdio.stdio_mcp_list_tools(
       command="/bin/sh",
       args=["-c", script],
       env=Map([]),
@@ -450,7 +450,7 @@ async test "mcp stdio: rejects operations after a response timeout" {
     #|  esac
     #|done
   @async.with_task_group(group => {
-    let client = stdio_mcp_connect(
+    let client = @stdio.stdio_mcp_connect(
       group,
       command="/bin/sh",
       args=["-c", script],
@@ -480,6 +480,53 @@ async test "mcp stdio: rejects operations after a response timeout" {
 
 ///|
 #cfg(all(target="native", not(platform="windows")))
+async test "mcp stdio: rejects operations after caller cancellation" {
+  let script =
+    #|while IFS= read -r line; do
+    #|  case "$line" in
+    #|    *'"method":"server/discover"'*)
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","supportedVersions":["2026-07-28"]}}'
+    #|      ;;
+    #|    *'"method":"tools/list"'*)
+    #|      sleep 1
+    #|      printf '%s\n' '{"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","tools":[]}}'
+    #|      ;;
+    #|  esac
+    #|done
+  @async.with_task_group(group => {
+    let client = @stdio.stdio_mcp_connect(
+      group,
+      command="/bin/sh",
+      args=["-c", script],
+      env=Map([]),
+      cwd=None,
+      mode=Stateless,
+      response_timeout_ms=5000,
+    )
+    defer client.close()
+    try ignore(@async.with_timeout(50, () => client.list_tools())) catch {
+      @async.TimeoutError => ()
+      _ => fail("expected caller timeout")
+    } noraise {
+      _ => fail("expected caller timeout")
+    }
+    try
+      client.call_tool(tool_name="search", arguments=Json::empty_object())
+    catch {
+      Protocol(message) =>
+        inspect(
+          message,
+          content="stdio connection is unusable after transport desynchronization",
+        )
+      _ => fail("expected poisoned connection error")
+    } noraise {
+      _ => fail("expected poisoned connection to reject operation")
+    }
+  })
+}
+
+///|
+#cfg(all(target="native", not(platform="windows")))
 async test "mcp stdio: applies one timeout to complete pagination" {
   let script =
     #|while IFS= read -r line; do
@@ -498,7 +545,7 @@ async test "mcp stdio: applies one timeout to complete pagination" {
     #|  esac
     #|done
   try
-    stdio_mcp_list_tools(
+    @stdio.stdio_mcp_list_tools(
       command="/bin/sh",
       args=["-c", script],
       env=Map([]),
@@ -532,7 +579,7 @@ async test "mcp stdio: bounds stateless tool pagination" {
     #|  esac
     #|done
   try
-    stdio_mcp_list_tools(
+    @stdio.stdio_mcp_list_tools(
       command="/bin/sh",
       args=["-c", script],
       env=Map([]),
@@ -563,7 +610,7 @@ async test "mcp stdio: preserves modern protocol diagnostics" {
     #|  esac
     #|done
   try
-    stdio_mcp_list_tools(
+    @stdio.stdio_mcp_list_tools(
       command="/bin/sh",
       args=["-c", script],
       env=Map([]),
@@ -601,7 +648,7 @@ async test "mcp stdio: modern tool results require resultType" {
     try {
       if rpc_name == "tools/list" {
         ignore(
-          stdio_mcp_list_tools(
+          @stdio.stdio_mcp_list_tools(
             command="/bin/sh",
             args=["-c", script],
             env={ "RPC_NAME": rpc_name },
@@ -611,7 +658,7 @@ async test "mcp stdio: modern tool results require resultType" {
         )
       } else {
         ignore(
-          stdio_mcp_call_tool(
+          @stdio.stdio_mcp_call_tool(
             command="/bin/sh",
             args=["-c", script],
             env={ "RPC_NAME": rpc_name },
@@ -654,7 +701,7 @@ async test "mcp stdio: auto falls back after method not found" {
     #|    fi
     #|  done
     #|fi
-  let tools = stdio_mcp_list_tools(
+  let tools = @stdio.stdio_mcp_list_tools(
     command="/bin/sh",
     args=["-c", script],
     env={ "MARKER": marker },
@@ -691,7 +738,7 @@ async test "mcp stdio: auto restarts process after legacy probe" {
     #|    fi
     #|  done
     #|fi
-  let tools = stdio_mcp_list_tools(
+  let tools = @stdio.stdio_mcp_list_tools(
     command="/bin/sh",
     args=["-c", script],
     env={ "MARKER": marker },
@@ -726,7 +773,7 @@ async test "mcp stdio: auto times out silent probe and restarts" {
     #|    fi
     #|  done
     #|fi
-  let tools = stdio_mcp_list_tools(
+  let tools = @stdio.stdio_mcp_list_tools(
     command="/bin/sh",
     args=["-c", script],
     env={ "MARKER": marker },
@@ -769,7 +816,7 @@ async test "mcp stdio: auto does not fallback on recognized modern errors" {
       #|  done
       #|fi
     try
-      stdio_mcp_list_tools(
+      @stdio.stdio_mcp_list_tools(
         command="/bin/sh",
         args=["-c", script],
         env={ "MARKER": marker, "CODE": code.to_string() },
@@ -812,7 +859,7 @@ async test "mcp stdio: auto does not fallback on arbitrary remote errors" {
       #|  touch "$MARKER.fallback"
       #|fi
     try
-      stdio_mcp_list_tools(
+      @stdio.stdio_mcp_list_tools(
         command="/bin/sh",
         args=["-c", script],
         env={ "MARKER": marker, "CODE": code.to_string() },
@@ -854,7 +901,7 @@ async test "mcp stdio: auto does not fallback on malformed modern responses" {
     #|  touch "$MARKER.fallback"
     #|fi
   try
-    stdio_mcp_list_tools(
+    @stdio.stdio_mcp_list_tools(
       command="/bin/sh",
       args=["-c", script],
       env={ "MARKER": marker },
@@ -884,7 +931,7 @@ async test "mcp stdio: stateless rejects method not found" {
     #|  printf '%s\n' '{"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"not found"}}'
     #|done
   try
-    stdio_mcp_list_tools(
+    @stdio.stdio_mcp_list_tools(
       command="/bin/sh",
       args=["-c", script],
       env=Map([]),
@@ -920,7 +967,7 @@ async test "mcp stdio: serializes concurrent client operations" {
     #|  fi
     #|done
   @async.with_task_group(group => {
-    let client = stdio_mcp_connect(
+    let client = @stdio.stdio_mcp_connect(
       group,
       command="/bin/bash",
       args=["-c", script],
@@ -965,7 +1012,7 @@ async test "mcp stdio: persistent client reuses initialized process" {
     #|  fi
     #|done
   @async.with_task_group(group => {
-    let client = stdio_mcp_connect(
+    let client = @stdio.stdio_mcp_connect(
       group,
       command="/bin/sh",
       args=["-c", script],

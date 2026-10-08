@@ -14,6 +14,7 @@ pub fn mcpx_tool_schema() -> String
 
 // Errors
 type EmbeddedError derive(@debug.Debug)
+pub fn EmbeddedError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 

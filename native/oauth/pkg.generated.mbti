@@ -23,8 +23,10 @@ pub suberror OAuthCallbackError {
   MissingCode
   InvalidRequest
 } derive(@debug.Debug)
+pub fn OAuthCallbackError::to_repr(Self) -> @debug.Repr
 
 type OAuthPkceError derive(@debug.Debug)
+pub fn OAuthPkceError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct OAuthCallbackCode {
@@ -32,6 +34,7 @@ pub struct OAuthCallbackCode {
   state : String
   issuer : String?
 } derive(@debug.Debug)
+pub fn OAuthCallbackCode::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

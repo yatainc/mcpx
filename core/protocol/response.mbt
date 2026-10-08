@@ -5,12 +5,21 @@ pub(all) enum McpCacheScope {
 } derive(Debug, Eq)
 
 ///|
+pub extend McpCacheScope with Debug::{to_repr}
+
+///|
+pub extend McpCacheScope with Eq::{not_equal, equal}
+
+///|
 pub struct McpInitializeInfo {
   protocol_version : String
   server_name : String?
   server_version : String?
   capabilities : Json
 } derive(Debug)
+
+///|
+pub extend McpInitializeInfo with Debug::{to_repr}
 
 ///|
 pub fn decode_mcp_initialize_result(
@@ -39,7 +48,7 @@ pub fn decode_mcp_initialize_result(
     }
     _ => (None, None)
   }
-  { protocol_version, server_name, server_version, capabilities }
+  { protocol_version, server_name, server_version, capabilities, }
 }
 
 ///|

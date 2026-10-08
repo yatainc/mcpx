@@ -4,10 +4,10 @@ async test "core http: discovery protocol errors are normalized at the public bo
     for code in [-32020, -32021, -32022] {
       let methods = []
       try
-        list_tools(
+        @http.list_tools(
           request => {
             methods.push(rpc_method(request.body))
-            http_response(
+            @http.http_response(
               status_code=status,
               content_type=Some("application/json"),
               body=Json::object({
@@ -20,7 +20,7 @@ async test "core http: discovery protocol errors are normalized at the public bo
               }).stringify(),
             )
           },
-          http_endpoint(url="https://mcp.example/discovery-error"),
+          @http.http_endpoint(url="https://mcp.example/discovery-error"),
         )
       catch {
         HeaderMismatch(message) => {

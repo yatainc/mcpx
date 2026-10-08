@@ -4,6 +4,9 @@ pub struct McpxConfig {
 } derive(Debug)
 
 ///|
+pub extend McpxConfig with Debug::{to_repr}
+
+///|
 pub struct McpServerConfig {
   name : String
   transport : ServerTransport
@@ -22,10 +25,16 @@ pub struct McpServerConfig {
 } derive(Debug)
 
 ///|
+pub extend McpServerConfig with Debug::{to_repr}
+
+///|
 pub(all) enum ServerTransport {
   Stdio
   Http
 } derive(Debug)
+
+///|
+pub extend ServerTransport with Debug::{to_repr}
 
 ///|
 pub(all) enum ServerAuthKind {
@@ -33,11 +42,20 @@ pub(all) enum ServerAuthKind {
 } derive(Debug)
 
 ///|
+pub extend ServerAuthKind with Debug::{to_repr}
+
+///|
 pub(all) enum McpConnectionMode {
   Auto
   Stateful
   Stateless
 } derive(Debug, Eq)
+
+///|
+pub extend McpConnectionMode with Debug::{to_repr}
+
+///|
+pub extend McpConnectionMode with Eq::{not_equal, equal}
 
 ///|
 pub struct ServerAuthConfig {
@@ -49,10 +67,16 @@ pub struct ServerAuthConfig {
 } derive(Debug)
 
 ///|
+pub extend ServerAuthConfig with Debug::{to_repr}
+
+///|
 pub(all) enum ServerLifecycleMode {
   KeepAlive
   Ephemeral
 } derive(Debug)
+
+///|
+pub extend ServerLifecycleMode with Debug::{to_repr}
 
 ///|
 pub struct ServerLifecycle {
@@ -61,9 +85,15 @@ pub struct ServerLifecycle {
 } derive(Debug)
 
 ///|
+pub extend ServerLifecycle with Debug::{to_repr}
+
+///|
 suberror ConfigDecodeError {
   InvalidConfigJson(String)
 } derive(Debug)
+
+///|
+pub extend ConfigDecodeError with Debug::{to_repr}
 
 ///|
 pub fn mcp_server_config(
@@ -105,7 +135,7 @@ pub fn server_lifecycle(
   mode : ServerLifecycleMode,
   idle_timeout_ms? : Int? = None,
 ) -> ServerLifecycle {
-  { mode, idle_timeout_ms }
+  { mode, idle_timeout_ms, }
 }
 
 ///|
@@ -115,7 +145,7 @@ pub fn oauth_server_auth(
   metadata_url? : String? = None,
   scopes? : Array[String] = [],
 ) -> ServerAuthConfig {
-  { kind: OAuth, client_id, client_secret, metadata_url, scopes }
+  { kind: OAuth, client_id, client_secret, metadata_url, scopes, }
 }
 
 ///|

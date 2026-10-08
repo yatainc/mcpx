@@ -25,6 +25,7 @@ pub suberror McpStdioError {
   Timeout
   UnexpectedEof
 } derive(@debug.Debug)
+pub fn McpStdioError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct StdioMcpClient {

@@ -1,5 +1,4 @@
 import {
-  "moonbitlang/core/json",
   "moonbitlang/core/hashset",
   "yatainc/mcpx/core/protocol",
 }

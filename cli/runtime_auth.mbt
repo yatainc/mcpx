@@ -317,9 +317,9 @@ fn load_credentials_snapshot_or_empty(
     let file = @auth.decode_credentials_file(json) catch {
       _ => return Err("failed to load credentials")
     }
-    Ok({ file, text })
+    Ok({ file, text, })
   } else {
-    Ok({ file: @auth.empty_credentials_file(), text: "" })
+    Ok({ file: @auth.empty_credentials_file(), text: "", })
   }
 }
 

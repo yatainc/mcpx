@@ -5,6 +5,9 @@ suberror EmbeddedError {
 } derive(Debug)
 
 ///|
+pub extend EmbeddedError with Debug::{to_repr}
+
+///|
 fn expect_object(json : Json) -> Map[String, Json] raise EmbeddedError {
   match json {
     Object(obj) => obj

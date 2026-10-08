@@ -1,7 +1,7 @@
 ///|
 #cfg(all(target="native", not(platform="windows")))
 async test "oauth callback: captures code with matching state" {
-  let result = wait_for_oauth_callback(
+  let result = @oauth.wait_for_oauth_callback(
     port=0,
     path="/callback",
     expected_state="state-1",
@@ -17,7 +17,7 @@ async test "oauth callback: captures code with matching state" {
 ///|
 #cfg(all(target="native", not(platform="windows")))
 async test "oauth callback: captures and decodes RFC 9207 issuer" {
-  let result = wait_for_oauth_callback(
+  let result = @oauth.wait_for_oauth_callback(
     port=0,
     path="/callback",
     expected_state="state-1",
@@ -37,7 +37,7 @@ async test "oauth callback: captures and decodes RFC 9207 issuer" {
 ///|
 #cfg(all(target="native", not(platform="windows")))
 async test "oauth callback: decodes percent-encoded UTF-8 bytes" {
-  let result = wait_for_oauth_callback(
+  let result = @oauth.wait_for_oauth_callback(
     port=0,
     path="/callback",
     expected_state="state-1",
@@ -59,7 +59,7 @@ async test "oauth callback: decodes percent-encoded UTF-8 bytes" {
 #cfg(all(target="native", not(platform="windows")))
 async test "oauth callback: rejects malformed percent-encoded UTF-8" {
   try
-    wait_for_oauth_callback(
+    @oauth.wait_for_oauth_callback(
       port=0,
       path="/callback",
       expected_state="state-1",
@@ -79,8 +79,8 @@ async test "oauth callback: rejects malformed percent-encoded UTF-8" {
 ///|
 #cfg(all(target="native", not(platform="windows")))
 async test "oauth callback: rejects mismatched state" {
-  let result : Result[OAuthCallbackCode, OAuthCallbackError] = try
-    wait_for_oauth_callback(
+  let result : Result[@oauth.OAuthCallbackCode, @oauth.OAuthCallbackError] = try
+    @oauth.wait_for_oauth_callback(
       port=0,
       path="/callback",
       expected_state="state-1",

@@ -5,6 +5,9 @@ suberror SecureFileError {
 } derive(Debug)
 
 ///|
+pub extend SecureFileError with Debug::{to_repr}
+
+///|
 #borrow(path, contents)
 extern "C" fn secure_write_private_atomic_ffi(
   path : String,

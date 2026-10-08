@@ -13,7 +13,7 @@ async test "mcp stdio: legacy calls preserve result data without modern result-t
       #|  fi
       #|done
     ).replace_all(old="RESULT_TYPE", new=result_type)
-    let result = stdio_mcp_call_tool(
+    let result = @stdio.stdio_mcp_call_tool(
       command="/bin/sh",
       args=["-c", script],
       env=Map([]),

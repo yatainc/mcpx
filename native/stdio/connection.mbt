@@ -129,6 +129,9 @@ async fn[T] run_stdio_operation_with_timeout(
   timeout_ms : Int,
   operation : async () -> T,
 ) -> T raise McpStdioError {
+  errdefer (if @async.is_being_cancelled() {
+    mark_stdio_poisoned(conn, "transport desynchronization")
+  })
   let started_at = @async.now()
   @async.with_timeout(timeout_ms, operation) catch {
     @async.TimeoutError => poison_stdio_after_timeout(conn)

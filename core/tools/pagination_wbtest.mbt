@@ -3,7 +3,7 @@ fn page(
   tools : Array[McpToolInfo],
   next_cursor? : String? = None,
 ) -> McpToolListPage {
-  { tools, next_cursor, ttl_ms: 0, cache_scope: Private }
+  { tools, next_cursor, ttl_ms: 0, cache_scope: Private, }
 }
 
 ///|

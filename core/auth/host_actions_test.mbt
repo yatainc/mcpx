@@ -1,6 +1,6 @@
 ///|
 test "auth host actions: first step reads credentials file" {
-  let action = credentials_lookup_action(
+  let action = @auth.credentials_lookup_action(
     credentials_path="/home/me/.config/mcpx/credentials.json",
   )
   inspect(
@@ -13,10 +13,10 @@ test "auth host actions: first step reads credentials file" {
 
 ///|
 test "auth host actions: stores refreshed credentials with private atomic write" {
-  let file = put_credentials_entry(
-    empty_credentials_file(),
+  let file = @auth.put_credentials_entry(
+    @auth.empty_credentials_file(),
     "github|abcd",
-    credentials_entry(
+    @auth.credentials_entry(
       server_name="github",
       server_url=Some("https://mcp.github.com/mcp"),
       client_id=Some("client-1"),
@@ -26,7 +26,7 @@ test "auth host actions: stores refreshed credentials with private atomic write"
       updated_at="2026-05-16T00:00:00.000Z",
     ),
   )
-  let action = credentials_write_action(
+  let action = @auth.credentials_write_action(
     credentials_path="/home/me/.config/mcpx/credentials.json",
     file,
   )
@@ -45,7 +45,7 @@ test "auth host actions: stores refreshed credentials with private atomic write"
 
 ///|
 test "auth host actions: cached valid token becomes bearer header" {
-  let entry = credentials_entry(
+  let entry = @auth.credentials_entry(
     server_name="github",
     access_token="access-1",
     refresh_token=Some("refresh-1"),
@@ -53,14 +53,14 @@ test "auth host actions: cached valid token becomes bearer header" {
     updated_at="2026-05-16T00:00:00.000Z",
   )
   @debug.debug_inspect(
-    decide_auth_cache(Some(entry), now_seconds=1000, skew_seconds=300),
+    @auth.decide_auth_cache(Some(entry), now_seconds=1000, skew_seconds=300),
     content="UseBearerHeader(\"Bearer access-1\")",
   )
 }
 
 ///|
 test "auth host actions: near-expiry token with refresh token requests refresh" {
-  let entry = credentials_entry(
+  let entry = @auth.credentials_entry(
     server_name="github",
     access_token="access-1",
     refresh_token=Some("refresh-1"),
@@ -68,7 +68,7 @@ test "auth host actions: near-expiry token with refresh token requests refresh" 
     updated_at="2026-05-16T00:00:00.000Z",
   )
   @debug.debug_inspect(
-    decide_auth_cache(Some(entry), now_seconds=1000, skew_seconds=300),
+    @auth.decide_auth_cache(Some(entry), now_seconds=1000, skew_seconds=300),
     content="RefreshWithToken(\"refresh-1\")",
   )
 }
@@ -76,7 +76,7 @@ test "auth host actions: near-expiry token with refresh token requests refresh" 
 ///|
 test "auth host actions: missing cache requires explicit auth" {
   @debug.debug_inspect(
-    decide_auth_cache(None, now_seconds=1000, skew_seconds=300),
+    @auth.decide_auth_cache(None, now_seconds=1000, skew_seconds=300),
     content="ReauthRequired",
   )
 }

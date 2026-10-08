@@ -6,6 +6,15 @@ pub struct SearchResult {
 } derive(Debug, Eq, Hash)
 
 ///|
+pub extend SearchResult with Debug::{to_repr}
+
+///|
+pub extend SearchResult with Eq::{not_equal, equal}
+
+///|
+pub extend SearchResult with Hash::{hash, hash_combine}
+
+///|
 impl Compare for SearchResult with fn compare(self, other) {
   if self.score != other.score {
     other.score - self.score
@@ -64,7 +73,7 @@ pub fn search_servers(
     let (name, description) = entry
     let score = server_search_score(query, name, description)
     if score > 0 {
-      results.push({ name, description: description.unwrap_or(""), score })
+      results.push({ name, description: description.unwrap_or(""), score, })
     }
   }
   let total = results.length()

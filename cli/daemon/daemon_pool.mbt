@@ -5,9 +5,7 @@ async fn DaemonPool::entry(
   key : String,
   server : @config.McpServerConfig,
 ) -> DaemonEntry raise McpxDaemonError {
-  self.lock.acquire() catch {
-    _ => raise Unavailable
-  }
+  self.lock.acquire()
   let existing = self.entries.get(key)
   match existing {
     Some(value) if !value.is_idle_expired() => {
@@ -35,9 +33,7 @@ async fn create_and_insert_entry(
   server : @config.McpServerConfig,
 ) -> DaemonEntry raise McpxDaemonError {
   let created = create_entry(group, server)
-  pool.lock.acquire() catch {
-    _ => raise Unavailable
-  }
+  pool.lock.acquire()
   match pool.entries.get(key) {
     Some(value) => {
       pool.lock.release()
@@ -82,7 +78,7 @@ async fn create_entry(
 ///|
 fn server_idle_timeout_ms(server : @config.McpServerConfig) -> Int? {
   match server.lifecycle {
-    Some({ mode: KeepAlive, idle_timeout_ms }) => idle_timeout_ms
+    Some({ mode: KeepAlive, idle_timeout_ms, }) => idle_timeout_ms
     _ => None
   }
 }

@@ -2,7 +2,7 @@
 async test "core http: legacy list and call classify matching RPC errors on success and non-success HTTP" {
   for status_code in [200, 400, 401, 403, 404, 405, 500, 503] {
     let fetch = legacy_operation_error_fetch(
-      http_response(
+      @http.http_response(
         status_code~,
         body=Json::object({
           "jsonrpc": "2.0",
@@ -11,10 +11,15 @@ async test "core http: legacy list and call classify matching RPC errors on succ
         }).stringify(),
       ),
     )
-    let endpoint = http_endpoint(url="https://example.test/mcp", mode=Stateful)
+    let endpoint = @http.http_endpoint(
+      url="https://example.test/mcp",
+      mode=Stateful,
+    )
     let operations : Array[async () -> Unit] = [
-      () => ignore(list_tools(fetch, endpoint)),
-      () => ignore(call_tool(fetch, endpoint, tool_name="echo", arguments={})),
+      () => ignore(@http.list_tools(fetch, endpoint)),
+      () => {
+        ignore(@http.call_tool(fetch, endpoint, tool_name="echo", arguments={}))
+      },
     ]
     for operation in operations {
       try operation() catch {
@@ -36,7 +41,7 @@ async test "core http: legacy operations reject mismatched or invalid error resp
   for status_code in [200, 400, 500] {
     for response_id in response_ids {
       let fetch = legacy_operation_error_fetch(
-        http_response(
+        @http.http_response(
           status_code~,
           body=Json::object({
             "jsonrpc": "2.0",
@@ -45,13 +50,17 @@ async test "core http: legacy operations reject mismatched or invalid error resp
           }).stringify(),
         ),
       )
-      let endpoint = http_endpoint(
+      let endpoint = @http.http_endpoint(
         url="https://example.test/mcp",
         mode=Stateful,
       )
       let operations : Array[async () -> Unit] = [
-        () => ignore(list_tools(fetch, endpoint)),
-        () => ignore(call_tool(fetch, endpoint, tool_name="echo", arguments={})),
+        () => ignore(@http.list_tools(fetch, endpoint)),
+        () => {
+          ignore(
+            @http.call_tool(fetch, endpoint, tool_name="echo", arguments={}),
+          )
+        },
       ]
       for operation in operations {
         try operation() catch {
@@ -69,14 +78,14 @@ async test "core http: legacy operations reject mismatched or invalid error resp
 async test "core http: legacy initialize errors still require request ID one" {
   for status_code in [200, 400, 500] {
     for response_id in [1, 2] {
-      let requests : Array[HttpRequest] = []
-      let fetch : async (HttpRequest) -> HttpResponse = request => {
+      let requests : Array[@http.HttpRequest] = []
+      let fetch : async (@http.HttpRequest) -> @http.HttpResponse = request => {
         requests.push(request)
         guard @json.parse(request.body)
           is { "id": Number(1, ..), "method": String("initialize"), .. } else {
           fail("expected initialize request")
         }
-        http_response(
+        @http.http_response(
           status_code~,
           body=Json::object({
             "jsonrpc": "2.0",
@@ -85,13 +94,17 @@ async test "core http: legacy initialize errors still require request ID one" {
           }).stringify(),
         )
       }
-      let endpoint = http_endpoint(
+      let endpoint = @http.http_endpoint(
         url="https://example.test/mcp",
         mode=Stateful,
       )
       let operations : Array[async () -> Unit] = [
-        () => ignore(list_tools(fetch, endpoint)),
-        () => ignore(call_tool(fetch, endpoint, tool_name="echo", arguments={})),
+        () => ignore(@http.list_tools(fetch, endpoint)),
+        () => {
+          ignore(
+            @http.call_tool(fetch, endpoint, tool_name="echo", arguments={}),
+          )
+        },
       ]
       for operation in operations {
         requests.clear()
@@ -118,15 +131,19 @@ async test "core http: legacy non-RPC failures retain HTTP status classification
     for
       body in ["not JSON", "{}", "{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{}}"] {
       let fetch = legacy_operation_error_fetch(
-        http_response(status_code~, body~),
+        @http.http_response(status_code~, body~),
       )
-      let endpoint = http_endpoint(
+      let endpoint = @http.http_endpoint(
         url="https://example.test/mcp",
         mode=Stateful,
       )
       let operations : Array[async () -> Unit] = [
-        () => ignore(list_tools(fetch, endpoint)),
-        () => ignore(call_tool(fetch, endpoint, tool_name="echo", arguments={})),
+        () => ignore(@http.list_tools(fetch, endpoint)),
+        () => {
+          ignore(
+            @http.call_tool(fetch, endpoint, tool_name="echo", arguments={}),
+          )
+        },
       ]
       for operation in operations {
         try operation() catch {
@@ -142,12 +159,12 @@ async test "core http: legacy non-RPC failures retain HTTP status classification
 
 ///|
 fn legacy_operation_error_fetch(
-  response : HttpResponse,
-) -> async (HttpRequest) -> HttpResponse {
+  response : @http.HttpResponse,
+) -> async (@http.HttpRequest) -> @http.HttpResponse {
   request => {
     match @json.parse(request.body) {
       { "id": Number(1, ..), "method": String("initialize"), .. } =>
-        http_response(
+        @http.http_response(
           status_code=200,
           body=Json::object({
             "jsonrpc": "2.0",
@@ -156,7 +173,7 @@ fn legacy_operation_error_fetch(
           }).stringify(),
         )
       { "method": String("notifications/initialized"), .. } =>
-        http_response(status_code=202, body="")
+        @http.http_response(status_code=202, body="")
       { "id": Number(2, ..), "method": String("tools/list" | "tools/call"), .. } =>
         response
       _ => fail("unexpected legacy request")

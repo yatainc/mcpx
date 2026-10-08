@@ -28,7 +28,7 @@ async fn discover_oauth_metadata(
   let (response, _data) = @http.get(server_url) catch {
     _ => return Err("failed to connect to server")
   }
-  let www_auth = match http_header(response.headers, "www-authenticate") {
+  let www_auth = match response.headers.get("www-authenticate") {
     Some(value) => value
     None => return Err("no www-authenticate header")
   }
@@ -59,21 +59,6 @@ async fn discover_oauth_metadata(
     oauth_authorization_server_metadata_url(issuer),
     expected_issuer=Some(issuer),
   )
-}
-
-///|
-fn http_header(headers : Map[String, String], name : String) -> String? {
-  match headers.get(name) {
-    Some(value) => Some(value)
-    None =>
-      for key, value in headers {
-        if key.equal_ignore_ascii_case(name) {
-          break Some(value)
-        }
-      } nobreak {
-        None
-      }
-  }
 }
 
 ///|

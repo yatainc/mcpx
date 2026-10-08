@@ -7,7 +7,7 @@ test "dotenv: parses comments blanks and simple assignments" {
     #|GITHUB_CLIENT_ID=client-1
     #|GITHUB_CLIENT_SECRET="secret with spaces"
   @debug.debug_inspect(
-    parse_dotenv(text),
+    @config.parse_dotenv(text),
     content=(
       #|Ok(
       #|  {
@@ -22,10 +22,10 @@ test "dotenv: parses comments blanks and simple assignments" {
 
 ///|
 test "dotenv: process env overrides file env when merged" {
-  let file_env = parse_dotenv("GITHUB_TOKEN=file\nLOCAL_ONLY=yes")
+  let file_env = @config.parse_dotenv("GITHUB_TOKEN=file\nLOCAL_ONLY=yes")
   let process_env = { "GITHUB_TOKEN": "process" }
   @debug.debug_inspect(
-    merge_env(file_env.unwrap(), process_env),
+    @config.merge_env(file_env.unwrap(), process_env),
     content=(
       #|{ "GITHUB_TOKEN": "process", "LOCAL_ONLY": "yes" }
     ),
@@ -35,7 +35,7 @@ test "dotenv: process env overrides file env when merged" {
 ///|
 test "dotenv: invalid key is rejected" {
   @debug.debug_inspect(
-    parse_dotenv("1BAD=value"),
+    @config.parse_dotenv("1BAD=value"),
     content="Err(InvalidDotenvLine(1, \"1BAD=value\"))",
   )
 }

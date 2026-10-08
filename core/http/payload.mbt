@@ -5,6 +5,9 @@ pub enum Payload {
 } derive(Debug)
 
 ///|
+pub extend Payload with Debug::{to_repr}
+
+///|
 pub fn decode_payload(
   response : HttpResponse,
 ) -> Payload raise @protocol.McpProtocolError {

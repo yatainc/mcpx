@@ -224,7 +224,7 @@ fn optional_string_map(
 
 ///|
 pub fn empty_mcpx_config() -> McpxConfig {
-  { servers: Map([]) }
+  { servers: Map([]), }
 }
 
 ///|

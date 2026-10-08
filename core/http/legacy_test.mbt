@@ -1,13 +1,13 @@
 ///|
 async test "core http: strips user protocol headers from legacy requests" {
-  let seen : Array[HttpRequest] = []
+  let seen : Array[@http.HttpRequest] = []
   ignore(
-    list_tools(
+    @http.list_tools(
       req => {
         seen.push(req)
         match rpc_method(req.body) {
           "initialize" =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               headers={ "Mcp-Session-Id": "issued" },
@@ -15,9 +15,10 @@ async test "core http: strips user protocol headers from legacy requests" {
                 #|{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}
               ),
             )
-          "notifications/initialized" => http_response(status_code=202, body="")
+          "notifications/initialized" =>
+            @http.http_response(status_code=202, body="")
           _ =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -26,7 +27,7 @@ async test "core http: strips user protocol headers from legacy requests" {
             )
         }
       },
-      http_endpoint(
+      @http.http_endpoint(
         url="https://mcp.example/legacy-header-scope",
         headers={
           "mcp-session-id": "attacker",
@@ -46,14 +47,14 @@ async test "core http: strips user protocol headers from legacy requests" {
 
 ///|
 async test "core http: reads response headers case-insensitively" {
-  let seen : Array[HttpRequest] = []
+  let seen : Array[@http.HttpRequest] = []
   ignore(
-    list_tools(
+    @http.list_tools(
       req => {
         seen.push(req)
         match rpc_method(req.body) {
           "initialize" =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               headers={ "MCP-SESSION-ID": "session" },
@@ -62,13 +63,13 @@ async test "core http: reads response headers case-insensitively" {
               ),
             )
           "notifications/initialized" =>
-            http_response(
+            @http.http_response(
               status_code=202,
               content_type=Some("application/json"),
               body="",
             )
           _ =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -77,7 +78,10 @@ async test "core http: reads response headers case-insensitively" {
             )
         }
       },
-      http_endpoint(url="https://mcp.example/case-response", mode=Stateful),
+      @http.http_endpoint(
+        url="https://mcp.example/case-response",
+        mode=Stateful,
+      ),
     ),
   )
   inspect(header(seen[1].headers, "Mcp-Session-Id"), content="session")
@@ -86,20 +90,21 @@ async test "core http: reads response headers case-insensitively" {
 ///|
 async test "core http: preserves legacy JSON-RPC error classification" {
   try
-    list_tools(
+    @http.list_tools(
       req => {
         match rpc_method(req.body) {
           "initialize" =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
                 #|{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}
               ),
             )
-          "notifications/initialized" => http_response(status_code=202, body="")
+          "notifications/initialized" =>
+            @http.http_response(status_code=202, body="")
           _ =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -108,7 +113,7 @@ async test "core http: preserves legacy JSON-RPC error classification" {
             )
         }
       },
-      http_endpoint(url="https://mcp.example/legacy-error", mode=Stateful),
+      @http.http_endpoint(url="https://mcp.example/legacy-error", mode=Stateful),
     )
   catch {
     RemoteError(code, message) => {
@@ -123,13 +128,13 @@ async test "core http: preserves legacy JSON-RPC error classification" {
 
 ///|
 async test "core http: explicit stateful initializes without discovery" {
-  let seen : Array[HttpRequest] = []
-  let tools = list_tools(
+  let seen : Array[@http.HttpRequest] = []
+  let tools = @http.list_tools(
     req => {
       seen.push(req)
       match rpc_method(req.body) {
         "initialize" =>
-          http_response(
+          @http.http_response(
             status_code=200,
             content_type=Some("application/json"),
             headers={ "Mcp-Session-Id": "sid123" },
@@ -137,9 +142,10 @@ async test "core http: explicit stateful initializes without discovery" {
               #|{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{}}}
             ),
           )
-        "notifications/initialized" => http_response(status_code=202, body="")
+        "notifications/initialized" =>
+          @http.http_response(status_code=202, body="")
         _ =>
-          http_response(
+          @http.http_response(
             status_code=200,
             content_type=Some("application/json"),
             body=(
@@ -148,7 +154,7 @@ async test "core http: explicit stateful initializes without discovery" {
           )
       }
     },
-    http_endpoint(url="https://mcp.example/mcp", mode=Stateful),
+    @http.http_endpoint(url="https://mcp.example/mcp", mode=Stateful),
   )
   inspect(tools.length(), content="0")
   inspect(

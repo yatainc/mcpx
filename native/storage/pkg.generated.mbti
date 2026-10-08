@@ -26,6 +26,7 @@ pub fn secure_write_private_atomic(String, String) -> Unit raise SecureFileError
 
 // Errors
 type SecureFileError derive(@debug.Debug)
+pub fn SecureFileError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 

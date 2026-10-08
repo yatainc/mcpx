@@ -38,13 +38,13 @@ test "bench wasm MCP HTTP call host-action reduce flow" (it : @bench.T) {
     "body": Json::string(call_body),
   }).stringify()
   it.bench(() => {
-    let run = mcpx_tool_run(input)
+    let run = @wasm.mcpx_tool_run(input)
     let init_state = bench_state_json(run)
-    let initialized = mcpx_tool_reduce(init_state, init_result)
+    let initialized = @wasm.mcpx_tool_reduce(init_state, init_result)
     let initialized_state = bench_state_json(initialized)
-    let call_step = mcpx_tool_reduce(initialized_state, accepted)
+    let call_step = @wasm.mcpx_tool_reduce(initialized_state, accepted)
     let call_state = bench_state_json(call_step)
-    let final_output = mcpx_tool_reduce(call_state, call_result)
+    let final_output = @wasm.mcpx_tool_reduce(call_state, call_result)
     it.keep(final_output.length())
   })
 }
@@ -68,7 +68,7 @@ test "bench wasm cached credentials reduce" (it : @bench.T) {
   }).stringify()
   let state =
     #|{"phase":"read_credentials","serverName":"github","credentialsPath":"/home/me/.config/mcpx/credentials.json","cacheKey":"github|abcd","nowSeconds":1000}
-  it.bench(() => it.keep(mcpx_tool_reduce(state, result).length()))
+  it.bench(() => it.keep(@wasm.mcpx_tool_reduce(state, result).length()))
 }
 
 ///|

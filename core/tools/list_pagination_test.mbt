@@ -21,7 +21,7 @@ async test "tool pagination: preserves tool order and advances cursors" {
     "cacheScope": "private",
   }
   let cursors = []
-  let tools = list(cursor => {
+  let tools = @tools.list(cursor => {
     cursors.push(cursor)
     match cursor {
       None => first
@@ -38,5 +38,5 @@ async test "tool pagination: preserves tool order and advances cursors" {
     "nextCursor": "next",
     "cacheScope": "public",
   })
-  inspect(decode_list_result(second).tools[0].name, content="second")
+  inspect(@tools.decode_list_result(second).tools[0].name, content="second")
 }

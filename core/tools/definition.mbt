@@ -7,14 +7,20 @@ pub struct McpToolInfo {
 } derive(Debug)
 
 ///|
+pub extend McpToolInfo with Debug::{to_repr}
+
+///|
 pub fn mcp_tool_info(
   name~ : String,
   description? : String? = None,
   input_schema~ : Json,
   output_schema? : Json? = None,
 ) -> McpToolInfo {
-  { name, description, input_schema, output_schema }
+  { name, description, input_schema, output_schema, }
 }
+
+///|
+pub extend McpToolInfo with ToJson::{to_json}
 
 ///|
 pub impl ToJson for McpToolInfo with fn to_json(self) {
@@ -55,5 +61,5 @@ fn decode_tool(json : Json) -> McpToolInfo raise @protocol.McpProtocolError {
     Some(_) => raise InvalidResponse("tool.outputSchema must be object")
     None => None
   }
-  { name, description, input_schema, output_schema }
+  { name, description, input_schema, output_schema, }
 }

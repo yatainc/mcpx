@@ -183,8 +183,19 @@ stored machine-managed and is not printed.
 
 ## Development
 
+Nix pins the development toolchain. Moon resolves library versions from
+`moon.mod`; there is no duplicate Nix manifest or checked-in registry snapshot.
+The first registry update/build requires network access to fetch missing dependencies.
+
+`nix build` fetches dependencies through Moon in a separate fixed-output step,
+then builds offline. When changing dependencies, update the single `outputHash`
+in `package.nix` (set it to `lib.fakeHash`, build, and use the reported hash).
+The Nix application package and binary cache remain available.
+
 ```sh
-moon install
+nix develop
+moon update
+moon build --target native cli
 moon fmt
 moon check --target all --frozen --warn-list +73 --deny-warn
 bash scripts/update-api.sh

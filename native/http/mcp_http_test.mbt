@@ -2,7 +2,10 @@
 #cfg(all(target="native", not(platform="windows")))
 async test "mcp http: preserves network errors" {
   try
-    http_mcp_list_tools(url="http://127.0.0.1:1/unreachable", headers=Map([]))
+    @http.http_mcp_list_tools(
+      url="http://127.0.0.1:1/unreachable",
+      headers=Map([]),
+    )
   catch {
     Network(_) => ()
     _ => fail("expected network error")
@@ -21,6 +24,10 @@ async test "mcp http: falls back to initialize then call tool with session" {
     let port = server.addr.port()
     group.spawn_bg(no_wait=true, () => {
       server.run_forever(allow_failure=true, (request, body, conn) => {
+        assert_eq(
+          request.headers.get("AUTHORIZATION"),
+          Some("Bearer migration token"),
+        )
         let text = body.read_all().text()
         let msg = @json.parse(text)
         let rpc_method = match msg {
@@ -44,8 +51,8 @@ async test "mcp http: falls back to initialize then call tool with session" {
             "serverInfo": Json::object({ "name": Json::string("srv") }),
           })
           conn.send_response(200, "OK", extra_headers={
-            "content-type": "application/json",
-            "Mcp-Session-Id": "sid123",
+            "CoNtEnT-TyPe": "application/json",
+            "MCP-SESSION-ID": "sid123",
           })
           conn
           ..write(
@@ -100,9 +107,9 @@ async test "mcp http: falls back to initialize then call tool with session" {
         }
       })
     })
-    let result = http_mcp_call_tool(
+    let result = @http.http_mcp_call_tool(
       url="http://localhost:\{port}/mcp",
-      headers=Map([]),
+      headers={ "aUtHoRiZaTiOn": "Bearer migration token" },
       tool_name="search",
       arguments=Json::object({ "q": Json::string("moonbit") }),
     )
@@ -161,7 +168,7 @@ async test "mcp http: sends MCP 2026 mirrored headers without sessions" {
             })
           _ => {
             for key, value in request.headers {
-              received[key.to_lower()] = value
+              received[key.to_string().to_lower()] = value
             }
             Json::object({
               "resultType": Json::string("complete"),
@@ -181,7 +188,7 @@ async test "mcp http: sends MCP 2026 mirrored headers without sessions" {
       })
     })
     ignore(
-      http_mcp_call_tool(
+      @http.http_mcp_call_tool(
         url="http://localhost:\{port}/mcp",
         headers=Map([]),
         tool_name="検索",
@@ -260,7 +267,7 @@ async test "mcp http: decodes text event stream JSON-RPC response" {
         }
       })
     })
-    let result = http_mcp_call_tool(
+    let result = @http.http_mcp_call_tool(
       url="http://localhost:\{port}/mcp",
       headers=Map([]),
       tool_name="search",
@@ -344,7 +351,7 @@ async test "mcp http: lists tools with stateless request" {
         }
       })
     })
-    let tools = http_mcp_list_tools(
+    let tools = @http.http_mcp_list_tools(
       url="http://localhost:\{port}/mcp",
       headers=Map([]),
     )

@@ -5,7 +5,7 @@ test "credentials store: missing file loads empty credentials" {
     _ => ()
   }
   inspect(
-    load_credentials_file_or_empty(path).to_json().stringify(),
+    @storage.load_credentials_file_or_empty(path).to_json().stringify(),
     content="{\"entries\":{},\"version\":1}",
   )
 }
@@ -29,13 +29,13 @@ test "credentials store: save uses secure write and can load roundtrip" {
       updated_at="2026-05-16T00:00:00.000Z",
     ),
   )
-  save_credentials_file(path, file)
+  @storage.save_credentials_file(path, file)
   let saved = @fs.read_file_to_string(path)
   inspect(saved.contains("\n  \"entries\""), content="true")
   inspect(saved.has_suffix("\n"), content="true")
-  inspect(credentials_file_mode(path), content="384")
+  inspect(@storage.credentials_file_mode(path), content="384")
   inspect(
-    load_credentials_file_or_empty(path).to_json().stringify(),
+    @storage.load_credentials_file_or_empty(path).to_json().stringify(),
     content=(
       #|{"entries":{"github|abcd":{"serverName":"github","serverUrl":"https://mcp.github.com/mcp","clientInfo":{"client_id":"client-1"},"tokens":{"access_token":"access-1","refresh_token":"refresh-1","token_type":"Bearer","expires_at":2000},"updatedAt":"2026-05-16T00:00:00.000Z"}},"version":1}
     ),

@@ -1,15 +1,15 @@
 ///|
 test "server config encode: empty config" {
   inspect(
-    empty_mcpx_config().to_json().stringify(),
+    @config.empty_mcpx_config().to_json().stringify(),
     content="{\"mcpServers\":{}}",
   )
 }
 
 ///|
 test "server config encode: add remote URL server without forcing auth" {
-  let config = put_remote_mcp_server(
-    empty_mcpx_config(),
+  let config = @config.put_remote_mcp_server(
+    @config.empty_mcpx_config(),
     name="github",
     url="https://mcp.github.com/mcp",
   )
@@ -23,14 +23,14 @@ test "server config encode: add remote URL server without forcing auth" {
 
 ///|
 test "server config encode: OAuth static client remains env-templated" {
-  let config = put_server_config(
-    empty_mcpx_config(),
-    mcp_server_config(
+  let config = @config.put_server_config(
+    @config.empty_mcpx_config(),
+    @config.mcp_server_config(
       name="github",
       transport=Http,
       url=Some("https://mcp.github.com/mcp"),
       auth=Some(
-        oauth_server_auth(
+        @config.oauth_server_auth(
           client_id=Some("${GITHUB_CLIENT_ID}"),
           client_secret=Some("${GITHUB_CLIENT_SECRET}"),
         ),
@@ -47,9 +47,9 @@ test "server config encode: OAuth static client remains env-templated" {
 
 ///|
 test "server config encode: stdio env and cwd" {
-  let config = put_server_config(
-    empty_mcpx_config(),
-    mcp_server_config(
+  let config = @config.put_server_config(
+    @config.empty_mcpx_config(),
+    @config.mcp_server_config(
       name="local",
       transport=Stdio,
       command=Some("node"),
@@ -68,14 +68,14 @@ test "server config encode: stdio env and cwd" {
 
 ///|
 test "server config encode: lifecycle keep-alive shorthand" {
-  let config = put_server_config(
-    empty_mcpx_config(),
-    mcp_server_config(
+  let config = @config.put_server_config(
+    @config.empty_mcpx_config(),
+    @config.mcp_server_config(
       name="playwright",
       transport=Stdio,
       command=Some("npx"),
       args=["@playwright/mcp"],
-      lifecycle=Some(server_lifecycle(KeepAlive)),
+      lifecycle=Some(@config.server_lifecycle(KeepAlive)),
     ),
   )
   inspect(
@@ -88,9 +88,9 @@ test "server config encode: lifecycle keep-alive shorthand" {
 
 ///|
 test "server config encode: tool filters" {
-  let config = put_server_config(
-    empty_mcpx_config(),
-    mcp_server_config(
+  let config = @config.put_server_config(
+    @config.empty_mcpx_config(),
+    @config.mcp_server_config(
       name="github",
       transport=Http,
       url=Some("https://mcp.github.com/mcp"),

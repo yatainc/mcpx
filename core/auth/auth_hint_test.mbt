@@ -1,6 +1,6 @@
 ///|
 test "auth hint: 401 suggests explicit auth without opening a browser" {
-  let hint = auth_required_hint(
+  let hint = @auth.auth_required_hint(
     server_name="github",
     status_code=401,
     token_env_var=Some("GITHUB_TOKEN"),
@@ -24,7 +24,7 @@ test "auth hint: 401 suggests explicit auth without opening a browser" {
 
 ///|
 test "auth hint: 403 suggests auth or scope review" {
-  let hint = auth_required_hint(server_name="github", status_code=403)
+  let hint = @auth.auth_required_hint(server_name="github", status_code=403)
   @debug.debug_inspect(
     hint,
     content=(
@@ -45,7 +45,7 @@ test "auth hint: 403 suggests auth or scope review" {
 ///|
 test "auth hint: non-auth status has no hint" {
   @debug.debug_inspect(
-    auth_required_hint(server_name="github", status_code=500),
+    @auth.auth_required_hint(server_name="github", status_code=500),
     content="None",
   )
 }

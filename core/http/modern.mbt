@@ -12,7 +12,7 @@ fn modern_http(
   endpoint : Endpoint,
   version : @protocol.McpProtocolVersion,
 ) -> ModernHttp {
-  { fetch, endpoint, version, next_id: 2 }
+  { fetch, endpoint, version, next_id: 2, }
 }
 
 ///|

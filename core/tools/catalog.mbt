@@ -6,12 +6,15 @@ pub struct McpToolListResult {
 } derive(Debug)
 
 ///|
+pub extend McpToolListResult with Debug::{to_repr}
+
+///|
 pub fn mcp_tool_list_result(
   tools~ : Array[McpToolInfo],
   ttl_ms? : Int = 0,
   cache_scope? : @protocol.McpCacheScope = Private,
 ) -> McpToolListResult {
-  { tools, ttl_ms, cache_scope }
+  { tools, ttl_ms, cache_scope, }
 }
 
 ///|
@@ -30,7 +33,7 @@ priv struct ToolCatalog {
 fn validate_tool(
   tool : McpToolInfo,
 ) -> ValidatedTool raise @protocol.McpProtocolError {
-  { info: tool, bindings: header_bindings(tool.input_schema) }
+  { info: tool, bindings: header_bindings(tool.input_schema), }
 }
 
 ///|

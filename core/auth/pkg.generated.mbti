@@ -79,8 +79,10 @@ pub fn validate_authorization_response_issuer(OAuthMetadata, String?) -> Result[
 
 // Errors
 type CredentialsError derive(@debug.Debug)
+pub fn CredentialsError::to_repr(Self) -> @debug.Repr
 
 type OAuthPlanError derive(@debug.Debug)
+pub fn OAuthPlanError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct AuthHint {
@@ -91,12 +93,14 @@ pub struct AuthHint {
   config_hint : String?
   opens_browser : Bool
 } derive(@debug.Debug)
+pub fn AuthHint::to_repr(Self) -> @debug.Repr
 
 pub enum CachedAuthDecision {
   UseBearerHeader(String)
   RefreshWithToken(String)
   ReauthRequired
 } derive(@debug.Debug)
+pub fn CachedAuthDecision::to_repr(Self) -> @debug.Repr
 
 pub struct CredentialsEntry {
   server_name : String
@@ -105,6 +109,8 @@ pub struct CredentialsEntry {
   tokens : OAuthTokens
   updated_at : String
 } derive(@debug.Debug)
+pub fn CredentialsEntry::to_json(Self) -> Json
+pub fn CredentialsEntry::to_repr(Self) -> @debug.Repr
 pub impl ToJson for CredentialsEntry
 
 pub struct CredentialsFile {
@@ -112,22 +118,29 @@ pub struct CredentialsFile {
   entries : Map[String, CredentialsEntry]
   pending_oauth : Map[String, PendingOAuthFlow]
 } derive(@debug.Debug)
+pub fn CredentialsFile::to_json(Self) -> Json
+pub fn CredentialsFile::to_repr(Self) -> @debug.Repr
 pub impl ToJson for CredentialsFile
 
 pub struct OAuthClientInfo {
   client_id : String
 } derive(@debug.Debug)
+pub fn OAuthClientInfo::to_json(Self) -> Json
+pub fn OAuthClientInfo::to_repr(Self) -> @debug.Repr
 pub impl ToJson for OAuthClientInfo
 
 pub struct OAuthClientRegistration {
   client_id : String
   client_secret : String?
 } derive(@debug.Debug)
+pub fn OAuthClientRegistration::to_repr(Self) -> @debug.Repr
 
 pub struct OAuthClientSecretInfo {
   client_id : String
   client_secret : String?
 } derive(@debug.Debug)
+pub fn OAuthClientSecretInfo::to_json(Self) -> Json
+pub fn OAuthClientSecretInfo::to_repr(Self) -> @debug.Repr
 pub impl ToJson for OAuthClientSecretInfo
 
 pub struct OAuthMetadata {
@@ -138,12 +151,14 @@ pub struct OAuthMetadata {
   issuer : String?
   authorization_response_iss_parameter_supported : Bool
 } derive(@debug.Debug)
+pub fn OAuthMetadata::to_repr(Self) -> @debug.Repr
 
 pub struct OAuthTokens {
   access_token : String
   refresh_token : String?
   expires_at : Int?
 } derive(@debug.Debug)
+pub fn OAuthTokens::to_repr(Self) -> @debug.Repr
 
 pub struct PendingOAuthFlow {
   server_name : String
@@ -157,6 +172,8 @@ pub struct PendingOAuthFlow {
   state : String
   created_at : String
 } derive(@debug.Debug)
+pub fn PendingOAuthFlow::to_json(Self) -> Json
+pub fn PendingOAuthFlow::to_repr(Self) -> @debug.Repr
 pub impl ToJson for PendingOAuthFlow
 
 pub enum TokenRefreshDecision {
@@ -164,6 +181,7 @@ pub enum TokenRefreshDecision {
   Refresh
   ReauthRequired
 } derive(@debug.Debug)
+pub fn TokenRefreshDecision::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

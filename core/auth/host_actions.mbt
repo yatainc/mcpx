@@ -6,6 +6,9 @@ pub enum CachedAuthDecision {
 } derive(Debug)
 
 ///|
+pub extend CachedAuthDecision with Debug::{to_repr}
+
+///|
 pub fn credentials_lookup_action(
   credentials_path~ : String,
 ) -> @host.HostAction {

@@ -1,21 +1,70 @@
 {
   lib,
   stdenv,
-  moonPlatform,
+  stdenvNoCC,
+  moonHome,
+  git,
+  cacert,
+  python3,
   tinyccForMoonbit ? null,
 }:
 
-moonPlatform.buildMoonPackage {
+let
+  # Moon resolves versions from moon.mod; Nix pins only the fetched result.
+  dependencies = stdenvNoCC.mkDerivation {
+    name = "mcpx-moon-dependencies";
+    nativeBuildInputs = [ moonHome git python3 ];
+    dontUnpack = true;
+    outputHashMode = "recursive";
+    outputHashAlgo = "sha256";
+    outputHash = "sha256-MsRzNsx9XeiBO2v5IWr0pQLAhKa99PSKlVYM1Z6RWkc=";
+    SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
+    GIT_SSL_CAINFO = "${cacert}/etc/ssl/certs/ca-bundle.crt";
+    buildCommand = ''
+      export HOME=$TMPDIR/home
+      unset MOON_HOME
+      mkdir -p "$HOME" project
+      cd project
+      cp ${./moon.mod} moon.mod
+      touch moon.pkg
+      moon update
+      moon check --target native
+      moon tree --json > graph.json
+      mkdir -p "$out"
+      cp -rL .mooncakes "$out/.mooncakes"
+
+      # Keep only Moon's resolved registry records, not the global checkout.
+      python3 - "$out" <<'PY'
+      import json
+      import os
+      from pathlib import Path
+      import sys
+
+      output = Path(sys.argv[1])
+      registry = Path(os.environ['HOME']) / '.moon/registry/index'
+      graph = json.loads(Path('graph.json').read_text())
+      assert graph['status'] == 'success'
+      for module in graph['modules']:
+          if module['source']['kind'] == 'local':
+              continue
+          assert module['source']['kind'] == 'registry', module
+          name = module['name']
+          version = module['version']
+          relative = Path('user') / (name + '.index')
+          records = [line for line in (registry / relative).read_text().splitlines()
+                     if json.loads(line)['version'] == version]
+          assert len(records) == 1, (name, version)
+          target = output / 'registry/index' / relative
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_text(records[0] + '\n')
+      PY
+    '';
+  };
+in
+stdenv.mkDerivation {
   name = "mcpx";
   src = ./.;
-  # Compatibility metadata for moonbit-overlay's registry builder. The
-  # canonical project manifest is the root moon.mod DSL file.
-  moonModJson = ./nix/moon.mod.json;
-  # Minimal registry snapshot containing only the locked direct dependencies.
-  # It is part of the source tree, so builds never fetch the global registry.
-  moonRegistryIndex = ./nix/moon-registry;
-  moonTarget = "native";
-  moonFlags = [ "cli" ];
+  MOON_HOME = "${moonHome}";
 
   # Package builds should produce the native CLI only. The native test suite
   # exercises chmod, daemon, and socket behavior that is covered in CI but is
@@ -23,11 +72,8 @@ moonPlatform.buildMoonPackage {
   doCheck = false;
 
   buildPhase = ''
-    cd $TMP
-
-    # MOON_HOME from the nix store is read-only; moon also wraps the moon
-    # executable with a fixed MOON_HOME, so patch the writable copy and run
-    # through that wrapper.
+    # Use a writable toolchain copy for the registry and Linux tcc shim.
+    # Point the copied Moon wrapper at this home instead of the Nix store.
     writable_home=$TMPDIR/moon_home
     cp -rL $MOON_HOME $writable_home
     chmod -R u+w $writable_home
@@ -99,6 +145,9 @@ moonPlatform.buildMoonPackage {
       chmod +x "$writable_home/bin/internal/tcc"
     ''}
 
+    cp -rL ${dependencies}/registry "$writable_home/registry"
+    cp -rL ${dependencies}/.mooncakes .mooncakes
+    chmod -R u+w "$writable_home/registry" .mooncakes
     export MOON_HOME=$writable_home
     export MOON_TOOLCHAIN_ROOT=$writable_home
     export HOME=$TMPDIR
@@ -106,12 +155,15 @@ moonPlatform.buildMoonPackage {
     "$MOON_HOME/bin/moon" build \
       --target native \
       --release \
+      --frozen \
+      --warn-list +73 \
+      --deny-warn \
       cli
   '';
 
   installPhase = ''
     mkdir -p "$out/bin"
-    install -Dm755 "$TMP/_build/native/release/build/cli/cli.exe" "$out/bin/mcpx"
+    install -Dm755 "_build/native/release/build/cli/cli.exe" "$out/bin/mcpx"
   '';
 
   meta = {

@@ -1,11 +1,11 @@
 ///|
 async test "core http: auto discovers then lists over MCP 2026" {
-  let seen : Array[HttpRequest] = []
-  let tools = list_tools(
+  let seen : Array[@http.HttpRequest] = []
+  let tools = @http.list_tools(
     req => {
       seen.push(req)
       if rpc_method(req.body) == "server/discover" {
-        http_response(
+        @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
@@ -13,7 +13,7 @@ async test "core http: auto discovers then lists over MCP 2026" {
           ),
         )
       } else {
-        http_response(
+        @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
@@ -22,7 +22,7 @@ async test "core http: auto discovers then lists over MCP 2026" {
         )
       }
     },
-    http_endpoint(url="https://mcp.example/mcp"),
+    @http.http_endpoint(url="https://mcp.example/mcp"),
   )
   inspect(tools[0].name, content="search")
   inspect(

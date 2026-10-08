@@ -13,6 +13,9 @@ pub struct McpToolListPage {
 } derive(Debug)
 
 ///|
+pub extend McpToolListPage with Debug::{to_repr}
+
+///|
 pub fn list_params(cursor? : String? = None) -> Map[String, Json] {
   let params = Map([])
   match cursor {
@@ -56,7 +59,7 @@ pub fn decode_list_result(
     Some(String("public")) => @protocol.McpCacheScope::Public
     _ => Private
   }
-  { tools, next_cursor, ttl_ms, cache_scope }
+  { tools, next_cursor, ttl_ms, cache_scope, }
 }
 
 ///|

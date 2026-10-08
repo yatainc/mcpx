@@ -40,22 +40,31 @@ pub fn server_lifecycle(ServerLifecycleMode, idle_timeout_ms? : Int?) -> ServerL
 
 // Errors
 type ConfigDecodeError derive(@debug.Debug)
+pub fn ConfigDecodeError::to_repr(Self) -> @debug.Repr
 
 type EnvTemplateError derive(@debug.Debug)
+pub fn EnvTemplateError::output(Self, &Logger) -> Unit
+pub fn EnvTemplateError::to_repr(Self) -> @debug.Repr
+pub fn EnvTemplateError::to_string(Self) -> String
 pub impl Show for EnvTemplateError
 
 type JsoncError derive(@debug.Debug)
+pub fn JsoncError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub(all) enum DotenvError {
   InvalidDotenvLine(Int, String)
 } derive(@debug.Debug)
+pub fn DotenvError::to_repr(Self) -> @debug.Repr
 
 pub(all) enum McpConnectionMode {
   Auto
   Stateful
   Stateless
 } derive(Eq, @debug.Debug)
+pub fn McpConnectionMode::equal(Self, Self) -> Bool
+pub fn McpConnectionMode::not_equal(Self, Self) -> Bool
+pub fn McpConnectionMode::to_repr(Self) -> @debug.Repr
 
 pub struct McpServerConfig {
   name : String
@@ -73,11 +82,15 @@ pub struct McpServerConfig {
   disabled_tools : Array[String]
   description : String?
 } derive(@debug.Debug)
+pub fn McpServerConfig::to_json(Self) -> Json
+pub fn McpServerConfig::to_repr(Self) -> @debug.Repr
 pub impl ToJson for McpServerConfig
 
 pub struct McpxConfig {
   servers : Map[String, McpServerConfig]
 } derive(@debug.Debug)
+pub fn McpxConfig::to_json(Self) -> Json
+pub fn McpxConfig::to_repr(Self) -> @debug.Repr
 pub impl ToJson for McpxConfig
 
 pub struct ServerAuthConfig {
@@ -87,27 +100,34 @@ pub struct ServerAuthConfig {
   metadata_url : String?
   scopes : Array[String]
 } derive(@debug.Debug)
+pub fn ServerAuthConfig::to_json(Self) -> Json
+pub fn ServerAuthConfig::to_repr(Self) -> @debug.Repr
 pub impl ToJson for ServerAuthConfig
 
 pub(all) enum ServerAuthKind {
   OAuth
 } derive(@debug.Debug)
+pub fn ServerAuthKind::to_repr(Self) -> @debug.Repr
 
 pub struct ServerLifecycle {
   mode : ServerLifecycleMode
   idle_timeout_ms : Int?
 } derive(@debug.Debug)
+pub fn ServerLifecycle::to_json(Self) -> Json
+pub fn ServerLifecycle::to_repr(Self) -> @debug.Repr
 pub impl ToJson for ServerLifecycle
 
 pub(all) enum ServerLifecycleMode {
   KeepAlive
   Ephemeral
 } derive(@debug.Debug)
+pub fn ServerLifecycleMode::to_repr(Self) -> @debug.Repr
 
 pub(all) enum ServerTransport {
   Stdio
   Http
 } derive(@debug.Debug)
+pub fn ServerTransport::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

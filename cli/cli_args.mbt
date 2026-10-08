@@ -85,7 +85,7 @@ fn parse_call_command(
         Err(UnknownOption(args[4]))
       } else {
         let (server, url) = target_server_url(target)
-        Ok(Call({ server, url, tool, arguments_json: args.get(3) }))
+        Ok(Call({ server, url, tool, arguments_json: args.get(3), }))
       }
   }
 }
@@ -95,14 +95,14 @@ fn parse_info_command(
   args : Array[String],
 ) -> Result[McpxCommand, CliParseError] {
   match args.get(1) {
-    None => Ok(Info({ server: None, url: None, tool: None }))
+    None => Ok(Info({ server: None, url: None, tool: None, }))
     Some("--url") => Err(InvalidTarget("--url"))
     Some(target) =>
       if args.length() > 3 {
         Err(UnknownOption(args[3]))
       } else {
         let (server, url) = target_server_url(target)
-        Ok(Info({ server: Some(server), url, tool: args.get(2) }))
+        Ok(Info({ server: Some(server), url, tool: args.get(2), }))
       }
   }
 }
@@ -166,7 +166,7 @@ fn parse_auth_command(
         }
         continue i + 1
       }
-      Ok(Auth({ server, no_browser, json_output, code, state, issuer }))
+      Ok(Auth({ server, no_browser, json_output, code, state, issuer, }))
     }
   }
 }
@@ -180,19 +180,19 @@ fn parse_daemon_command(
       if args.length() > 2 {
         Err(UnknownOption(args[2]))
       } else {
-        Ok(Daemon({ mode: Help }))
+        Ok(Daemon({ mode: Help, }))
       }
     Some("status") =>
       if args.length() > 2 {
         Err(UnknownOption(args[2]))
       } else {
-        Ok(Daemon({ mode: Status }))
+        Ok(Daemon({ mode: Status, }))
       }
     Some("stop") =>
       if args.length() > 2 {
         Err(UnknownOption(args[2]))
       } else {
-        Ok(Daemon({ mode: Stop }))
+        Ok(Daemon({ mode: Stop, }))
       }
     Some(other) => Err(UnknownOption(other))
   }

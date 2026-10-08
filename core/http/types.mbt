@@ -27,7 +27,7 @@ pub fn http_endpoint(
   headers? : Map[String, String] = Map([]),
   mode? : @config.McpConnectionMode = Auto,
 ) -> Endpoint {
-  { url, headers, mode }
+  { url, headers, mode, }
 }
 
 ///|
@@ -37,5 +37,5 @@ pub fn http_response(
   headers? : Map[String, String] = Map([]),
   body~ : String,
 ) -> HttpResponse {
-  { status_code, content_type, headers, body }
+  { status_code, content_type, headers, body, }
 }

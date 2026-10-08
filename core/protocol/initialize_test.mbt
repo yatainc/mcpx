@@ -6,7 +6,7 @@ test "initialize: rejects malformed results without client state" {
       Json::empty_object(),
       Json::object({ "protocolVersion": 42 }),
     ] {
-    try decode_mcp_initialize_result(result) catch {
+    try @protocol.decode_mcp_initialize_result(result) catch {
       InvalidResponse(_) => ()
       _ => fail("expected invalid initialize result")
     } noraise {
@@ -17,11 +17,13 @@ test "initialize: rejects malformed results without client state" {
 
 ///|
 test "initialize: retains capabilities and optional server info" {
-  let empty = decode_mcp_initialize_result({ "protocolVersion": "2025-03-26" })
+  let empty = @protocol.decode_mcp_initialize_result({
+    "protocolVersion": "2025-03-26",
+  })
   json_inspect(empty.capabilities, content={})
   @debug.debug_inspect(empty.server_name, content="None")
   @debug.debug_inspect(empty.server_version, content="None")
-  let info = decode_mcp_initialize_result({
+  let info = @protocol.decode_mcp_initialize_result({
     "protocolVersion": "2025-11-25",
     "capabilities": { "extension": { "flag": true } },
     "serverInfo": { "name": "srv", "version": "1" },

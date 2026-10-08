@@ -7,11 +7,17 @@ pub suberror OAuthCallbackError {
 } derive(Debug)
 
 ///|
+pub extend OAuthCallbackError with Debug::{to_repr}
+
+///|
 pub struct OAuthCallbackCode {
   code : String
   state : String
   issuer : String?
 } derive(Debug)
+
+///|
+pub extend OAuthCallbackCode with Debug::{to_repr}
 
 ///|
 pub async fn open_authorization_url(url : String) -> Unit {
@@ -113,7 +119,7 @@ fn parse_oauth_callback_path(
       Some(percent_decode(value) catch { error => return Err(error) })
     None => None
   }
-  Ok({ code: decoded_code, state, issuer })
+  Ok({ code: decoded_code, state, issuer, })
 }
 
 ///|
@@ -187,9 +193,7 @@ async fn wait_for_callback_result(
         if @sys.now().reinterpret_as_int64() >= deadline {
           raise Timeout
         } else {
-          @async.sleep(10) catch {
-            _ => raise Timeout
-          }
+          @async.sleep(10)
         }
     }
   }

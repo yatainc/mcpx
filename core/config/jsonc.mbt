@@ -5,6 +5,9 @@ suberror JsoncError {
 } derive(Debug)
 
 ///|
+pub extend JsoncError with Debug::{to_repr}
+
+///|
 pub fn normalize_jsonc(input : String) -> String raise JsoncError {
   let no_comments = strip_jsonc_comments(input)
   strip_jsonc_trailing_commas(no_comments)
@@ -13,7 +16,7 @@ pub fn normalize_jsonc(input : String) -> String raise JsoncError {
 ///|
 fn strip_jsonc_comments(input : String) -> String raise JsoncError {
   let view = input.to_string_view()
-  let out = StringBuilder::new(size_hint=view.length())
+  let out = StringBuilder(size_hint=view.length())
   for i = 0, state = JsoncCommentState::Code, escape = false; i < view.length(); {
     let c = view.get_char(i).unwrap()
     match state {
@@ -79,7 +82,7 @@ fn strip_jsonc_comments(input : String) -> String raise JsoncError {
 ///|
 fn strip_jsonc_trailing_commas(input : String) -> String raise JsoncError {
   let view = input.to_string_view()
-  let out = StringBuilder::new(size_hint=view.length())
+  let out = StringBuilder(size_hint=view.length())
   for i = 0, in_string = false, escape = false; i < view.length(); {
     let c = view.get_char(i).unwrap()
     if in_string {

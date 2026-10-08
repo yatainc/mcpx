@@ -10,6 +10,9 @@ pub suberror McpStdioError {
 } derive(Debug)
 
 ///|
+pub extend McpStdioError with Debug::{to_repr}
+
+///|
 priv enum StdioProtocolLifecycle {
   Initialize
   Stateless
@@ -104,9 +107,7 @@ async fn[T] StdioMcpClient::with_operation(
   self : StdioMcpClient,
   operation : async () -> T,
 ) -> T raise McpStdioError {
-  self.operation_lock.acquire() catch {
-    error => raise Protocol(error.to_string())
-  }
+  self.operation_lock.acquire()
   defer self.operation_lock.release()
   run_stdio_operation_with_timeout(self.conn, self.response_timeout_ms, () => {
     operation() catch {

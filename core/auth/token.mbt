@@ -6,6 +6,9 @@ pub struct OAuthTokens {
 } derive(Debug)
 
 ///|
+pub extend OAuthTokens with Debug::{to_repr}
+
+///|
 pub enum TokenRefreshDecision {
   UseCached
   Refresh
@@ -13,12 +16,15 @@ pub enum TokenRefreshDecision {
 } derive(Debug)
 
 ///|
+pub extend TokenRefreshDecision with Debug::{to_repr}
+
+///|
 pub fn oauth_tokens(
   access_token : String,
   refresh_token? : String? = None,
   expires_at? : Int? = None,
 ) -> OAuthTokens {
-  { access_token, refresh_token, expires_at }
+  { access_token, refresh_token, expires_at, }
 }
 
 ///|

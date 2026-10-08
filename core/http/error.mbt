@@ -9,3 +9,6 @@ pub suberror McpHttpClientError {
   ModeProtocolIncompatible(String, String)
   RemoteError(Int, String)
 } derive(Debug)
+
+///|
+pub extend McpHttpClientError with Debug::{to_repr}

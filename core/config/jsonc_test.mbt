@@ -10,7 +10,7 @@ test "jsonc: strips comments and trailing commas" {
     #|    },
     #|  },
     #|}
-  let normalized = normalize_jsonc(input)
+  let normalized = @config.normalize_jsonc(input)
   let parsed = @json.parse(normalized)
   inspect(
     parsed.stringify(indent=2),
@@ -32,7 +32,7 @@ test "jsonc: preserves comment markers inside strings" {
   let input =
     #|{"url":"https://example.com/a//b","x":"/* not comment */"}
   inspect(
-    @json.parse(normalize_jsonc(input)).stringify(),
+    @json.parse(@config.normalize_jsonc(input)).stringify(),
     content="{\"url\":\"https://example.com/a//b\",\"x\":\"/* not comment */\"}",
   )
 }

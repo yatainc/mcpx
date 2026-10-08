@@ -11,7 +11,7 @@ test "wasm: legacy calls preserve result data without modern result-type admissi
       .to_json(),
     }
     inspect(
-      mcpx_tool_reduce(
+      @wasm.mcpx_tool_reduce(
         (
           #|{"phase":"mcp_http_call","requestId":2}
         ),

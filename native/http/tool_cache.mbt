@@ -27,7 +27,7 @@ fn tool_catalog_cache(
   max_entries~ : Int,
   clock~ : () -> Int64,
 ) -> ToolCatalogCache {
-  { entries: Map([]), order: [], max_entries, clock }
+  { entries: Map([]), order: [], max_entries, clock, }
 }
 
 ///|

@@ -1,38 +1,40 @@
 ///|
 test "oauth plan: empty requested scopes returns empty" {
-  let metadata = oauth_metadata(
+  let metadata = @auth.oauth_metadata(
     authorization_endpoint="https://auth.example/authorize",
     token_endpoint="https://auth.example/token",
     scopes_supported=["repo", "read:user"],
   )
   inspect(
-    select_oauth_scopes(metadata, requested_scopes=[]).is_empty(),
+    @auth.select_oauth_scopes(metadata, requested_scopes=[]).is_empty(),
     content="true",
   )
 }
 
 ///|
 test "oauth plan: explicit requested scopes override metadata defaults" {
-  let metadata = oauth_metadata(
+  let metadata = @auth.oauth_metadata(
     authorization_endpoint="https://auth.example/authorize",
     token_endpoint="https://auth.example/token",
     scopes_supported=["repo", "read:user"],
   )
   inspect(
-    select_oauth_scopes(metadata, requested_scopes=["admin:org"]).join(" "),
+    @auth.select_oauth_scopes(metadata, requested_scopes=["admin:org"]).join(
+      " ",
+    ),
     content="admin:org",
   )
 }
 
 ///|
 test "oauth plan: builds PKCE authorization URL" {
-  let metadata = oauth_metadata(
+  let metadata = @auth.oauth_metadata(
     authorization_endpoint="https://auth.example/authorize",
     token_endpoint="https://auth.example/token",
     scopes_supported=["repo", "read:user"],
   )
   inspect(
-    oauth_authorization_url(
+    @auth.oauth_authorization_url(
       metadata,
       client_id="client 1",
       redirect_uri="http://127.0.0.1:8765/callback",
@@ -46,11 +48,11 @@ test "oauth plan: builds PKCE authorization URL" {
 
 ///|
 test "oauth plan: percent-encodes UTF-8 authorization parameters" {
-  let metadata = oauth_metadata(
+  let metadata = @auth.oauth_metadata(
     authorization_endpoint="https://auth.example/authorize",
     token_endpoint="https://auth.example/token",
   )
-  let url = oauth_authorization_url(
+  let url = @auth.oauth_authorization_url(
     metadata,
     client_id="検索",
     redirect_uri="http://localhost/callback",
@@ -68,11 +70,11 @@ test "oauth plan: percent-encodes UTF-8 authorization parameters" {
 
 ///|
 test "oauth plan: omits scope parameter when scopes are empty" {
-  let metadata = oauth_metadata(
+  let metadata = @auth.oauth_metadata(
     authorization_endpoint="https://auth.example/authorize",
     token_endpoint="https://auth.example/token",
   )
-  let url = oauth_authorization_url(
+  let url = @auth.oauth_authorization_url(
     metadata,
     client_id="client-1",
     redirect_uri="http://127.0.0.1:8765/callback",
@@ -86,7 +88,7 @@ test "oauth plan: omits scope parameter when scopes are empty" {
 ///|
 test "oauth plan: dynamic client registration request is JSON" {
   inspect(
-    dynamic_client_registration_request(
+    @auth.dynamic_client_registration_request(
       client_name="mcpx",
       redirect_uri="http://127.0.0.1:8765/callback",
     ).stringify(),
@@ -98,7 +100,7 @@ test "oauth plan: dynamic client registration request is JSON" {
 
 ///|
 test "oauth plan: no-browser json exposes URL but not verifier" {
-  let output = oauth_no_browser_json(
+  let output = @auth.oauth_no_browser_json(
     authorization_url="https://auth.example/authorize?client_id=client",
     callback_url="http://127.0.0.1:8765/callback",
     state="state-1",
@@ -123,7 +125,7 @@ test "oauth plan: decodes authorization server metadata" {
     ]),
   })
   @debug.debug_inspect(
-    decode_oauth_metadata(json),
+    @auth.decode_oauth_metadata(json),
     content=(
       #|Ok(
       #|  {
@@ -141,14 +143,14 @@ test "oauth plan: decodes authorization server metadata" {
 
 ///|
 test "oauth plan: validates RFC 9207 authorization response issuer" {
-  let metadata = oauth_metadata(
+  let metadata = @auth.oauth_metadata(
     authorization_endpoint="https://auth.example/authorize",
     token_endpoint="https://auth.example/token",
     issuer=Some("https://auth.example"),
     authorization_response_iss_parameter_supported=true,
   )
   inspect(
-    validate_authorization_response_issuer(
+    @auth.validate_authorization_response_issuer(
       metadata,
       Some("https://auth.example"),
     )
@@ -156,11 +158,11 @@ test "oauth plan: validates RFC 9207 authorization response issuer" {
     content="true",
   )
   inspect(
-    validate_authorization_response_issuer(metadata, None) is Err(_),
+    @auth.validate_authorization_response_issuer(metadata, None) is Err(_),
     content="true",
   )
   inspect(
-    validate_authorization_response_issuer(
+    @auth.validate_authorization_response_issuer(
       metadata,
       Some("https://attacker.example"),
     )
@@ -171,13 +173,13 @@ test "oauth plan: validates RFC 9207 authorization response issuer" {
 
 ///|
 test "oauth plan: rejects unexpected issuer even without advertised support" {
-  let metadata = oauth_metadata(
+  let metadata = @auth.oauth_metadata(
     authorization_endpoint="https://auth.example/authorize",
     token_endpoint="https://auth.example/token",
     issuer=Some("https://auth.example"),
   )
   inspect(
-    validate_authorization_response_issuer(
+    @auth.validate_authorization_response_issuer(
       metadata,
       Some("https://attacker.example"),
     )
@@ -188,7 +190,7 @@ test "oauth plan: rejects unexpected issuer even without advertised support" {
 
 ///|
 test "oauth plan: decodes RFC 9207 metadata" {
-  let decoded = decode_oauth_metadata({
+  let decoded = @auth.decode_oauth_metadata({
     "issuer": "https://auth.example",
     "authorization_endpoint": "https://auth.example/authorize",
     "token_endpoint": "https://auth.example/token",
@@ -208,7 +210,7 @@ test "oauth plan: decodes dynamic client registration response" {
     "client_secret": Json::string("secret-1"),
   })
   @debug.debug_inspect(
-    decode_client_registration_response(json),
+    @auth.decode_client_registration_response(json),
     content=(
       #|Ok({ client_id: "client-1", client_secret: Some("secret-1") })
     ),

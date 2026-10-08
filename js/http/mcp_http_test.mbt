@@ -1,5 +1,5 @@
 ///|
-extern "js" fn make_mock_mcp_http_fetch() -> JsFetch =
+extern "js" fn make_mock_mcp_http_fetch() -> @http.JsFetch =
   #| () => {
   #|   let n = 0;
   #|   return (_method, url, _headersJson, body) => new Promise((resolve) => {
@@ -13,7 +13,7 @@ extern "js" fn make_mock_mcp_http_fetch() -> JsFetch =
 
 ///|
 async test "js mcp_http: list tools can use injected Promise fetch adapter" {
-  let tools = list_tools_js(
+  let tools = @http.list_tools_js(
     make_mock_mcp_http_fetch(),
     url="https://mcp.example/mcp",
   )

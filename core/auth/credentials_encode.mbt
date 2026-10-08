@@ -1,4 +1,7 @@
 ///|
+pub extend CredentialsFile with ToJson::{to_json}
+
+///|
 pub impl ToJson for CredentialsFile with fn to_json(self) {
   let obj = Map([])
   obj["entries"] = credentials_entries_to_json(self.entries)
@@ -8,6 +11,9 @@ pub impl ToJson for CredentialsFile with fn to_json(self) {
   }
   Json::object(obj)
 }
+
+///|
+pub extend CredentialsEntry with ToJson::{to_json}
 
 ///|
 pub impl ToJson for CredentialsEntry with fn to_json(self) {
@@ -27,9 +33,15 @@ pub impl ToJson for CredentialsEntry with fn to_json(self) {
 }
 
 ///|
+pub extend OAuthClientInfo with ToJson::{to_json}
+
+///|
 pub impl ToJson for OAuthClientInfo with fn to_json(self) {
   Json::object({ "client_id": Json::string(self.client_id) })
 }
+
+///|
+pub extend OAuthClientSecretInfo with ToJson::{to_json}
 
 ///|
 pub impl ToJson for OAuthClientSecretInfo with fn to_json(self) {
@@ -41,6 +53,9 @@ pub impl ToJson for OAuthClientSecretInfo with fn to_json(self) {
   }
   Json::object(obj)
 }
+
+///|
+pub extend PendingOAuthFlow with ToJson::{to_json}
 
 ///|
 pub impl ToJson for PendingOAuthFlow with fn to_json(self) {

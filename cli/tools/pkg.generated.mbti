@@ -28,12 +28,14 @@ pub(all) struct CallCommand {
   tool : String
   arguments_json : String?
 } derive(@debug.Debug)
+pub fn CallCommand::to_repr(Self) -> @debug.Repr
 
 pub(all) struct InfoCommand {
   server : String?
   url : String?
   tool : String?
 } derive(@debug.Debug)
+pub fn InfoCommand::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

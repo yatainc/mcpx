@@ -18,6 +18,11 @@ pub struct SearchResult {
   description : String
   score : Int
 } derive(Eq, Hash, @debug.Debug)
+pub fn SearchResult::equal(Self, Self) -> Bool
+pub fn SearchResult::hash(Self) -> Int
+pub fn SearchResult::hash_combine(Self, Hasher) -> Unit
+pub fn SearchResult::not_equal(Self, Self) -> Bool
+pub fn SearchResult::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

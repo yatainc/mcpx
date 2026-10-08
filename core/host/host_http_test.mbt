@@ -1,6 +1,6 @@
 ///|
 test "host action: HTTP JSON request is bridge data" {
-  let action = host_http_request(
+  let action = @host.host_http_request(
     http_method="POST",
     url="https://auth.example/token",
     headers={ "content-type": "application/x-www-form-urlencoded" },

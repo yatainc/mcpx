@@ -1,7 +1,7 @@
 ///|
 test "auth host actions oauth: metadata discovery is host HTTP GET" {
   inspect(
-    oauth_metadata_request_action(
+    @auth.oauth_metadata_request_action(
       "https://mcp.example/.well-known/oauth-authorization-server",
     )
     .to_json()
@@ -14,13 +14,13 @@ test "auth host actions oauth: metadata discovery is host HTTP GET" {
 
 ///|
 test "auth host actions oauth: dynamic client registration is host HTTP POST" {
-  let metadata = oauth_metadata(
+  let metadata = @auth.oauth_metadata(
     authorization_endpoint="https://auth.example/authorize",
     token_endpoint="https://auth.example/token",
     registration_endpoint=Some("https://auth.example/register"),
   )
   inspect(
-    oauth_dynamic_client_registration_action(
+    @auth.oauth_dynamic_client_registration_action(
       metadata,
       client_name="mcpx",
       redirect_uri="http://127.0.0.1:8765/callback",
@@ -35,12 +35,12 @@ test "auth host actions oauth: dynamic client registration is host HTTP POST" {
 
 ///|
 test "auth host actions oauth: token exchange is form POST" {
-  let metadata = oauth_metadata(
+  let metadata = @auth.oauth_metadata(
     authorization_endpoint="https://auth.example/authorize",
     token_endpoint="https://auth.example/token",
   )
   inspect(
-    oauth_token_exchange_action(
+    @auth.oauth_token_exchange_action(
       metadata,
       client_id="client-1",
       client_secret=None,

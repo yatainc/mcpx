@@ -36,6 +36,8 @@ pub struct McpToolInfo {
   input_schema : Json
   output_schema : Json?
 } derive(@debug.Debug)
+pub fn McpToolInfo::to_json(Self) -> Json
+pub fn McpToolInfo::to_repr(Self) -> @debug.Repr
 pub impl ToJson for McpToolInfo
 
 pub struct McpToolListPage {
@@ -44,12 +46,14 @@ pub struct McpToolListPage {
   ttl_ms : Int
   cache_scope : @protocol.McpCacheScope
 } derive(@debug.Debug)
+pub fn McpToolListPage::to_repr(Self) -> @debug.Repr
 
 pub struct McpToolListResult {
   tools : Array[McpToolInfo]
   ttl_ms : Int
   cache_scope : @protocol.McpCacheScope
 } derive(@debug.Debug)
+pub fn McpToolListResult::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

@@ -14,7 +14,7 @@ pub fn decode_credentials_file(
   for key, value in pending_oauth_json {
     pending_oauth[key] = decode_pending_oauth_flow(value)
   }
-  { version, entries, pending_oauth }
+  { version, entries, pending_oauth, }
 }
 
 ///|
@@ -39,7 +39,7 @@ fn optional_client_info(
     None | Some(Null) => None
     Some(value) => {
       let obj = expect_object(value, "clientInfo")
-      Some({ client_id: expect_string(obj.get("client_id"), "client_id") })
+      Some({ client_id: expect_string(obj.get("client_id"), "client_id"), })
     }
   }
 }

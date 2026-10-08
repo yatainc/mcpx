@@ -8,6 +8,9 @@ pub(all) suberror McpProtocolError {
 } derive(Debug)
 
 ///|
+pub extend McpProtocolError with Debug::{to_repr}
+
+///|
 const MCP_PROTOCOL_VERSION : String = "2026-07-28"
 
 ///|

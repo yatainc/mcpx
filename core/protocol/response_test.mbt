@@ -1,7 +1,7 @@
 ///|
 test "mcp response: decodes typed modern protocol errors" {
   try
-    decode_mcp_result(
+    @protocol.decode_mcp_result(
       {
         "jsonrpc": "2.0",
         "id": 1,
@@ -23,7 +23,7 @@ test "mcp response: decodes typed modern protocol errors" {
     _ => fail("expected error")
   }
   try
-    decode_mcp_result(
+    @protocol.decode_mcp_result(
       {
         "jsonrpc": "2.0",
         "id": 1,
@@ -41,8 +41,8 @@ test "mcp response: decodes typed modern protocol errors" {
 
 ///|
 test "mcp response: decodes initialize result and capabilities" {
-  let info = decode_mcp_initialize_result(
-    decode_mcp_result(
+  let info = @protocol.decode_mcp_initialize_result(
+    @protocol.decode_mcp_result(
       {
         "jsonrpc": "2.0",
         "id": 1,
@@ -64,11 +64,11 @@ test "mcp response: decodes initialize result and capabilities" {
 ///|
 test "mcp response: validates complete result type" {
   let complete : Json = { "resultType": "complete", "value": 42 }
-  require_complete_result(complete)
-  require_complete_result({ "value": 42 }, required=false)
+  @protocol.require_complete_result(complete)
+  @protocol.require_complete_result({ "value": 42 }, required=false)
   for result_type in ["input_required", "extension/unknown"] {
     try
-      require_complete_result(
+      @protocol.require_complete_result(
         { "resultType": result_type.to_json() },
         required=false,
       )
@@ -85,7 +85,7 @@ test "mcp response: validates complete result type" {
       Json::null(),
       Json::object({ "resultType": 42 }),
     ] {
-    try require_complete_result(result) catch {
+    try @protocol.require_complete_result(result) catch {
       InvalidResponse(_) => ()
       _ => fail("expected missing result type")
     } noraise {
@@ -107,7 +107,7 @@ test "mcp response: validates JSON-RPC 2.0 envelope" {
     },
   ]
   for response in invalid {
-    try decode_mcp_result(response, expected_id=1) catch {
+    try @protocol.decode_mcp_result(response, expected_id=1) catch {
       InvalidResponse(_) => ()
       _ => fail("expected invalid response")
     } noraise {
@@ -127,7 +127,7 @@ test "mcp response: rejects integers outside the supported range" {
     },
   ]
   for response in invalid {
-    try decode_mcp_result(response, expected_id=1) catch {
+    try @protocol.decode_mcp_result(response, expected_id=1) catch {
       InvalidResponse(_) => ()
       _ => fail("expected invalid integer")
     } noraise {
@@ -146,7 +146,7 @@ test "mcp response: rejects malformed JSON-RPC errors" {
   ]
   for error in errors {
     try
-      decode_mcp_result(
+      @protocol.decode_mcp_result(
         { "jsonrpc": "2.0", "id": 1, "error": error },
         expected_id=1,
       )
@@ -162,7 +162,7 @@ test "mcp response: rejects malformed JSON-RPC errors" {
 ///|
 test "mcp client response: rejects id mismatch and surfaces json-rpc errors" {
   try
-    decode_mcp_result(
+    @protocol.decode_mcp_result(
       { "jsonrpc": "2.0", "id": 9, "result": {} },
       expected_id=1,
     )
@@ -174,7 +174,7 @@ test "mcp client response: rejects id mismatch and surfaces json-rpc errors" {
     _ => fail("expected error")
   }
   try
-    decode_mcp_result(
+    @protocol.decode_mcp_result(
       {
         "jsonrpc": "2.0",
         "id": 1,

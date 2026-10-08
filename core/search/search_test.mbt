@@ -1,31 +1,31 @@
 ///|
 test "search score: exact name match is highest" {
-  let score = server_search_score(
+  let score = @search.server_search_score(
     "github",
     "github",
     Some("GitHub Issues and PRs"),
   )
-  let other = server_search_score("github", "gitlab", Some("GitLab"))
+  let other = @search.server_search_score("github", "gitlab", Some("GitLab"))
   inspect(score > other, content="true")
   inspect(score >= 100, content="true")
 }
 
 ///|
 test "search score: name prefix match" {
-  let score = server_search_score("git", "github", None)
+  let score = @search.server_search_score("git", "github", None)
   inspect(score >= 50, content="true")
 }
 
 ///|
 test "search score: name contains" {
-  let score = server_search_score("hub", "github", None)
+  let score = @search.server_search_score("hub", "github", None)
   inspect(score >= 30, content="true")
   inspect(score < 100, content="true")
 }
 
 ///|
 test "search score: token exact match" {
-  let score = server_search_score(
+  let score = @search.server_search_score(
     "review",
     "code-review-tool",
     Some("Code review automation"),
@@ -35,7 +35,7 @@ test "search score: token exact match" {
 
 ///|
 test "search score: token prefix match" {
-  let score = server_search_score(
+  let score = @search.server_search_score(
     "code",
     "tools",
     Some("Use to review codebase"),
@@ -45,14 +45,14 @@ test "search score: token prefix match" {
 
 ///|
 test "search score: position bonus — earlier match is higher" {
-  let early = server_search_score("git", "git-tools", None)
-  let late = server_search_score("git", "my-git-tools", None)
+  let early = @search.server_search_score("git", "git-tools", None)
+  let late = @search.server_search_score("git", "my-git-tools", None)
   inspect(early > late, content="true")
 }
 
 ///|
 test "search score: multi-word AND filter — partial match excluded" {
-  let score = server_search_score(
+  let score = @search.server_search_score(
     "code review",
     "github",
     Some("GitHub code search"),
@@ -62,7 +62,7 @@ test "search score: multi-word AND filter — partial match excluded" {
 
 ///|
 test "search score: multi-word score accumulation" {
-  let score = server_search_score(
+  let score = @search.server_search_score(
     "code review",
     "code-review-tool",
     Some("Automated code review for PRs"),
@@ -77,7 +77,7 @@ test "search servers: sorted by score desc, then name asc" {
     ("github", Some("GitHub Issues and PRs")),
     ("playwright", Some("Browser automation")),
   ]
-  let (results, _total) = search_servers("git", servers)
+  let (results, _total) = @search.search_servers("git", servers)
   inspect(results.length() == 2, content="true")
   // Both gitlab and github match; same score → name asc → github first
   inspect(results[0].name == "github", content="true")
@@ -90,6 +90,6 @@ test "search servers: top 5 limit" {
   let servers : Array[(String, String?)] = Array::makei(8, i => {
     ("server-\{i}", Some("git tool number \{i}"))
   })
-  let (results, _total) = search_servers("git", servers)
+  let (results, _total) = @search.search_servers("git", servers)
   inspect(results.length() == 5, content="true")
 }

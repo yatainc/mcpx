@@ -7,9 +7,15 @@ pub enum HostAction {
 } derive(Debug)
 
 ///|
+pub extend HostAction with Debug::{to_repr}
+
+///|
 pub struct HostReadTextFile {
   path : String
 } derive(Debug)
+
+///|
+pub extend HostReadTextFile with Debug::{to_repr}
 
 ///|
 pub struct HostWriteTextFile {
@@ -21,9 +27,15 @@ pub struct HostWriteTextFile {
 } derive(Debug)
 
 ///|
+pub extend HostWriteTextFile with Debug::{to_repr}
+
+///|
 pub struct HostOpenBrowser {
   url : String
 } derive(Debug)
+
+///|
+pub extend HostOpenBrowser with Debug::{to_repr}
 
 ///|
 pub struct HostHttpRequest {
@@ -32,6 +44,9 @@ pub struct HostHttpRequest {
   headers : Map[String, String]
   body : String?
 } derive(Debug)
+
+///|
+pub extend HostHttpRequest with Debug::{to_repr}
 
 ///|
 pub fn host_read_text_file(path~ : String) -> HostAction {
@@ -64,8 +79,11 @@ pub fn host_http_request(
   headers? : Map[String, String] = Map([]),
   body? : String? = None,
 ) -> HostAction {
-  HttpRequest({ http_method, url, headers, body })
+  HttpRequest({ http_method, url, headers, body, })
 }
+
+///|
+pub extend HostAction with ToJson::{to_json}
 
 ///|
 pub impl ToJson for HostAction with fn to_json(self) {
@@ -78,12 +96,18 @@ pub impl ToJson for HostAction with fn to_json(self) {
 }
 
 ///|
+pub extend HostReadTextFile with ToJson::{to_json}
+
+///|
 pub impl ToJson for HostReadTextFile with fn to_json(self) {
   let obj = Map([])
   obj["kind"] = Json::string("read_text_file")
   obj["path"] = Json::string(self.path)
   Json::object(obj)
 }
+
+///|
+pub extend HostWriteTextFile with ToJson::{to_json}
 
 ///|
 pub impl ToJson for HostWriteTextFile with fn to_json(self) {
@@ -98,6 +122,9 @@ pub impl ToJson for HostWriteTextFile with fn to_json(self) {
 }
 
 ///|
+pub extend HostOpenBrowser with ToJson::{to_json}
+
+///|
 pub impl ToJson for HostOpenBrowser with fn to_json(self) {
   let obj = Map([])
   obj["kind"] = Json::string("open_browser")
@@ -109,6 +136,9 @@ pub impl ToJson for HostOpenBrowser with fn to_json(self) {
 fn json_int(value : Int) -> Json {
   Json::number(Double::from_int(value), repr=value.to_string())
 }
+
+///|
+pub extend HostHttpRequest with ToJson::{to_json}
 
 ///|
 pub impl ToJson for HostHttpRequest with fn to_json(self) {

@@ -13,7 +13,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    moonbit-overlay.url = "github:moonbit-community/moonbit-overlay/v0.10.7+bc794d341+4da23f8";
+    moonbit-overlay.url = "github:moonbit-community/moonbit-overlay/v0.10.14+7d59c7ec9+914d7da";
   };
 
   outputs = inputs:
@@ -32,7 +32,7 @@
           in
           {
             mcpx = final.callPackage ./package.nix {
-              moonPlatform = final.moonPlatform or moonAttrs.moonPlatform;
+              moonHome = final.moonbit-bin.moonbit.latest or moonAttrs.moonbit-bin.moonbit.latest;
               tinyccForMoonbit = if final.stdenv.hostPlatform.isLinux then final.tinycc else null;
             };
           };
@@ -46,18 +46,11 @@
           };
 
           mcpx = pkgs.callPackage ./package.nix {
+            moonHome = pkgs.moonbit-bin.moonbit.latest;
             tinyccForMoonbit = if pkgs.stdenv.hostPlatform.isLinux then pkgs.tinycc else null;
           };
 
-          baseMoonHome = pkgs.moonPlatform.bundleWithRegistry {
-            cachedRegistry = pkgs.moonPlatform.buildCachedRegistry {
-              # moonbit-overlay still consumes the legacy JSON shape when
-              # constructing an offline registry. The project manifest itself
-              # is the canonical moon.mod DSL file at the repository root.
-              moonModJson = ./nix/moon.mod.json;
-              registryIndexSrc = ./nix/moon-registry;
-            };
-          };
+          baseMoonHome = pkgs.moonbit-bin.moonbit.latest;
 
           # moonbit-overlay replaces the upstream Linux internal/tcc with
           # nixpkgs tinycc. MoonBit native tests execute tcc in -run mode via
@@ -72,7 +65,6 @@
 
                 cat > "$out/bin/moon" <<EOF
                 #!${pkgs.runtimeShell}
-                export MOON_HOME='$out'
                 export MOON_TOOLCHAIN_ROOT='$out'
                 exec -a "\$0" "$out/bin/.moon-wrapped" "\$@"
                 EOF
@@ -157,6 +149,9 @@
           };
 
           devShells.default = pkgs.mkShell {
+            shellHook = ''
+              unset MOON_HOME
+            '';
             packages = [
               moonHome
               pkgs.bash
@@ -166,7 +161,6 @@
               pkgs.openssl
             ];
             env = {
-              MOON_HOME = "${moonHome}";
               MOON_TOOLCHAIN_ROOT = "${moonHome}";
             } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
               LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [ pkgs.openssl ];

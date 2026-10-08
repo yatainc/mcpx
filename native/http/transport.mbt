@@ -5,9 +5,16 @@ async fn native_fetch(
   let (response, data) = @async_http.post(
     request.url,
     request.body,
-    headers=request.headers,
+    headers=Map::from_iter(
+      request.headers
+      .iter()
+      .map(header => {
+        let (name, value) = header
+        (CaseInsensitiveString(name), value)
+      }),
+    ),
   )
-  let content_type = header(response.headers, "content-type")
+  let content_type = response.headers.get("content-type")
   let body = if response.code == 202 {
     ""
   } else {
@@ -18,17 +25,14 @@ async fn native_fetch(
   @core_http.http_response(
     status_code=response.code,
     content_type~,
-    headers=response.headers,
+    headers=Map::from_iter(
+      response.headers
+      .iter()
+      .map(header => {
+        let (name, value) = header
+        (name.to_string(), value)
+      }),
+    ),
     body~,
   )
-}
-
-///|
-fn header(headers : Map[String, String], key : String) -> String? {
-  for name, value in headers {
-    if name.equal_ignore_ascii_case(key) {
-      return Some(value)
-    }
-  }
-  None
 }

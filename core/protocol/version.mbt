@@ -8,11 +8,23 @@ pub(all) enum McpProtocolVersion {
 } derive(Debug, Eq)
 
 ///|
+pub extend McpProtocolVersion with Debug::{to_repr}
+
+///|
+pub extend McpProtocolVersion with Eq::{not_equal, equal}
+
+///|
 pub(all) enum McpProtocolFamily {
   InitializeEra
   StatelessCore
   Unsupported
 } derive(Debug, Eq)
+
+///|
+pub extend McpProtocolFamily with Debug::{to_repr}
+
+///|
+pub extend McpProtocolFamily with Eq::{not_equal, equal}
 
 ///|
 pub fn parse_mcp_protocol_version(value : String) -> McpProtocolVersion {

@@ -7,7 +7,7 @@ test "oauth token response: decodes expires_in into expires_at" {
     "token_type": Json::string("Bearer"),
   })
   @debug.debug_inspect(
-    decode_oauth_token_response(json, issued_at=1000),
+    @auth.decode_oauth_token_response(json, issued_at=1000),
     content=(
       #|Ok(
       #|  {
@@ -27,7 +27,7 @@ test "oauth token response: missing refresh token is allowed" {
     "expires_in": Json::number(3600.0, repr="3600"),
   })
   @debug.debug_inspect(
-    decode_oauth_token_response(json, issued_at=1000),
+    @auth.decode_oauth_token_response(json, issued_at=1000),
     content=(
       #|Ok(
       #|  {

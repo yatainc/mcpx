@@ -5,12 +5,18 @@ pub struct McpResponseMeta {
 } derive(Debug)
 
 ///|
+pub extend McpResponseMeta with Debug::{to_repr}
+
+///|
 pub struct McpDiscoverInfo {
   protocol_versions : Array[McpProtocolVersion]
   capabilities : Json
   instructions : String?
   response_meta : McpResponseMeta
 } derive(Debug)
+
+///|
+pub extend McpDiscoverInfo with Debug::{to_repr}
 
 ///|
 pub fn mcp_discover_request(id~ : Int, context : McpRequestContext) -> Json {
@@ -76,6 +82,6 @@ pub fn decode_mcp_discover_response(
     protocol_versions: versions,
     capabilities,
     instructions,
-    response_meta: { server_info, raw: raw_meta },
+    response_meta: { server_info, raw: raw_meta, },
   })
 }

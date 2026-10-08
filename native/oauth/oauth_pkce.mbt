@@ -4,6 +4,9 @@ suberror OAuthPkceError {
 } derive(Debug)
 
 ///|
+pub extend OAuthPkceError with Debug::{to_repr}
+
+///|
 #borrow(buf)
 extern "C" fn random_bytes_ffi(buf : FixedArray[Byte], len : Int) -> Int = "mcpx_oauth_random_bytes"
 

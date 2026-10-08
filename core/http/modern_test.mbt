@@ -1,9 +1,9 @@
 ///|
 async test "core http: tool list without cache hints is not cacheable" {
-  let result = list_tools_with_cache_hint(
+  let result = @http.list_tools_with_cache_hint(
     req => {
       if rpc_method(req.body) == "server/discover" {
-        http_response(
+        @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
@@ -11,7 +11,7 @@ async test "core http: tool list without cache hints is not cacheable" {
           ),
         )
       } else {
-        http_response(
+        @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
@@ -20,7 +20,7 @@ async test "core http: tool list without cache hints is not cacheable" {
         )
       }
     },
-    http_endpoint(url="https://mcp.example/mcp"),
+    @http.http_endpoint(url="https://mcp.example/mcp"),
   )
   inspect(result.ttl_ms, content="0")
   inspect(result.cache_scope == Private, content="true")
@@ -28,10 +28,10 @@ async test "core http: tool list without cache hints is not cacheable" {
 
 ///|
 async test "core http: uses tools list cache hints instead of discovery hints" {
-  let result = list_tools_with_cache_hint(
+  let result = @http.list_tools_with_cache_hint(
     req => {
       if rpc_method(req.body) == "server/discover" {
-        http_response(
+        @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
@@ -39,7 +39,7 @@ async test "core http: uses tools list cache hints instead of discovery hints" {
           ),
         )
       } else {
-        http_response(
+        @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
@@ -48,7 +48,7 @@ async test "core http: uses tools list cache hints instead of discovery hints" {
         )
       }
     },
-    http_endpoint(url="https://mcp.example/tool-cache-hints"),
+    @http.http_endpoint(url="https://mcp.example/tool-cache-hints"),
   )
   inspect(result.ttl_ms, content="60000")
   inspect(result.cache_scope == Public, content="true")
@@ -56,10 +56,10 @@ async test "core http: uses tools list cache hints instead of discovery hints" {
 
 ///|
 async test "core http: excludes only tools with invalid HTTP header annotations" {
-  let tools = list_tools(
+  let tools = @http.list_tools(
     req => {
       if rpc_method(req.body) == "server/discover" {
-        http_response(
+        @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
@@ -67,7 +67,7 @@ async test "core http: excludes only tools with invalid HTTP header annotations"
           ),
         )
       } else {
-        http_response(
+        @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
@@ -76,7 +76,7 @@ async test "core http: excludes only tools with invalid HTTP header annotations"
         )
       }
     },
-    http_endpoint(url="https://mcp.example/header-tools"),
+    @http.http_endpoint(url="https://mcp.example/header-tools"),
   )
   inspect(tools.map(tool => tool.name).join(","), content="valid,plain")
 }
@@ -85,10 +85,10 @@ async test "core http: excludes only tools with invalid HTTP header annotations"
 async test "core http: bounds modern tool pagination" {
   let pages = Ref(0)
   try
-    list_tools_with_cache_hint(
+    @http.list_tools_with_cache_hint(
       req => {
         if rpc_method(req.body) == "server/discover" {
-          return http_response(
+          return @http.http_response(
             status_code=200,
             content_type=Some("application/json"),
             body=(
@@ -98,7 +98,7 @@ async test "core http: bounds modern tool pagination" {
         }
         pages.val = pages.val + 1
         let id = 1 + pages.val
-        http_response(
+        @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body="{\"jsonrpc\":\"2.0\",\"id\":" +
@@ -108,7 +108,7 @@ async test "core http: bounds modern tool pagination" {
             "\"}}",
         )
       },
-      http_endpoint(url="https://mcp.example/bounded-pages"),
+      @http.http_endpoint(url="https://mcp.example/bounded-pages"),
       max_pages=2,
       max_tools=10,
     )
@@ -125,10 +125,10 @@ async test "core http: bounds modern tool pagination" {
 ///|
 async test "core http: bounds modern tool count" {
   try
-    list_tools_with_cache_hint(
+    @http.list_tools_with_cache_hint(
       req => {
         if rpc_method(req.body) == "server/discover" {
-          http_response(
+          @http.http_response(
             status_code=200,
             content_type=Some("application/json"),
             body=(
@@ -136,7 +136,7 @@ async test "core http: bounds modern tool count" {
             ),
           )
         } else {
-          http_response(
+          @http.http_response(
             status_code=200,
             content_type=Some("application/json"),
             body=(
@@ -145,7 +145,7 @@ async test "core http: bounds modern tool count" {
           )
         }
       },
-      http_endpoint(url="https://mcp.example/bounded-tools"),
+      @http.http_endpoint(url="https://mcp.example/bounded-tools"),
       max_pages=2,
       max_tools=1,
     )
@@ -161,10 +161,10 @@ async test "core http: bounds modern tool count" {
 ///|
 async test "core http: combines paginated modern tool lists" {
   let cursors : Array[String] = []
-  let result = list_tools_with_cache_hint(
+  let result = @http.list_tools_with_cache_hint(
     req => {
       if rpc_method(req.body) == "server/discover" {
-        return http_response(
+        return @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
@@ -175,7 +175,7 @@ async test "core http: combines paginated modern tool lists" {
       let cursor = rpc_cursor(req.body)
       cursors.push(cursor)
       if cursor.is_empty() {
-        http_response(
+        @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
@@ -183,7 +183,7 @@ async test "core http: combines paginated modern tool lists" {
           ),
         )
       } else {
-        http_response(
+        @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
@@ -192,7 +192,7 @@ async test "core http: combines paginated modern tool lists" {
         )
       }
     },
-    http_endpoint(url="https://mcp.example/paginated-tools"),
+    @http.http_endpoint(url="https://mcp.example/paginated-tools"),
   )
   inspect(result.tools.map(tool => tool.name).join(","), content="first,second")
   inspect(cursors.join(","), content=",page-2")
@@ -203,10 +203,10 @@ async test "core http: combines paginated modern tool lists" {
 ///|
 async test "core http: rejects inconsistent pagination cache scope" {
   try
-    list_tools_with_cache_hint(
+    @http.list_tools_with_cache_hint(
       req => {
         if rpc_method(req.body) == "server/discover" {
-          http_response(
+          @http.http_response(
             status_code=200,
             content_type=Some("application/json"),
             body=(
@@ -214,7 +214,7 @@ async test "core http: rejects inconsistent pagination cache scope" {
             ),
           )
         } else if rpc_cursor(req.body).is_empty() {
-          http_response(
+          @http.http_response(
             status_code=200,
             content_type=Some("application/json"),
             body=(
@@ -222,7 +222,7 @@ async test "core http: rejects inconsistent pagination cache scope" {
             ),
           )
         } else {
-          http_response(
+          @http.http_response(
             status_code=200,
             content_type=Some("application/json"),
             body=(
@@ -231,7 +231,7 @@ async test "core http: rejects inconsistent pagination cache scope" {
           )
         }
       },
-      http_endpoint(url="https://mcp.example/inconsistent-scope"),
+      @http.http_endpoint(url="https://mcp.example/inconsistent-scope"),
     )
   catch {
     Protocol(_) => ()
@@ -244,10 +244,10 @@ async test "core http: rejects inconsistent pagination cache scope" {
 ///|
 async test "core http: rejects repeated pagination cursor" {
   try
-    list_tools_with_cache_hint(
+    @http.list_tools_with_cache_hint(
       req => {
         if rpc_method(req.body) == "server/discover" {
-          http_response(
+          @http.http_response(
             status_code=200,
             content_type=Some("application/json"),
             body=(
@@ -256,7 +256,7 @@ async test "core http: rejects repeated pagination cursor" {
           )
         } else {
           let id = if rpc_cursor(req.body).is_empty() { "2" } else { "3" }
-          http_response(
+          @http.http_response(
             status_code=200,
             content_type=Some("application/json"),
             body="{\"jsonrpc\":\"2.0\",\"id\":" +
@@ -265,7 +265,7 @@ async test "core http: rejects repeated pagination cursor" {
           )
         }
       },
-      http_endpoint(url="https://mcp.example/cursor-loop"),
+      @http.http_endpoint(url="https://mcp.example/cursor-loop"),
     )
   catch {
     Protocol(_) => ()
@@ -277,12 +277,12 @@ async test "core http: rejects repeated pagination cursor" {
 
 ///|
 async test "core http: modern call sends method name and preserves arguments" {
-  let seen : Array[HttpRequest] = []
-  let result = call_tool(
+  let seen : Array[@http.HttpRequest] = []
+  let result = @http.call_tool(
     req => {
       seen.push(req)
       if rpc_method(req.body) == "server/discover" {
-        http_response(
+        @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
@@ -290,7 +290,7 @@ async test "core http: modern call sends method name and preserves arguments" {
           ),
         )
       } else if rpc_method(req.body) == "tools/list" {
-        http_response(
+        @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
@@ -298,7 +298,7 @@ async test "core http: modern call sends method name and preserves arguments" {
           ),
         )
       } else {
-        http_response(
+        @http.http_response(
           status_code=200,
           content_type=Some("application/json"),
           body=(
@@ -307,7 +307,7 @@ async test "core http: modern call sends method name and preserves arguments" {
         )
       }
     },
-    http_endpoint(url="https://mcp.example/mcp"),
+    @http.http_endpoint(url="https://mcp.example/mcp"),
     tool_name="search",
     arguments={ "q": "moonbit" },
   )
@@ -322,14 +322,14 @@ async test "core http: modern call sends method name and preserves arguments" {
 
 ///|
 async test "core http: mirrors annotated tool arguments into headers" {
-  let seen : Array[HttpRequest] = []
+  let seen : Array[@http.HttpRequest] = []
   ignore(
-    call_tool(
+    @http.call_tool(
       req => {
         seen.push(req)
         match rpc_method(req.body) {
           "server/discover" =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -337,7 +337,7 @@ async test "core http: mirrors annotated tool arguments into headers" {
               ),
             )
           "tools/list" =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -345,7 +345,7 @@ async test "core http: mirrors annotated tool arguments into headers" {
               ),
             )
           _ =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -354,7 +354,7 @@ async test "core http: mirrors annotated tool arguments into headers" {
             )
         }
       },
-      http_endpoint(url="https://mcp.example/mcp"),
+      @http.http_endpoint(url="https://mcp.example/mcp"),
       tool_name="execute_sql",
       arguments={ "region": "日本", "query": "select 1" },
     ),
@@ -371,15 +371,15 @@ async test "core http: mirrors annotated tool arguments into headers" {
 
 ///|
 async test "core http: refreshes tool headers once after HeaderMismatch" {
-  let seen : Array[HttpRequest] = []
+  let seen : Array[@http.HttpRequest] = []
   ignore(
-    call_tool(
+    @http.call_tool(
       req => {
         seen.push(req)
         let index = seen.length()
         match index {
           1 =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -387,7 +387,7 @@ async test "core http: refreshes tool headers once after HeaderMismatch" {
               ),
             )
           2 =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -395,7 +395,7 @@ async test "core http: refreshes tool headers once after HeaderMismatch" {
               ),
             )
           3 =>
-            http_response(
+            @http.http_response(
               status_code=400,
               content_type=Some("application/json"),
               body=(
@@ -403,7 +403,7 @@ async test "core http: refreshes tool headers once after HeaderMismatch" {
               ),
             )
           4 =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -411,7 +411,7 @@ async test "core http: refreshes tool headers once after HeaderMismatch" {
               ),
             )
           _ =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -420,7 +420,7 @@ async test "core http: refreshes tool headers once after HeaderMismatch" {
             )
         }
       },
-      http_endpoint(url="https://mcp.example/retry-headers"),
+      @http.http_endpoint(url="https://mcp.example/retry-headers"),
       tool_name="run",
       arguments={ "region": "us-west1" },
     ),
@@ -435,13 +435,13 @@ async test "core http: refreshes tool headers once after HeaderMismatch" {
 
 ///|
 async test "core http: encodes unsafe tool names only in HTTP headers" {
-  let seen : Array[HttpRequest] = []
+  let seen : Array[@http.HttpRequest] = []
   ignore(
-    call_tool(
+    @http.call_tool(
       req => {
         seen.push(req)
         if rpc_method(req.body) == "server/discover" {
-          http_response(
+          @http.http_response(
             status_code=200,
             content_type=Some("application/json"),
             body=(
@@ -449,7 +449,7 @@ async test "core http: encodes unsafe tool names only in HTTP headers" {
             ),
           )
         } else if rpc_method(req.body) == "tools/list" {
-          http_response(
+          @http.http_response(
             status_code=200,
             content_type=Some("application/json"),
             body=(
@@ -457,7 +457,7 @@ async test "core http: encodes unsafe tool names only in HTTP headers" {
             ),
           )
         } else {
-          http_response(
+          @http.http_response(
             status_code=200,
             content_type=Some("application/json"),
             body=(
@@ -466,7 +466,7 @@ async test "core http: encodes unsafe tool names only in HTTP headers" {
           )
         }
       },
-      http_endpoint(url="https://mcp.example/mcp"),
+      @http.http_endpoint(url="https://mcp.example/mcp"),
       tool_name="検索",
       arguments=Json::empty_object(),
     ),
@@ -477,14 +477,14 @@ async test "core http: encodes unsafe tool names only in HTTP headers" {
 
 ///|
 async test "core http: generated headers replace user headers case-insensitively" {
-  let seen : Array[HttpRequest] = []
+  let seen : Array[@http.HttpRequest] = []
   ignore(
-    call_tool(
+    @http.call_tool(
       req => {
         seen.push(req)
         match rpc_method(req.body) {
           "server/discover" =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -492,7 +492,7 @@ async test "core http: generated headers replace user headers case-insensitively
               ),
             )
           "tools/list" =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -500,7 +500,7 @@ async test "core http: generated headers replace user headers case-insensitively
               ),
             )
           _ =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -509,7 +509,7 @@ async test "core http: generated headers replace user headers case-insensitively
             )
         }
       },
-      http_endpoint(url="https://mcp.example/header-sanitizer", headers={
+      @http.http_endpoint(url="https://mcp.example/header-sanitizer", headers={
         "mcp-protocol-version": "attacker",
         "mcp-method": "attacker",
         "mcp-name": "attacker",
@@ -548,14 +548,14 @@ async test "core http: generated headers replace user headers case-insensitively
 
 ///|
 async test "core http: strips parameter headers from non-call requests" {
-  let seen : Array[HttpRequest] = []
+  let seen : Array[@http.HttpRequest] = []
   ignore(
-    list_tools(
+    @http.list_tools(
       req => {
         seen.push(req)
         match rpc_method(req.body) {
           "server/discover" =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -563,7 +563,7 @@ async test "core http: strips parameter headers from non-call requests" {
               ),
             )
           _ =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -572,7 +572,7 @@ async test "core http: strips parameter headers from non-call requests" {
             )
         }
       },
-      http_endpoint(url="https://mcp.example/header-scope", headers={
+      @http.http_endpoint(url="https://mcp.example/header-scope", headers={
         "MCP-PARAM-ADMIN": "true",
         "mcp-param-region": "attacker",
       }),
@@ -587,11 +587,11 @@ async test "core http: strips parameter headers from non-call requests" {
 ///|
 async test "core http: modern tools list requires resultType" {
   try
-    list_tools(
+    @http.list_tools(
       req => {
         match rpc_method(req.body) {
           "server/discover" =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -599,7 +599,7 @@ async test "core http: modern tools list requires resultType" {
               ),
             )
           _ =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -608,7 +608,7 @@ async test "core http: modern tools list requires resultType" {
             )
         }
       },
-      http_endpoint(url="https://mcp.example/result-type"),
+      @http.http_endpoint(url="https://mcp.example/result-type"),
     )
   catch {
     Protocol(_) => ()
@@ -620,14 +620,14 @@ async test "core http: modern tools list requires resultType" {
 
 ///|
 async test "core http: removes unannotated user Mcp-Param headers" {
-  let seen : Array[HttpRequest] = []
+  let seen : Array[@http.HttpRequest] = []
   ignore(
-    call_tool(
+    @http.call_tool(
       req => {
         seen.push(req)
         match rpc_method(req.body) {
           "server/discover" =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -635,7 +635,7 @@ async test "core http: removes unannotated user Mcp-Param headers" {
               ),
             )
           "tools/list" =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -643,7 +643,7 @@ async test "core http: removes unannotated user Mcp-Param headers" {
               ),
             )
           _ =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -652,7 +652,7 @@ async test "core http: removes unannotated user Mcp-Param headers" {
             )
         }
       },
-      http_endpoint(url="https://mcp.example/param", headers={
+      @http.http_endpoint(url="https://mcp.example/param", headers={
         "mcp-param-admin": "true",
       }),
       tool_name="run",
@@ -665,11 +665,11 @@ async test "core http: removes unannotated user Mcp-Param headers" {
 ///|
 async test "core http: modern call requires resultType" {
   try
-    call_tool(
+    @http.call_tool(
       req => {
         match rpc_method(req.body) {
           "server/discover" =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -677,7 +677,7 @@ async test "core http: modern call requires resultType" {
               ),
             )
           "tools/list" =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -685,7 +685,7 @@ async test "core http: modern call requires resultType" {
               ),
             )
           _ =>
-            http_response(
+            @http.http_response(
               status_code=200,
               content_type=Some("application/json"),
               body=(
@@ -694,7 +694,7 @@ async test "core http: modern call requires resultType" {
             )
         }
       },
-      http_endpoint(url="https://mcp.example/call-result-type"),
+      @http.http_endpoint(url="https://mcp.example/call-result-type"),
       tool_name="run",
       arguments=Json::empty_object(),
     )

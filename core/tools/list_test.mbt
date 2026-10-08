@@ -1,6 +1,6 @@
 ///|
 test "mcp response: preserves arbitrary input and output schemas" {
-  let tools = decode_list_result({
+  let tools = @tools.decode_list_result({
       "tools": [
         {
           "name": "schema-tool",
@@ -24,7 +24,7 @@ test "mcp response: preserves arbitrary input and output schemas" {
 
 ///|
 test "mcp response: decodes complete modern tool list page" {
-  let page = decode_list_result(
+  let page = @tools.decode_list_result(
     {
       "resultType": "complete",
       "tools": [{ "name": "search", "inputSchema": {} }],
@@ -42,7 +42,7 @@ test "mcp response: decodes complete modern tool list page" {
 
 ///|
 test "mcp response: defaults legacy tool list page metadata" {
-  let page = decode_list_result({ "tools": [] })
+  let page = @tools.decode_list_result({ "tools": [] })
   inspect(page.tools.length(), content="0")
   inspect(page.ttl_ms, content="0")
   inspect(page.cache_scope == Private, content="true")
@@ -56,7 +56,7 @@ test "mcp response: rejects invalid modern tool list result types" {
       Json::object({ "resultType": "extension/unknown", "tools": [] }),
       Json::object({ "tools": [] }),
     ] {
-    try decode_list_result(result, modern=true) catch {
+    try @tools.decode_list_result(result, modern=true) catch {
       InvalidResponse(_) => ()
       _ => fail("expected invalid result type")
     } noraise {
@@ -74,7 +74,7 @@ test "mcp response: validates tool schema fields" {
     { "name": "description", "description": 42, "inputSchema": {} },
   ]
   for tool in invalid_tools {
-    try decode_list_result({ "tools": [tool] }) catch {
+    try @tools.decode_list_result({ "tools": [tool] }) catch {
       InvalidResponse(_) => ()
       _ => fail("expected invalid tool")
     } noraise {
@@ -86,7 +86,7 @@ test "mcp response: validates tool schema fields" {
 ///|
 test "mcp response: ignores out-of-range cache TTL hints" {
   for ttl in [2147483648.0, -1.0, 1.5] {
-    let page = decode_list_result(
+    let page = @tools.decode_list_result(
       {
         "resultType": "complete",
         "tools": [],
@@ -101,7 +101,7 @@ test "mcp response: ignores out-of-range cache TTL hints" {
 
 ///|
 test "tools: JSON roundtrip preserves schemas and omits absent fields" {
-  let tool = mcp_tool_info(
+  let tool = @tools.mcp_tool_info(
     name="search",
     description=Some("Search things"),
     input_schema={ "type": "object" },
@@ -113,9 +113,9 @@ test "tools: JSON roundtrip preserves schemas and omits absent fields" {
     "inputSchema": { "type": "object" },
     "outputSchema": { "type": "array" },
   })
-  let absent = mcp_tool_info(name="plain", input_schema={})
+  let absent = @tools.mcp_tool_info(name="plain", input_schema={})
   json_inspect(absent.to_json(), content={ "name": "plain", "inputSchema": {} })
-  let decoded = decode_list_result({
+  let decoded = @tools.decode_list_result({
       "tools": [tool.to_json(), absent.to_json()],
     }).tools
   json_inspect(decoded.to_json(), content=[tool.to_json(), absent.to_json()])

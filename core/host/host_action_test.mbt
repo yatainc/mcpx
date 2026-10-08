@@ -1,6 +1,6 @@
 ///|
 test "host action: private credentials write is atomic 0600" {
-  let action = host_write_private_text_file(
+  let action = @host.host_write_private_text_file(
     path="/home/me/.config/mcpx/credentials.json",
     contents="{\"version\":1}",
   )
@@ -14,7 +14,7 @@ test "host action: private credentials write is atomic 0600" {
 
 ///|
 test "host action: read text file is data only" {
-  let action = host_read_text_file(
+  let action = @host.host_read_text_file(
     path="/home/me/.config/mcpx/credentials.json",
   )
   inspect(
@@ -27,7 +27,7 @@ test "host action: read text file is data only" {
 
 ///|
 test "host action: open browser is explicit data action" {
-  let action = host_open_browser(url="http://127.0.0.1:9876/callback")
+  let action = @host.host_open_browser(url="http://127.0.0.1:9876/callback")
   inspect(
     action.to_json().stringify(),
     content=(

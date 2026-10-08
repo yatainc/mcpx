@@ -1,4 +1,7 @@
 ///|
+pub extend McpxConfig with ToJson::{to_json}
+
+///|
 pub impl ToJson for McpxConfig with fn to_json(self) {
   let obj = Map([])
   let servers_obj = Map([], capacity=self.servers.length())
@@ -8,6 +11,9 @@ pub impl ToJson for McpxConfig with fn to_json(self) {
   obj["mcpServers"] = Json::object(servers_obj)
   Json::object(obj)
 }
+
+///|
+pub extend McpServerConfig with ToJson::{to_json}
 
 ///|
 pub impl ToJson for McpServerConfig with fn to_json(self) {
@@ -63,6 +69,9 @@ pub impl ToJson for McpServerConfig with fn to_json(self) {
 }
 
 ///|
+pub extend ServerLifecycle with ToJson::{to_json}
+
+///|
 pub impl ToJson for ServerLifecycle with fn to_json(self) {
   match (self.mode, self.idle_timeout_ms) {
     (KeepAlive, None) => Json::string("keep-alive")
@@ -78,6 +87,9 @@ pub impl ToJson for ServerLifecycle with fn to_json(self) {
     }
   }
 }
+
+///|
+pub extend ServerAuthConfig with ToJson::{to_json}
 
 ///|
 pub impl ToJson for ServerAuthConfig with fn to_json(self) {

@@ -138,9 +138,7 @@ async fn wait_for_daemon_state_removed(
     if read_mcpx_daemon_port(home~, config_home~) is None {
       return true
     }
-    @async.sleep(50) catch {
-      _ => return false
-    }
+    @async.sleep(50)
     elapsed = elapsed + 50
   }
   read_mcpx_daemon_port(home~, config_home~) is None

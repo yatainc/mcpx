@@ -4,16 +4,16 @@ test "secure file: atomic private write creates parents and 0600 file" {
   @fs.remove_file(path) catch {
     _ => ()
   }
-  secure_write_private_atomic(path, "{\"version\":1}")
+  @storage.secure_write_private_atomic(path, "{\"version\":1}")
   inspect(@fs.read_file_to_string(path), content="{\"version\":1}")
-  inspect(secure_file_mode(path), content="384")
+  inspect(@storage.secure_file_mode(path), content="384")
 }
 
 ///|
 test "secure file: overwrite keeps private mode and replaces content" {
   let path = "/tmp/mcpx-secure-file-test/nested/credentials.json"
-  secure_write_private_atomic(path, "old")
-  secure_write_private_atomic(path, "new")
+  @storage.secure_write_private_atomic(path, "old")
+  @storage.secure_write_private_atomic(path, "new")
   inspect(@fs.read_file_to_string(path), content="new")
-  inspect(secure_file_mode(path), content="384")
+  inspect(@storage.secure_file_mode(path), content="384")
 }

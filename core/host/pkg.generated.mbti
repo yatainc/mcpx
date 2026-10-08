@@ -23,6 +23,8 @@ pub enum HostAction {
   OpenBrowser(HostOpenBrowser)
   HttpRequest(HostHttpRequest)
 } derive(@debug.Debug)
+pub fn HostAction::to_json(Self) -> Json
+pub fn HostAction::to_repr(Self) -> @debug.Repr
 pub impl ToJson for HostAction
 
 pub struct HostHttpRequest {
@@ -31,16 +33,22 @@ pub struct HostHttpRequest {
   headers : Map[String, String]
   body : String?
 } derive(@debug.Debug)
+pub fn HostHttpRequest::to_json(Self) -> Json
+pub fn HostHttpRequest::to_repr(Self) -> @debug.Repr
 pub impl ToJson for HostHttpRequest
 
 pub struct HostOpenBrowser {
   url : String
 } derive(@debug.Debug)
+pub fn HostOpenBrowser::to_json(Self) -> Json
+pub fn HostOpenBrowser::to_repr(Self) -> @debug.Repr
 pub impl ToJson for HostOpenBrowser
 
 pub struct HostReadTextFile {
   path : String
 } derive(@debug.Debug)
+pub fn HostReadTextFile::to_json(Self) -> Json
+pub fn HostReadTextFile::to_repr(Self) -> @debug.Repr
 pub impl ToJson for HostReadTextFile
 
 pub struct HostWriteTextFile {
@@ -50,6 +58,8 @@ pub struct HostWriteTextFile {
   atomic_write : Bool
   create_parent_dirs : Bool
 } derive(@debug.Debug)
+pub fn HostWriteTextFile::to_json(Self) -> Json
+pub fn HostWriteTextFile::to_repr(Self) -> @debug.Repr
 pub impl ToJson for HostWriteTextFile
 
 // Type aliases

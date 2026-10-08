@@ -28,6 +28,7 @@ pub suberror McpxDaemonError {
   RemoteError(String)
   Stdio(String)
 } derive(@debug.Debug)
+pub fn McpxDaemonError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 

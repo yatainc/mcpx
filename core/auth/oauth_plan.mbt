@@ -9,6 +9,9 @@ pub struct OAuthMetadata {
 } derive(Debug)
 
 ///|
+pub extend OAuthMetadata with Debug::{to_repr}
+
+///|
 pub fn oauth_metadata(
   authorization_endpoint~ : String,
   token_endpoint~ : String,
@@ -117,7 +120,7 @@ fn query_pair(key : String, value : String) -> String {
 
 ///|
 fn url_encode_component(value : String) -> String {
-  let out = StringBuilder::new(size_hint=value.length())
+  let out = StringBuilder(size_hint=value.length())
   let bytes = @utf8.encode(value.to_string_view(), bom=false)
   for byte in bytes {
     let value = byte.to_int()
@@ -155,11 +158,17 @@ pub struct OAuthClientRegistration {
 } derive(Debug)
 
 ///|
+pub extend OAuthClientRegistration with Debug::{to_repr}
+
+///|
 suberror OAuthPlanError {
   InvalidOAuthMetadata(String)
   InvalidClientRegistration(String)
   InvalidAuthorizationResponse(String)
 } derive(Debug)
+
+///|
+pub extend OAuthPlanError with Debug::{to_repr}
 
 ///|
 pub fn decode_oauth_metadata(
@@ -243,7 +252,7 @@ pub fn decode_client_registration_response(
   ) catch {
     _ => return Err(InvalidClientRegistration("client_secret must be string"))
   }
-  Ok({ client_id, client_secret })
+  Ok({ client_id, client_secret, })
 }
 
 ///|

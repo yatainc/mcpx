@@ -5,6 +5,12 @@ suberror EnvTemplateError {
 } derive(Debug)
 
 ///|
+pub extend EnvTemplateError with Debug::{to_repr}
+
+///|
+pub extend EnvTemplateError with Show::{to_string, output}
+
+///|
 pub impl Show for EnvTemplateError with fn output(self, logger) {
   match self {
     MissingEnvVar(name) => {
@@ -27,7 +33,7 @@ pub fn resolve_env_template(
   strict? : Bool = true,
 ) -> String raise EnvTemplateError {
   let view = input.to_string_view()
-  let out = StringBuilder::new(size_hint=view.length())
+  let out = StringBuilder(size_hint=view.length())
   for i = 0; i < view.length(); {
     match (view.get_char(i), view.get_char(i + 1)) {
       (Some('$'), Some('{')) =>

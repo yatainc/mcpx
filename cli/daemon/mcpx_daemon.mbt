@@ -8,6 +8,9 @@ pub suberror McpxDaemonError {
 } derive(Debug)
 
 ///|
+pub extend McpxDaemonError with Debug::{to_repr}
+
+///|
 pub fn describe_mcpx_daemon_error(error : McpxDaemonError) -> String {
   match error {
     Unavailable => "daemon unavailable"
@@ -37,7 +40,7 @@ priv struct DaemonPool {
 
 ///|
 fn daemon_pool() -> DaemonPool {
-  { entries: Map([]), lock: Semaphore(1) }
+  { entries: Map([]), lock: Semaphore(1), }
 }
 
 ///|
@@ -117,9 +120,7 @@ async fn ensure_mcpx_daemon_running(
     if (daemon_ping(home~, config_home~) catch { _ => false }) {
       return
     }
-    @async.sleep(50) catch {
-      _ => raise Unavailable
-    }
+    @async.sleep(50)
   }
   raise Unavailable
 }

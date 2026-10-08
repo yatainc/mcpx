@@ -48,6 +48,7 @@ jobs:
           manifest_version="$(sed -n 's/^version = "\([^"]*\)"$/\1/p' moon.mod)"
           test -n "$manifest_version"
           test "${GITHUB_REF_NAME}" = "v${manifest_version}"
+          nix develop --command moon update
           nix develop --command moon fmt --check
           nix develop --command moon check --target native --warn-list +73 --deny-warn
           nix develop --command moon check --target wasm-gc --warn-list +73 --deny-warn

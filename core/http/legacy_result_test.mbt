@@ -1,11 +1,11 @@
 ///|
 async test "core http: legacy calls preserve result data without modern result-type admission" {
   for result_type in ["input_required", "extension"] {
-    let result = call_tool(
+    let result = @http.call_tool(
       request => {
         match @json.parse(request.body) {
           { "method": String("initialize"), .. } =>
-            http_response(
+            @http.http_response(
               status_code=200,
               body=Json::object({
                 "jsonrpc": "2.0",
@@ -14,9 +14,9 @@ async test "core http: legacy calls preserve result data without modern result-t
               }).stringify(),
             )
           { "method": String("notifications/initialized"), .. } =>
-            http_response(status_code=202, body="")
+            @http.http_response(status_code=202, body="")
           _ =>
-            http_response(
+            @http.http_response(
               status_code=200,
               body=Json::object({
                 "jsonrpc": "2.0",
@@ -29,7 +29,7 @@ async test "core http: legacy calls preserve result data without modern result-t
             )
         }
       },
-      http_endpoint(url="https://example.test/mcp", mode=Stateful),
+      @http.http_endpoint(url="https://example.test/mcp", mode=Stateful),
       tool_name="echo",
       arguments={},
     )

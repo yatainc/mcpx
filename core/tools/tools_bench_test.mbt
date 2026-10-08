@@ -11,12 +11,12 @@ test "bench MCP initialize/list/call request sequence" (it : @bench.T) {
     let list = @protocol.mcp_request(
       2,
       "tools/list",
-      Some(list_params().to_json()),
+      Some(@tools.list_params().to_json()),
     )
     let call = @protocol.mcp_request(
       3,
       "tools/call",
-      Some(call_params("search", arguments).to_json()),
+      Some(@tools.call_params("search", arguments).to_json()),
     )
     it.keep(
       init.stringify().length() +
@@ -63,7 +63,7 @@ test "bench MCP decode representative responses" (it : @bench.T) {
     ) catch {
       _ => abort("unexpected initialize result")
     }
-    let tools = decode_list_result(
+    let tools = @tools.decode_list_result(
       @protocol.decode_mcp_result(list_response, expected_id=2),
     ) catch {
       _ => abort("unexpected tools result")

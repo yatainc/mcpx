@@ -5,7 +5,7 @@ test "config store: missing file loads empty config" {
     _ => ()
   }
   inspect(
-    load_mcpx_config_or_empty(path).to_json().stringify(),
+    @storage.load_mcpx_config_or_empty(path).to_json().stringify(),
     content="{\"mcpServers\":{}}",
   )
 }
@@ -20,7 +20,7 @@ test "config store: loader only reads the provided path" {
   @fs.remove_file(json_path) catch {
     _ => ()
   }
-  secure_write_private_atomic(
+  @storage.secure_write_private_atomic(
     json_path,
     (
       #|{
@@ -34,11 +34,11 @@ test "config store: loader only reads the provided path" {
     ),
   )
   inspect(
-    load_mcpx_config_or_empty(jsonc_path).to_json().stringify(),
+    @storage.load_mcpx_config_or_empty(jsonc_path).to_json().stringify(),
     content="{\"mcpServers\":{}}",
   )
   inspect(
-    load_mcpx_config_or_empty(json_path).to_json().stringify(),
+    @storage.load_mcpx_config_or_empty(json_path).to_json().stringify(),
     content=(
       #|{"mcpServers":{"github":{"transport":"http","url":"https://mcp.github.com/mcp"}}}
     ),
@@ -56,10 +56,10 @@ test "config store: save writes private config file and loads roundtrip" {
     name="github",
     url="https://mcp.github.com/mcp",
   )
-  save_mcpx_config_file(path, config)
-  inspect(mcpx_config_file_mode(path), content="384")
+  @storage.save_mcpx_config_file(path, config)
+  inspect(@storage.mcpx_config_file_mode(path), content="384")
   inspect(
-    load_mcpx_config_or_empty(path).to_json().stringify(),
+    @storage.load_mcpx_config_or_empty(path).to_json().stringify(),
     content=(
       #|{"mcpServers":{"github":{"transport":"http","url":"https://mcp.github.com/mcp"}}}
     ),
@@ -80,9 +80,9 @@ test "config store: load jsonc and save merged config" {
     #|    },
     #|  },
     #|}
-  secure_write_private_atomic(path, existing)
-  let loaded = load_mcpx_config_or_empty(path)
-  save_mcpx_config_file(
+  @storage.secure_write_private_atomic(path, existing)
+  let loaded = @storage.load_mcpx_config_or_empty(path)
+  @storage.save_mcpx_config_file(
     path,
     @config.put_remote_mcp_server(
       loaded,
@@ -91,7 +91,7 @@ test "config store: load jsonc and save merged config" {
     ),
   )
   inspect(
-    load_mcpx_config_or_empty(path).to_json().stringify(),
+    @storage.load_mcpx_config_or_empty(path).to_json().stringify(),
     content=(
       #|{"mcpServers":{"local":{"transport":"stdio","command":"node","args":["server.js"]},"github":{"transport":"http","url":"https://mcp.github.com/mcp"}}}
     ),

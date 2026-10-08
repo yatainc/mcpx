@@ -38,8 +38,12 @@ async test "native http: caches public tool lists across headers" {
       })
     })
     let url = "http://localhost:\{port}/public-cache"
-    ignore(http_mcp_list_tools(url~, headers={ "Authorization": "Bearer a" }))
-    ignore(http_mcp_list_tools(url~, headers={ "Authorization": "Bearer b" }))
+    ignore(
+      @http.http_mcp_list_tools(url~, headers={ "Authorization": "Bearer a" }),
+    )
+    ignore(
+      @http.http_mcp_list_tools(url~, headers={ "Authorization": "Bearer b" }),
+    )
     inspect(requests.val, content="2")
   })
 }
@@ -83,9 +87,15 @@ async test "native http: keeps private tool caches separated by headers" {
       })
     })
     let url = "http://localhost:\{port}/private-cache"
-    ignore(http_mcp_list_tools(url~, headers={ "Authorization": "Bearer a" }))
-    ignore(http_mcp_list_tools(url~, headers={ "Authorization": "Bearer a" }))
-    ignore(http_mcp_list_tools(url~, headers={ "Authorization": "Bearer b" }))
+    ignore(
+      @http.http_mcp_list_tools(url~, headers={ "Authorization": "Bearer a" }),
+    )
+    ignore(
+      @http.http_mcp_list_tools(url~, headers={ "Authorization": "Bearer a" }),
+    )
+    ignore(
+      @http.http_mcp_list_tools(url~, headers={ "Authorization": "Bearer b" }),
+    )
     inspect(requests.val, content="4")
   })
 }
@@ -133,9 +143,9 @@ async test "native http: reuses cached tool schema for calls" {
       })
     })
     let url = "http://localhost:\{port}/call-cache"
-    ignore(http_mcp_list_tools(url~, headers=Map([])))
+    ignore(@http.http_mcp_list_tools(url~, headers=Map([])))
     ignore(
-      http_mcp_call_tool(
+      @http.http_mcp_call_tool(
         url~,
         headers=Map([]),
         tool_name="search",
@@ -143,7 +153,7 @@ async test "native http: reuses cached tool schema for calls" {
       ),
     )
     ignore(
-      http_mcp_call_tool(
+      @http.http_mcp_call_tool(
         url~,
         headers=Map([]),
         tool_name="search",
@@ -195,7 +205,7 @@ async test "native http: caches catalogs discovered by direct calls" {
     let url = "http://localhost:\{port}/direct-call-cache"
     for _ in 0..<2 {
       ignore(
-        http_mcp_call_tool(
+        @http.http_mcp_call_tool(
           url~,
           headers=Map([]),
           tool_name="search",
@@ -237,13 +247,13 @@ async test "native http: cached tool arrays are isolated from callers" {
       })
     })
     let url = "http://localhost:\{port}/array-isolation"
-    let first = http_mcp_list_tools(url~, headers=Map([]))
+    let first = @http.http_mcp_list_tools(url~, headers=Map([]))
     match first[0].input_schema {
       Object(schema) => schema["poison"] = Json::boolean(true)
       _ => ()
     }
     ignore(first.pop())
-    let second = http_mcp_list_tools(url~, headers=Map([]))
+    let second = @http.http_mcp_list_tools(url~, headers=Map([]))
     inspect(second.length(), content="1")
     inspect(second[0].input_schema.stringify(), content="{}")
     inspect(requests.val, content="2")
@@ -280,42 +290,34 @@ async test "native http: caches refreshed schema after HeaderMismatch" {
               "New"
             },
           )
+        } else if request.headers.contains("Mcp-Param-Old") {
+          Json::object({
+            "jsonrpc": Json::string("2.0"),
+            "id": id,
+            "error": Json::object({
+              "code": Json::number(-32020.0, repr="-32020"),
+              "message": Json::string("stale schema"),
+            }),
+          }).stringify()
         } else {
-          let old = Ref(false)
-          for key, _ in request.headers {
-            if key.equal_ignore_ascii_case("Mcp-Param-Old") {
-              old.val = true
-            }
-          }
-          if old.val {
-            Json::object({
-              "jsonrpc": Json::string("2.0"),
-              "id": id,
-              "error": Json::object({
-                "code": Json::number(-32020.0, repr="-32020"),
-                "message": Json::string("stale schema"),
-              }),
-            }).stringify()
-          } else {
-            Json::object({
-              "jsonrpc": Json::string("2.0"),
-              "id": id,
-              "result": Json::object({
-                "resultType": Json::string("complete"),
-                "content": Json::array([]),
-              }),
-            }).stringify()
-          }
+          Json::object({
+            "jsonrpc": Json::string("2.0"),
+            "id": id,
+            "result": Json::object({
+              "resultType": Json::string("complete"),
+              "content": Json::array([]),
+            }),
+          }).stringify()
         }
         ignore(conn.write(response))
         conn.end_response()
       })
     })
     let url = "http://localhost:\{port}/refresh-cache"
-    ignore(http_mcp_list_tools(url~, headers=Map([])))
+    ignore(@http.http_mcp_list_tools(url~, headers=Map([])))
     for _ in 0..<2 {
       ignore(
-        http_mcp_call_tool(url~, headers=Map([]), tool_name="search", arguments={
+        @http.http_mcp_call_tool(url~, headers=Map([]), tool_name="search", arguments={
           "region": "x",
         }),
       )
@@ -364,11 +366,11 @@ async test "native http: refreshes tool list after TTL expires" {
       })
     })
     let url = "http://localhost:\{port}/expiring-cache"
-    ignore(http_mcp_list_tools(url~, headers=Map([])))
-    ignore(http_mcp_list_tools(url~, headers=Map([])))
+    ignore(@http.http_mcp_list_tools(url~, headers=Map([])))
+    ignore(@http.http_mcp_list_tools(url~, headers=Map([])))
     inspect(requests.val, content="2")
     @async.sleep(30)
-    ignore(http_mcp_list_tools(url~, headers=Map([])))
+    ignore(@http.http_mcp_list_tools(url~, headers=Map([])))
     inspect(requests.val, content="4")
   })
 }

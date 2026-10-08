@@ -1,7 +1,7 @@
 ///|
 test "oauth token request: authorization code with public PKCE client" {
   inspect(
-    authorization_code_token_request_body(
+    @auth.authorization_code_token_request_body(
       client_id="client-1",
       client_secret=None,
       code="code 1",
@@ -15,7 +15,7 @@ test "oauth token request: authorization code with public PKCE client" {
 ///|
 test "oauth token request: authorization code with static secret" {
   inspect(
-    authorization_code_token_request_body(
+    @auth.authorization_code_token_request_body(
       client_id="client-1",
       client_secret=Some("secret 1"),
       code="code-1",
@@ -29,7 +29,7 @@ test "oauth token request: authorization code with static secret" {
 ///|
 test "oauth token request: refresh with optional client secret" {
   inspect(
-    refresh_token_request_body(
+    @auth.refresh_token_request_body(
       client_id="client-1",
       client_secret=Some("secret 1"),
       refresh_token="refresh 1",

@@ -1,17 +1,17 @@
 ///|
 test "discovery: builds request and decodes canonical discover result" {
-  let context = mcp_request_context(
+  let context = @protocol.mcp_request_context(
     protocol=V2026_07_28,
     client_name="mcpx",
     client_version="0.1.4",
   )
   inspect(
-    mcp_discover_request(id=1, context)
+    @protocol.mcp_discover_request(id=1, context)
     .stringify()
     .contains("\"method\":\"server/discover\""),
     content="true",
   )
-  let decoded = decode_mcp_discover_response(
+  let decoded = @protocol.decode_mcp_discover_response(
     {
       "jsonrpc": "2.0",
       "id": 1,
@@ -42,7 +42,7 @@ test "discovery: builds request and decodes canonical discover result" {
 
 ///|
 test "discovery: accepts deployed RC serverInfo and cache defaults" {
-  let decoded = decode_mcp_discover_response(
+  let decoded = @protocol.decode_mcp_discover_response(
     {
       "jsonrpc": "2.0",
       "id": 1,
@@ -63,7 +63,7 @@ test "discovery: accepts deployed RC serverInfo and cache defaults" {
 
 ///|
 test "discovery: ignores malformed optional cache hints" {
-  let decoded = decode_mcp_discover_response(
+  let decoded = @protocol.decode_mcp_discover_response(
     {
       "jsonrpc": "2.0",
       "id": 1,
@@ -82,7 +82,7 @@ test "discovery: ignores malformed optional cache hints" {
 ///|
 test "discovery: rejects mismatched id and malformed required fields" {
   inspect(
-    decode_mcp_discover_response(
+    @protocol.decode_mcp_discover_response(
       {
         "jsonrpc": "2.0",
         "id": 2,
@@ -97,7 +97,7 @@ test "discovery: rejects mismatched id and malformed required fields" {
     content="true",
   )
   inspect(
-    decode_mcp_discover_response(
+    @protocol.decode_mcp_discover_response(
       {
         "jsonrpc": "2.0",
         "id": 1,
@@ -112,7 +112,7 @@ test "discovery: rejects mismatched id and malformed required fields" {
     content="true",
   )
   inspect(
-    decode_mcp_discover_response(
+    @protocol.decode_mcp_discover_response(
       {
         "jsonrpc": "2.0",
         "id": 1,

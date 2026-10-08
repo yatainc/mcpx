@@ -37,16 +37,16 @@ test "bench config JSONC decode and env resolution" (it : @bench.T) {
     "PROJECT_DIR": "/srv/mcp",
   }
   it.bench(() => {
-    let normalized = normalize_jsonc(text) catch {
+    let normalized = @config.normalize_jsonc(text) catch {
       _ => abort("unexpected JSONC error")
     }
-    let config = decode_mcpx_config(@json.parse(normalized)) catch {
+    let config = @config.decode_mcpx_config(@json.parse(normalized)) catch {
       _ => abort("unexpected config error")
     }
     let github = config.servers.get("github").unwrap()
     let stdio_server = config.servers.get("local").unwrap()
-    let resolved_github = resolve_server_env(github, env).unwrap()
-    let resolved_stdio = resolve_server_env(stdio_server, env).unwrap()
+    let resolved_github = @config.resolve_server_env(github, env).unwrap()
+    let resolved_stdio = @config.resolve_server_env(stdio_server, env).unwrap()
     it.keep((resolved_github.url, resolved_stdio.command))
   })
 }
@@ -63,7 +63,7 @@ test "bench dotenv parse and merge representative env" (it : @bench.T) {
     #|PROJECT_DIR=/srv/mcp
   let process_env = { "GITHUB_TOKEN": "process-token" }
   it.bench(() => {
-    let parsed = parse_dotenv(text).unwrap()
-    it.keep(merge_env(parsed, process_env).length())
+    let parsed = @config.parse_dotenv(text).unwrap()
+    it.keep(@config.merge_env(parsed, process_env).length())
   })
 }

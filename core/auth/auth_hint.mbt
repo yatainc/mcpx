@@ -9,6 +9,9 @@ pub struct AuthHint {
 } derive(Debug)
 
 ///|
+pub extend AuthHint with Debug::{to_repr}
+
+///|
 pub fn auth_required_hint(
   server_name~ : String,
   status_code~ : Int,
@@ -62,7 +65,7 @@ fn auth_hint(
 
 ///|
 fn auth_header_config_hint(env_var : String) -> String {
-  let out = StringBuilder::new(size_hint=env_var.length() + 36)
+  let out = StringBuilder(size_hint=env_var.length() + 36)
   out.write_string("headers.Authorization = \"Bearer ")
   out.write_char('$')
   out.write_char('{')
