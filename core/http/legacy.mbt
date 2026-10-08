@@ -11,6 +11,7 @@ async fn list_tools_legacy(
     endpoint,
     session_id,
     @protocol.mcp_request(2, "tools/list", Some(@tools.list_params().to_json())),
+    expected_id=2,
   )
   let result = @protocol.decode_mcp_result(expect_json(payload), expected_id=2)
   @tools.decode_list_result(result).tools
@@ -35,6 +36,7 @@ async fn call_tool_legacy(
       "tools/call",
       Some(@tools.call_params(tool_name, arguments).to_json()),
     ),
+    expected_id=2,
   )
   @protocol.decode_mcp_result(expect_json(payload), expected_id=2)
 }
@@ -56,6 +58,7 @@ async fn initialize_legacy(
       client_version=@protocol.MCPX_CLIENT_VERSION,
       protocol_version=@protocol.mcp_protocol_version_to_string(version),
     ),
+    expected_id=1,
   )
   ignore(
     @protocol.decode_mcp_initialize_result(
@@ -78,6 +81,7 @@ async fn send_json_legacy(
   endpoint : Endpoint,
   session_id : Ref[String?],
   message : Json,
+  expected_id? : Int = 1,
 ) -> Payload {
   let response = post_json(
     fetch,
@@ -89,5 +93,5 @@ async fn send_json_legacy(
     Some(value) => session_id.val = Some(value)
     None => ()
   }
-  response_payload(response)
+  response_payload(response, expected_id~)
 }
