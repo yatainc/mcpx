@@ -375,4 +375,142 @@ echo "[daemon] status smoke"
 out="$(HOME="$tmp/home" XDG_CONFIG_HOME="$config_home" "$mcpx" daemon status)"
 assert_daemon_status "$out" "false"
 
+echo "[retrieval] Skills and Resources over HTTP and stdio"
+python3 - "$mcpx" "$tmp" <<'PY'
+import json, os, pathlib, runpy, subprocess, sys, threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+binary, tmp = sys.argv[1:]
+root = pathlib.Path(tmp)
+fixture = root / "retrieval_server.py"
+fixture.write_text('''import json, sys
+
+def reply(msg):
+    meta = msg["params"]["_meta"]
+    assert meta["io.modelcontextprotocol/protocolVersion"] == "2026-07-28"
+    assert "io.modelcontextprotocol/clientInfo" in meta
+    assert "io.modelcontextprotocol/clientCapabilities" in meta
+    rpc, params = msg["method"], msg["params"]
+    uri = params.get("uri")
+    entry = {"uri": "custom://demo/SKILL.md", "frontmatter": {"name": "demo", "description": "Demo", "unknown": {"x": 1}}, "resources": "dynamic"}
+    if rpc == "server/discover":
+        result = {"resultType": "complete", "supportedVersions": ["2026-07-28"], "capabilities": {"resources": {}, "extensions": {"io.modelcontextprotocol/skills": {"directoryRead": True}}}}
+    elif rpc == "skills/list":
+        result = {"resultType": "complete", "skills": [entry], "ttlMs": 0, "cacheScope": "public"}
+        if "cursor" not in params:
+            result["nextCursor"] = ""
+        else:
+            assert params["cursor"] == ""
+    elif rpc == "skills/get" and uri == entry["uri"]:
+        result = {"resultType": "complete", "skill": entry, "ttlMs": 0, "cacheScope": "public"}
+    elif rpc == "resources/directory/read" and uri == "custom://demo":
+        result = {"resultType": "complete", "resources": [{"uri": "custom://demo/file", "name": "file", "unknown": True}]}
+        if "cursor" not in params:
+            result["nextCursor"] = ""
+        else:
+            assert params["cursor"] == ""
+    elif rpc == "resources/read":
+        result = {"status": "error", "resultType": "complete", "contents": [{"uri": uri, "text": "Error: ordinary resource"}, {"uri": "custom://blob", "blob": "AAE="}], "ttlMs": 0, "cacheScope": "private", "unknown": True}
+    else:
+        return {"jsonrpc": "2.0", "id": msg["id"], "error": {"code": -32602, "message": "not found"}}
+    return {"jsonrpc": "2.0", "id": msg["id"], "result": result}
+
+if __name__ == "__main__":
+    for line in sys.stdin:
+        print(json.dumps(reply(json.loads(line))), flush=True)
+''')
+reply = runpy.run_path(str(fixture))["reply"]
+requests = []
+class Handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        if self.headers.get("transfer-encoding", "").lower() == "chunked":
+            chunks = []
+            while True:
+                size = int(self.rfile.readline().strip(), 16)
+                if size == 0:
+                    self.rfile.readline()
+                    break
+                chunks.append(self.rfile.read(size))
+                self.rfile.read(2)
+            body = b"".join(chunks)
+        else:
+            body = self.rfile.read(int(self.headers["content-length"]))
+        msg = json.loads(body)
+        assert self.headers["Mcp-Method"] == msg["method"]
+        assert self.headers["MCP-Protocol-Version"] == "2026-07-28"
+        assert "Mcp-Session-Id" not in self.headers
+        requests.append(msg)
+        if self.path == "/private" and self.headers.get("Authorization") != "Bearer secret":
+            status, data = 401, b'{}'
+        else:
+            response = reply(msg)
+            if self.path == "/generic" and msg["method"] == "server/discover":
+                response["result"]["capabilities"] = {"resources": {}}
+            status = 400 if "error" in response else 200
+            if msg["method"] == "skills/list":
+                data = ('data: {"jsonrpc":"2.0","method":"notifications/progress"}\n\n' + "data: " + json.dumps(response) + "\n\n").encode()
+            else:
+                data = json.dumps(response).encode()
+        self.send_response(status)
+        self.send_header("content-type", "text/event-stream" if msg["method"] == "skills/list" else "application/json")
+        self.send_header("content-length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+    def log_message(self, *_):
+        pass
+server = HTTPServer(("127.0.0.1", 0), Handler)
+threading.Thread(target=server.serve_forever, daemon=True).start()
+url = f"http://127.0.0.1:{server.server_port}"
+env = os.environ.copy()
+env.update(HOME=str(root / "home"), XDG_CONFIG_HOME=str(root / "config"), MCPX_SKILLS_AUTH="Bearer secret")
+config = root / "config/mcpx/mcp.jsonc"
+config.write_text(json.dumps({"mcpServers": {
+    "local": {"transport": "stdio", "command": "python3", "args": ["-u", str(fixture)]},
+    "private": {"transport": "http", "url": url + "/private", "headers": {"Authorization": "${MCPX_SKILLS_AUTH}"}},
+    "legacy": {"transport": "stdio", "command": "/must/not/spawn", "protocol": {"mode": "stateful"}},
+    "warm": {"transport": "stdio", "command": "/must/not/spawn", "lifecycle": {"mode": "keep-alive"}},
+}}))
+def call(*args, success=True):
+    proc = subprocess.run([binary, *args], env=env, input="ignored stdin", text=True, capture_output=True, timeout=5)
+    assert proc.returncode == (0 if success else 2), (args, proc.returncode, proc.stdout, proc.stderr)
+    assert not proc.stderr, proc.stderr
+    return proc.stdout.strip()
+try:
+    for target in [url + "/read", "local"]:
+        pages = json.loads(call("skills", target, "--json"))["pages"]
+        assert len(pages) == 2 and pages[0]["nextCursor"] == ""
+        assert pages[0]["skills"][0]["frontmatter"]["unknown"] == {"x": 1}
+        assert "demo" in call("skills", target)
+        requests.clear()
+        entry = json.loads(call("skills", target, "custom://demo/SKILL.md", "--json"))
+        assert entry["skill"]["resources"] == "dynamic"
+        if target.startswith("http"):
+            assert [r["method"] for r in requests] == ["server/discover", "skills/get"]
+        directory = json.loads(call("resources", target, "custom://demo", "--json"))["pages"]
+        assert len(directory) == 2 and directory[0]["resources"][0]["unknown"]
+        content = json.loads(call("resources", target, "custom://demo/file", "--json"))
+        assert content["status"] == "error" and content["unknown"] and len(content["contents"]) == 2
+        text = call("resources", target, "custom://demo/file")
+        assert text.startswith("Error: ordinary resource") and "AAE=" in text
+        call("skills", target, "custom://unknown/SKILL.md", success=False)
+    requests.clear()
+    call("resources", url + "/generic", "other://opaque")
+    assert [r["method"] for r in requests] == ["server/discover", "resources/read"]
+    call("skills", "private", "--json")
+    assert "auth" in call("skills", url + "/private", success=False)
+    assert "stateful" in call("skills", "legacy", success=False)
+    assert "ephemeral" in call("resources", "warm", "u", success=False)
+    # Leave stdin open with no bytes: a retrieval command must still exit.
+    proc = subprocess.Popen([binary, "skills", url + "/read", "--json"], env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        assert proc.wait(timeout=5) == 0
+    finally:
+        if proc.poll() is None:
+            proc.kill(); proc.wait()
+        proc.stdin.close(); proc.stdout.close(); proc.stderr.close()
+    print("PASS: positional retrieval, pagination, direct get, directory fallback, generic resources, auth, admission and content exit status")
+finally:
+    server.shutdown(); server.server_close()
+PY
+
 echo "OK: e2e passed"

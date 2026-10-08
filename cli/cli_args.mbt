@@ -4,6 +4,9 @@ enum McpxCommand {
   Version
   CallHelp
   Call(@tool_cli.CallCommand)
+  SkillsHelp
+  ResourcesHelp
+  Retrieve(@skill_cli.Command)
   Info(@tool_cli.InfoCommand)
   SearchHelp
   Search(SearchCommand)
@@ -65,6 +68,7 @@ fn parse_mcpx_args(args : Array[String]) -> Result[McpxCommand, CliParseError] {
       }
     Some("call") => parse_call_command(args)
     Some("info") => parse_info_command(args)
+    Some("skills" | "resources") => parse_retrieval_command(args)
     Some("search") => parse_search_command(args)
     Some("auth") => parse_auth_command(args)
     Some("daemon") => parse_daemon_command(args)

@@ -5,6 +5,7 @@ import {
   "moonbitlang/core/debug",
   "yatainc/mcpx/core/config",
   "yatainc/mcpx/core/protocol",
+  "yatainc/mcpx/core/skills",
   "yatainc/mcpx/core/tools",
 }
 
@@ -15,13 +16,19 @@ pub fn decode_payload(HttpResponse) -> Payload raise @protocol.McpProtocolError
 
 pub fn expect_json(Payload) -> Json raise @protocol.McpProtocolError
 
+pub async fn get_skill(async (HttpRequest) -> HttpResponse, Endpoint, uri~ : String) -> Json raise McpHttpClientError
+
 pub fn http_endpoint(url~ : String, headers? : Map[String, String], mode? : @config.McpConnectionMode) -> Endpoint
 
 pub fn http_response(status_code~ : Int, content_type? : String?, headers? : Map[String, String], body~ : String) -> HttpResponse
 
+pub async fn list_skills(async (HttpRequest) -> HttpResponse, Endpoint) -> Array[Json] raise McpHttpClientError
+
 pub async fn list_tools(async (HttpRequest) -> HttpResponse, Endpoint) -> Array[@tools.McpToolInfo] raise McpHttpClientError
 
 pub async fn list_tools_with_cache_hint(async (HttpRequest) -> HttpResponse, Endpoint, max_pages? : Int, max_tools? : Int) -> @tools.McpToolListResult raise McpHttpClientError
+
+pub async fn read_resource(async (HttpRequest) -> HttpResponse, Endpoint, uri~ : String) -> @skills.ReadResult raise McpHttpClientError
 
 // Errors
 pub suberror McpHttpClientError {

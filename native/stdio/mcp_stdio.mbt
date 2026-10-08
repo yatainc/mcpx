@@ -15,7 +15,7 @@ pub extend McpStdioError with Debug::{to_repr}
 ///|
 priv enum StdioProtocolLifecycle {
   Initialize
-  Stateless
+  Stateless(Json)
 }
 
 ///|
@@ -70,7 +70,12 @@ pub async fn[X] stdio_mcp_connect(
     error => ModernError(error.to_string())
   }
   match probe_result {
-    Modern => new_stdio_mcp_client(probe_conn, Stateless, response_timeout_ms)
+    Modern(capabilities) =>
+      new_stdio_mcp_client(
+        probe_conn,
+        Stateless(capabilities),
+        response_timeout_ms,
+      )
     ModernError(message) => {
       close_stdio(probe_conn)
       raise Protocol(message)
@@ -127,7 +132,7 @@ async fn StdioMcpClient::request(
   self.next_request_id += 1
   let params = match self.lifecycle {
     Initialize => params.to_json()
-    Stateless =>
+    Stateless(_) =>
       @protocol.with_mcp_request_meta(
         params,
         @protocol.mcp_request_context(
@@ -159,7 +164,7 @@ pub async fn StdioMcpClient::call_tool(
       @tools.call_params(tool_name, arguments),
     )
     match self.lifecycle {
-      Stateless => @protocol.require_complete_result(result)
+      Stateless(_) => @protocol.require_complete_result(result)
       Initialize => ()
     }
     result
@@ -178,7 +183,7 @@ pub async fn StdioMcpClient::list_tools(
         @tools.decode_list_result(
           self.request("tools/list", @tools.list_params()),
         ).tools
-      Stateless =>
+      Stateless(_) =>
         @tools.list(
           cursor => self.request("tools/list", @tools.list_params(cursor~)),
           max_pages~,

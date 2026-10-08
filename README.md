@@ -25,6 +25,8 @@ mcpx info
 mcpx info <server|url> [tool]
 mcpx search <pattern>
 mcpx call <server|url> <tool> [arguments-json]
+mcpx skills <server|url> [uri] [--json]
+mcpx resources <server|url> <uri> [--json]
 mcpx auth <server> [--no-browser] [--json]
 mcpx auth <server> --code <code> --state <state>
 mcpx daemon
@@ -49,6 +51,41 @@ mcpx call github search '{"q":"moonbit"}'
 CLI output is human-readable by default. MCP text-content results are printed
 directly; non-text results are printed under `Result:`. `auth --no-browser --json`
 remains JSON for copy/paste and automation handoff.
+
+## Skills and Resources
+
+```sh
+mcpx skills docs-server
+mcpx skills docs-server custom://demo/SKILL.md --json
+mcpx resources docs-server custom://demo
+mcpx resources docs-server custom://demo/references/guide.md --json
+```
+
+`skills` lists all available pages, or gets one entry directly when given a URI.
+A listing can be empty or partial; direct get does not require a preceding list.
+Skill entries retain their frontmatter and manifest, including unknown fields.
+
+`resources` reads ordinary resource contents, without requiring the Skills
+extension. If the server declares `directoryRead: true`, it first tries a direct
+child listing. Only an initial JSON-RPC `-32602` selects content reading instead;
+later-page failures, authentication errors and timeouts are errors. Directories
+are nonrecursive. URIs and pagination cursors are sent unchanged.
+
+`--json` returns the parsed result for get/content, or `{"pages":[...]}` for
+lists/directories, preserving per-page metadata and unknown fields. Normal lists
+show names and URIs; content reads print text and retain binary items as JSON.
+Entry get returns JSON in either mode. Parsing follows standard MoonBit JSON
+semantics, not exact source number spelling.
+
+These commands require MCP `2026-07-28` and use modern discovery even when stdio
+protocol mode is omitted. Explicit `stateful` mode and keep-alive stdio targets
+are rejected. Each native CLI command has one 30-second deadline across discovery,
+pagination and fallback. They do not implement separate response-size or total
+receive-byte quotas.
+
+Results are untrusted server data, not loaded or verified Skills. There is no
+YAML parsing, digest verification, file saving, cache, approval or execution of
+Skill instructions. Existing Tool cache and keep-alive behavior is unchanged.
 
 ## Config
 
@@ -132,7 +169,7 @@ initialize lifecycle directly and retains a server-issued session ID. `stateless
 requires MCP `2026-07-28`, never sends a session ID, and does not silently downgrade
 to an initialize-era protocol.
 
-For stdio, omitted mode and explicit `stateful` preserve initialize-era behavior.
+For stdio Tool commands, omitted mode and explicit `stateful` preserve initialize-era behavior.
 Explicit `auto` tries `server/discover` and falls back on JSON-RPC method-not-found;
 `stateless` requires MCP `2026-07-28`. This is independent of stdio
 `lifecycle.mode`, which only controls process reuse.

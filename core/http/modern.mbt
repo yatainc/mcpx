@@ -3,6 +3,7 @@ priv struct ModernHttp {
   fetch : async (HttpRequest) -> HttpResponse
   endpoint : Endpoint
   version : @protocol.McpProtocolVersion
+  capabilities : Json
   mut next_id : Int
 }
 
@@ -11,8 +12,9 @@ fn modern_http(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
   version : @protocol.McpProtocolVersion,
+  capabilities : Json,
 ) -> ModernHttp {
-  { fetch, endpoint, version, next_id: 2, }
+  { fetch, endpoint, version, capabilities, next_id: 2, }
 }
 
 ///|
@@ -53,6 +55,12 @@ async fn ModernHttp::request(
       Some(@protocol.with_mcp_request_meta(params, context)),
     ),
   )
+  // Authentication, throttling and server failures are not operation errors.
+  if response.status_code != 200 &&
+    response.status_code != 400 &&
+    response.status_code != 404 {
+    raise HttpStatus(response.status_code)
+  }
   @protocol.decode_mcp_result(
     response_json(response, expected_id=id),
     expected_id=id,

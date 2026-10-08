@@ -1,6 +1,6 @@
 ///|
 priv enum StdioProbeOutcome {
-  Modern
+  Modern(Json)
   ModernError(String)
   ExplicitLegacy
   TimedOut
@@ -20,7 +20,7 @@ async fn probe_modern_stdio(
   match @protocol.decode_mcp_discover_response(response, expected_id=1) {
     Ok(discover) =>
       if discover.protocol_versions.contains(V2026_07_28) {
-        Modern
+        Modern(discover.capabilities)
       } else {
         ModernError("MCP 2026-07-28 is not supported")
       }

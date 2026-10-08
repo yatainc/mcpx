@@ -15,8 +15,8 @@ pub async fn list_tools_with_cache_hint(
 ) -> @tools.McpToolListResult raise McpHttpClientError {
   with_http_errors(() => {
     match negotiate(fetch, endpoint) {
-      Modern(version) => {
-        let connection = modern_http(fetch, endpoint, version)
+      Modern(version, capabilities) => {
+        let connection = modern_http(fetch, endpoint, version, capabilities)
         @tools.list_catalog(
           cursor => {
             connection.request("tools/list", @tools.list_params(cursor~))
@@ -44,8 +44,8 @@ pub async fn call_tool(
 ) -> Json raise McpHttpClientError {
   with_http_errors(() => {
     match negotiate(fetch, endpoint) {
-      Modern(version) => {
-        let connection = modern_http(fetch, endpoint, version)
+      Modern(version, capabilities) => {
+        let connection = modern_http(fetch, endpoint, version, capabilities)
         @tools.call(
           cursor => {
             connection.request("tools/list", @tools.list_params(cursor~))
