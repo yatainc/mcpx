@@ -13,16 +13,29 @@ async fn run() -> Unit {
     run_internal_daemon_async(home~, config_home~)
     return
   }
-  let stdin_json = read_piped_stdin()
-  let output = execute_mcpx(args, home~, config_home~, stdin_json~) catch {
-    err => {
-      let message = err.to_string()
-      "Error: " + message
+  let command = match parse_mcpx_args(args) {
+    Ok(command) => command
+    Err(error) => {
+      println(error_result(format_mcpx_parse_error(error)))
+      @sys.exit(2)
+      return
     }
   }
-  println(output)
-  if output.has_prefix("Error:") || output.has_prefix("{\"status\":\"error\"") {
-    @sys.exit(2)
+  let stdin_json = match command {
+    Call(_) => read_piped_stdin()
+    _ => None
+  }
+  let result = execute_command(command, home~, config_home~, stdin_json~) catch {
+    @skill_cli.RetrievalError(message) => Err(error_result(message))
+    @async.TimeoutError => Err(error_result("MCP operation timed out"))
+    error => Err(error_result(error.to_string()))
+  }
+  match result {
+    Ok(output) => println(output)
+    Err(message) => {
+      println(message)
+      @sys.exit(2)
+    }
   }
 }
 

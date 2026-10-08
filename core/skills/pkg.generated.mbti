@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/core/skills"
+
+// Values
+pub async fn get(async (String, Map[String, Json]) -> Json, capabilities~ : Json, uri~ : String) -> Json
+
+pub async fn list(async (String, Map[String, Json]) -> Json, capabilities~ : Json) -> Array[Json]
+
+pub async fn read(async (String, Map[String, Json]) -> Json, capabilities~ : Json, uri~ : String) -> ReadResult
+
+// Errors
+
+// Types and methods
+pub(all) enum ReadResult {
+  Content(Json)
+  Directory(Array[Json])
+}
+
+// Type aliases
+
+// Traits

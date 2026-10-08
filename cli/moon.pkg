@@ -13,6 +13,7 @@ import {
   "yatainc/mcpx/native/storage",
   "yatainc/mcpx/cli/daemon" @mcpx_daemon,
   "yatainc/mcpx/cli/tools" @tool_cli,
+  "yatainc/mcpx/cli/skills" @skill_cli,
   "yatainc/mcpx/native/oauth",
 }
 

@@ -17,6 +17,8 @@ fn mcpx_help_text() -> String {
     #|  mcpx info <server|url> [tool]
     #|  mcpx search <pattern>
     #|  mcpx call <server|url> <tool> [arguments-json]
+    #|  mcpx skills <server|url> [uri] [--json]
+    #|  mcpx resources <server|url> <uri> [--json]
     #|  mcpx auth <server> [--no-browser] [--json]
     #|  mcpx auth <server> --code <code> --state <state> [--iss <issuer>]
     #|  mcpx daemon

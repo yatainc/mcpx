@@ -1,0 +1,16 @@
+import {
+  "moonbitlang/async",
+  "yatainc/mcpx/core/config",
+  "yatainc/mcpx/core/http" @core_http,
+  "yatainc/mcpx/core/skills" @mcp_skills,
+  "yatainc/mcpx/native/http" @mcp_http,
+  "yatainc/mcpx/native/stdio" @mcp_stdio,
+}
+
+import {
+  "moonbitlang/async/http",
+  "moonbitlang/async/socket",
+  "moonbitlang/core/json",
+} for "test"
+
+supported_targets = "native+llvm"

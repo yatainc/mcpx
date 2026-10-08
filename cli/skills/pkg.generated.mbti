@@ -1,0 +1,36 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/cli/skills"
+
+import {
+  "moonbitlang/core/debug",
+  "yatainc/mcpx/core/config",
+}
+
+// Values
+pub async fn run_http(Command, url~ : String, headers~ : Map[String, String], timeout_ms? : Int) -> String
+
+pub async fn run_stdio(Command, @config.McpServerConfig, timeout_ms? : Int) -> String
+
+// Errors
+pub(all) suberror RetrievalError {
+  RetrievalError(String)
+}
+
+// Types and methods
+pub(all) struct Command {
+  target : String
+  operation : Operation
+  json_output : Bool
+} derive(@debug.Debug)
+pub fn Command::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Operation {
+  List
+  Get(String)
+  Read(String)
+} derive(@debug.Debug)
+pub fn Operation::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

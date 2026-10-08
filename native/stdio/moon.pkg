@@ -4,6 +4,7 @@ import {
   "moonbitlang/core/json",
   "yatainc/mcpx/core/protocol",
   "yatainc/mcpx/core/tools",
+  "yatainc/mcpx/core/skills",
   "yatainc/mcpx/core/config",
 }
 

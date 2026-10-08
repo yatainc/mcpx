@@ -6,6 +6,7 @@ import {
   "yatainc/mcpx/core/http" @core_http,
   "yatainc/mcpx/core/config",
   "yatainc/mcpx/core/tools",
+  "yatainc/mcpx/core/skills",
 }
 
 import {

@@ -1,6 +1,6 @@
 ///|
 priv enum HttpProtocolLifecycle {
-  Modern(@protocol.McpProtocolVersion)
+  Modern(@protocol.McpProtocolVersion, Json)
   InitializeEra(@protocol.McpProtocolVersion)
 }
 
@@ -76,7 +76,7 @@ fn negotiation_from_discover(
       if mode == Stateful {
         raise ModeProtocolIncompatible("stateful", "2026-07-28")
       }
-      Modern(selected)
+      Modern(selected, discover.capabilities)
     }
     InitializeEra => InitializeEra(selected)
     Unsupported =>

@@ -19,15 +19,25 @@ pub fn decode_payload(
   }
   let content_type = response.content_type.unwrap_or_default().to_lower()
   if content_type.contains("text/event-stream") {
-    let payload = match decode_sse_data(response.body).get(0) {
-      Some(value) => value
-      None => raise InvalidResponse("missing sse data")
-    }
-    JsonPayload(
-      @json.parse(payload) catch {
+    for data in decode_sse_data(response.body) {
+      let json = @json.parse(data) catch {
         _ => raise InvalidResponse("invalid sse json")
-      },
-    )
+      }
+      // Request-related notifications may precede the response.
+      if json
+        is {
+          "jsonrpc": "2.0",
+          "method": String(_),
+          "id"? : None,
+          "result"? : None,
+          "error"? : None,
+          ..
+        } {
+        continue
+      }
+      return JsonPayload(json)
+    }
+    raise InvalidResponse("missing sse response")
   } else {
     JsonPayload(
       @json.parse(response.body) catch {
