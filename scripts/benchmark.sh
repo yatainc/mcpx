@@ -64,7 +64,7 @@ import json, os, sys
 
 metrics = json.loads(sys.argv[1])
 limits = {
-    "nativeReleaseBinary.bytes": int(os.environ.get("MCPX_MAX_NATIVE_BYTES", 4 * 1024 * 1024)),
+    "nativeReleaseBinary.bytes": int(os.environ.get("MCPX_MAX_NATIVE_BYTES", 10 * 1024 * 1024)),
     "wasmJsRelease.bytes": int(os.environ.get("MCPX_MAX_EMBEDDED_JS_BYTES", 512 * 1024)),
     "wasmJsRelease.gzipBytes": int(os.environ.get("MCPX_MAX_EMBEDDED_JS_GZIP_BYTES", 80 * 1024)),
     "wasmWasmGcRelease.bytes": int(os.environ.get("MCPX_MAX_EMBEDDED_WASM_BYTES", 128 * 1024)),

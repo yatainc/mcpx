@@ -1,9 +1,11 @@
 ///|
 fn skills_help_text() -> String {
   (
-    #|mcpx skills <server|url> [uri] [--json]
+    #|mcpx skills <server|url> [uri] [--verify] [--json]
     #|
     #|List all available pages, or get an entry directly by URI.
+    #|--verify requires a URI and verifies only its root SKILL.md.
+    #|Verification is consistency checking, not approval or activation.
     #|Requires MCP 2026-07-28. Results are untrusted server data.
   )
 }

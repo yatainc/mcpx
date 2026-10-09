@@ -5,18 +5,21 @@ import {
   "yatainc/mcpx/core/config",
   "yatainc/mcpx/core/skills",
   "yatainc/mcpx/core/tools",
+  "yatainc/mcpx/native/receive",
 }
 
 // Values
 pub async fn http_mcp_call_tool(url~ : String, headers~ : Map[String, String], tool_name~ : String, arguments~ : Json, mode? : @config.McpConnectionMode) -> Json raise @yatainc/mcpx/core/http.McpHttpClientError
 
-pub async fn http_mcp_get_skill(url~ : String, headers~ : Map[String, String], uri~ : String) -> Json raise @yatainc/mcpx/core/http.McpHttpClientError
+pub async fn http_mcp_get_skill(url~ : String, headers~ : Map[String, String], uri~ : String) -> Json
 
-pub async fn http_mcp_list_skills(url~ : String, headers~ : Map[String, String]) -> Array[Json] raise @yatainc/mcpx/core/http.McpHttpClientError
+pub async fn http_mcp_list_skills(url~ : String, headers~ : Map[String, String]) -> Array[Json]
 
 pub async fn http_mcp_list_tools(url~ : String, headers~ : Map[String, String], mode? : @config.McpConnectionMode) -> Array[@tools.McpToolInfo] raise @yatainc/mcpx/core/http.McpHttpClientError
 
-pub async fn http_mcp_read_resource(url~ : String, headers~ : Map[String, String], uri~ : String) -> @skills.ReadResult raise @yatainc/mcpx/core/http.McpHttpClientError
+pub async fn http_mcp_read_resource(url~ : String, headers~ : Map[String, String], uri~ : String) -> @skills.ReadResult
+
+pub async fn http_mcp_skill_source(url~ : String, headers~ : Map[String, String], origin~ : String, budget? : @receive.Budget, timeout_ms? : Int) -> @skills.Source
 
 // Errors
 

@@ -377,13 +377,13 @@ assert_daemon_status "$out" "false"
 
 echo "[retrieval] Skills and Resources over HTTP and stdio"
 python3 - "$mcpx" "$tmp" <<'PY'
-import json, os, pathlib, runpy, subprocess, sys, threading
+import json, os, pathlib, runpy, subprocess, sys, threading, base64
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 binary, tmp = sys.argv[1:]
 root = pathlib.Path(tmp)
 fixture = root / "retrieval_server.py"
-fixture.write_text('''import json, sys
+fixture.write_text('''import json, sys, hashlib, base64
 
 def reply(msg):
     meta = msg["params"]["_meta"]
@@ -401,6 +401,15 @@ def reply(msg):
             result["nextCursor"] = ""
         else:
             assert params["cursor"] == ""
+    elif uri == "custom://verified/SKILL.md" and rpc in ("skills/get", "resources/read"):
+        header = b'---\\nname: verified\\ndescription: Verified\\nunknown: {x: 1}\\n---\\n'
+        body = header + b'x' * (16777216 - len(header))
+        if rpc == "skills/get":
+            files = [{"uri": uri, "digest": "sha256:" + hashlib.sha256(body).hexdigest(), "size": len(body)}]
+            files += [{"uri": "custom://verified/f" + str(i), "digest": "sha256:" + hashlib.sha256(b'').hexdigest(), "size": 0} for i in range(511)]
+            result = {"resultType":"complete", "ttlMs":0, "cacheScope":"private", "skill":{"uri":uri,"frontmatter":{"name":"verified","description":"Verified","unknown":{"x":1}},"resources":files}}
+        else:
+            result = {"resultType":"complete", "ttlMs":0, "cacheScope":"private", "contents":[{"uri":uri,"blob":base64.b64encode(body).decode()}], "unknown": True}
     elif rpc == "skills/get" and uri == entry["uri"]:
         result = {"resultType": "complete", "skill": entry, "ttlMs": 0, "cacheScope": "public"}
     elif rpc == "resources/directory/read" and uri == "custom://demo":
@@ -416,8 +425,18 @@ def reply(msg):
     return {"jsonrpc": "2.0", "id": msg["id"], "result": result}
 
 if __name__ == "__main__":
+    methods = []
+    verified = False
     for line in sys.stdin:
-        print(json.dumps(reply(json.loads(line))), flush=True)
+        assert not verified, "unexpected request after verified root"
+        msg = json.loads(line)
+        methods.append(msg["method"])
+        response = reply(msg)
+        if msg["method"] == "resources/read" and msg["params"].get("uri") == "custom://verified/SKILL.md":
+            assert methods == ["server/discover", "skills/get", "resources/read"]
+            response["result"]["calls"] = len(methods)
+            verified = True
+        print(json.dumps(response), flush=True)
 ''')
 reply = runpy.run_path(str(fixture))["reply"]
 requests = []
@@ -471,21 +490,32 @@ config.write_text(json.dumps({"mcpServers": {
     "warm": {"transport": "stdio", "command": "/must/not/spawn", "lifecycle": {"mode": "keep-alive"}},
 }}))
 def call(*args, success=True):
-    proc = subprocess.run([binary, *args], env=env, input="ignored stdin", text=True, capture_output=True, timeout=5)
+    proc = subprocess.run([binary, *args], env=env, input="ignored stdin", text=True, capture_output=True, timeout=30)
     assert proc.returncode == (0 if success else 2), (args, proc.returncode, proc.stdout, proc.stderr)
     assert not proc.stderr, proc.stderr
     return proc.stdout.strip()
 try:
     for target in [url + "/read", "local"]:
-        pages = json.loads(call("skills", target, "--json"))["pages"]
+        listing = json.loads(call("skills", target, "--json"))
+        assert listing["origin"].startswith("url:sha256:" if target.startswith("http") else "config:")
+        pages = listing["result"]["pages"]
         assert len(pages) == 2 and pages[0]["nextCursor"] == ""
         assert pages[0]["skills"][0]["frontmatter"]["unknown"] == {"x": 1}
         assert "demo" in call("skills", target)
         requests.clear()
         entry = json.loads(call("skills", target, "custom://demo/SKILL.md", "--json"))
-        assert entry["skill"]["resources"] == "dynamic"
+        assert entry["result"]["skill"]["resources"] == "dynamic"
         if target.startswith("http"):
             assert [r["method"] for r in requests] == ["server/discover", "skills/get"]
+        requests.clear()
+        verified = json.loads(call("skills", target, "custom://verified/SKILL.md", "--verify", "--json"))
+        assert verified["verified"] and len(verified["entry"]["resources"]) == 512
+        assert len(base64.b64decode(verified["result"]["contents"][0]["blob"])) == 16777216
+        if target.startswith("http"):
+            assert [r["method"] for r in requests] == ["server/discover", "skills/get", "resources/read"]
+        else:
+            assert verified["result"]["calls"] == 3
+        call("skills", target, "custom://demo/SKILL.md", "--verify", success=False)
         directory = json.loads(call("resources", target, "custom://demo", "--json"))["pages"]
         assert len(directory) == 2 and directory[0]["resources"][0]["unknown"]
         content = json.loads(call("resources", target, "custom://demo/file", "--json"))

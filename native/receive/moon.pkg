@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/async/io",
+  "moonbitlang/core/buffer",
+}
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
+} for "test"
+
+supported_targets = "native+llvm"

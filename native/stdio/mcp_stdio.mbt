@@ -37,13 +37,21 @@ pub async fn[X] stdio_mcp_connect(
   mode? : @config.McpConnectionMode = Stateful,
   probe_timeout_ms? : Int = 1000,
   response_timeout_ms? : Int = 30000,
+  receive_budget? : @receive.Budget,
 ) -> StdioMcpClient raise McpStdioError {
+  if receive_budget is Some(_) && mode != Stateless {
+    raise Protocol("bounded retrieval requires stateless MCP")
+  }
   if mode == Stateful {
     let conn = spawn_stdio(group, command, args, env, cwd)
     initialize_stdio(conn, response_timeout_ms)
     return new_stdio_mcp_client(conn, Initialize, response_timeout_ms)
   }
   let probe_conn = spawn_stdio(group, command, args, env, cwd)
+  if receive_budget is Some(budget) {
+    probe_conn.lines = Some(@receive.Lines::new(probe_conn.reader))
+    probe_conn.receive_budget = Some(budget)
+  }
   let probe_started_at = @async.now()
   let probe_result = @async.with_timeout(probe_timeout_ms, () => {
     probe_modern_stdio(probe_conn)
@@ -114,6 +122,16 @@ async fn[T] StdioMcpClient::with_operation(
 ) -> T raise McpStdioError {
   self.operation_lock.acquire()
   defer self.operation_lock.release()
+  let own_budget = self.conn.lines is Some(_) &&
+    self.conn.receive_budget is None
+  if own_budget {
+    self.conn.receive_budget = Some(
+      @receive.Budget::new() catch {
+        err => raise ReadFailed(err.to_string())
+      },
+    )
+  }
+  defer (if own_budget { self.conn.receive_budget = None })
   run_stdio_operation_with_timeout(self.conn, self.response_timeout_ms, () => {
     operation() catch {
       error => raise protocol_error_to_stdio(error)

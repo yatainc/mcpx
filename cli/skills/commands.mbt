@@ -2,6 +2,7 @@
 pub(all) enum Operation {
   List
   Get(String)
+  Verify(String)
   Read(String)
 } derive(Debug)
 

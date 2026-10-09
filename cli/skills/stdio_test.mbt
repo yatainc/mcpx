@@ -38,7 +38,10 @@ async test "stdio CLI retrieval uses modern discovery, paginates and falls back 
     { target: "srv", operation: List, json_output: true, },
     server,
   )
-  assert_true(@json.parse(pages) is { "pages": [_, _], .. })
+  assert_true(
+    @json.parse(pages)
+    is { "origin": "config:srv", "result": { "pages": [_, _], .. }, .. },
+  )
   let entry = @skills.run_stdio(
     {
       target: "srv",
@@ -47,7 +50,10 @@ async test "stdio CLI retrieval uses modern discovery, paginates and falls back 
     },
     server,
   )
-  assert_true(@json.parse(entry) is { "extra": True, .. })
+  assert_true(
+    @json.parse(entry)
+    is { "origin": "config:srv", "result": { "extra": True, .. }, .. },
+  )
   let result = @skills.run_stdio(
     { target: "srv", operation: Read("opaque://file"), json_output: true, },
     server,

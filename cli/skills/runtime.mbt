@@ -8,12 +8,27 @@ pub async fn run_http(
   @async.with_timeout(timeout_ms, () => {
     match command.operation {
       List =>
-        render_pages(
+        render_skill_pages(
           @mcp_http.http_mcp_list_skills(url~, headers~),
+          origin(command.target),
           command.json_output,
-          "skills",
         )
-      Get(uri) => @mcp_http.http_mcp_get_skill(url~, headers~, uri~).stringify()
+      Get(uri) =>
+        render_skill_result(
+          origin(command.target),
+          @mcp_http.http_mcp_get_skill(url~, headers~, uri~),
+        )
+      Verify(uri) => {
+        let source = @mcp_http.http_mcp_skill_source(
+          url~,
+          headers~,
+          origin=origin(command.target),
+          budget=@receive.Budget::new(),
+          timeout_ms~,
+        )
+        let held = source.hold(uri)
+        render_verified(held, held.read(uri), command.json_output)
+      }
       Read(uri) =>
         render_resource(
           @mcp_http.http_mcp_read_resource(url~, headers~, uri~),
@@ -57,12 +72,22 @@ pub async fn run_stdio(
         mode=Stateless,
         probe_timeout_ms=timeout_ms,
         response_timeout_ms=timeout_ms,
+        receive_budget=@receive.Budget::new(),
       )
       defer client.close()
       match command.operation {
         List =>
-          render_pages(client.list_skills(), command.json_output, "skills")
-        Get(uri) => client.get_skill(uri~).stringify()
+          render_skill_pages(
+            client.list_skills(),
+            origin(command.target),
+            command.json_output,
+          )
+        Get(uri) =>
+          render_skill_result(origin(command.target), client.get_skill(uri~))
+        Verify(uri) => {
+          let held = client.skill_source(origin(command.target)).hold(uri)
+          render_verified(held, held.read(uri), command.json_output)
+        }
         Read(uri) =>
           render_resource(client.read_resource(uri~), command.json_output)
       }

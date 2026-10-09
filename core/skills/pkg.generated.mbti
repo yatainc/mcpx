@@ -9,11 +9,40 @@ pub async fn list(async (String, Map[String, Json]) -> Json, capabilities~ : Jso
 pub async fn read(async (String, Map[String, Json]) -> Json, capabilities~ : Json, uri~ : String) -> ReadResult
 
 // Errors
+pub suberror VerificationError {
+  VerificationError(origin~ : String, skill_uri~ : String, uri~ : String, reason~ : String)
+}
+pub fn VerificationError::output(Self, &Logger) -> Unit
+pub fn VerificationError::to_string(Self) -> String
+pub impl Show for VerificationError
 
 // Types and methods
+pub struct HeldSkill {
+  // private fields
+}
+pub fn HeldSkill::entry(Self) -> Json raise
+pub fn HeldSkill::origin(Self) -> String
+pub async fn HeldSkill::read(Self, String) -> VerifiedContent
+pub fn HeldSkill::same_content(Self, Self) -> Bool
+pub fn HeldSkill::uri(Self) -> String
+
 pub(all) enum ReadResult {
   Content(Json)
   Directory(Array[Json])
+}
+
+pub struct Source {
+  // private fields
+}
+pub async fn Source::hold(Self, String) -> HeldSkill
+pub fn Source::new(String, capabilities~ : Json, call~ : async (String, Map[String, Json]) -> Json) -> Self raise
+
+pub struct VerifiedContent {
+  origin : String
+  skill_uri : String
+  uri : String
+  bytes : Bytes
+  result : Json
 }
 
 // Type aliases

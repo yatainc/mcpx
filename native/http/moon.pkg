@@ -1,5 +1,6 @@
 import {
   "moonbitlang/async/http" @async_http,
+  "moonbitlang/async",
   "moonbitlang/core/env",
   "moonbitlang/x/crypto",
   "moonbitlang/x/encoding",
@@ -7,13 +8,15 @@ import {
   "yatainc/mcpx/core/config",
   "yatainc/mcpx/core/tools",
   "yatainc/mcpx/core/skills",
+  "yatainc/mcpx/native/receive",
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {
-  "moonbitlang/async",
   "moonbitlang/async/socket",
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/hex",
 } for "test"
 
 supported_targets = "native+llvm"

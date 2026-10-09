@@ -1,7 +1,21 @@
 import {
   "yatainc/mcpx/core/protocol",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/encoding/hex",
+  "moonbitlang/x/crypto",
+  "moonbitlang/x/unicode",
+  "moonbitlang/regexp",
+  "moonbitlang/x/codec/base64",
+  "moonbit-community/yaml",
+  "marianoguerra/uri",
+  "marianoguerra/uri/enc" @uri_enc,
 }
 
 import {
   "moonbitlang/async",
 } for "test"
+
+import {
+  "moonbitlang/async",
+} for "wbtest"
