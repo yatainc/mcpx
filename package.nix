@@ -17,7 +17,7 @@ let
     dontUnpack = true;
     outputHashMode = "recursive";
     outputHashAlgo = "sha256";
-    outputHash = "sha256-MsRzNsx9XeiBO2v5IWr0pQLAhKa99PSKlVYM1Z6RWkc=";
+    outputHash = "sha256-u27BOzB7ulnLXUiQpNgKsXHOtyTwP7smat7Lg4BXDbg=";
     SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
     GIT_SSL_CAINFO = "${cacert}/etc/ssl/certs/ca-bundle.crt";
     buildCommand = ''

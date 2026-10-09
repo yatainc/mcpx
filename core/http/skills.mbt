@@ -22,6 +22,21 @@ async fn[T] with_resources(
 }
 
 ///|
+/// Negotiate once; retain the actual peer, headers, version and capabilities.
+pub async fn skill_source(
+  fetch : async (HttpRequest) -> HttpResponse,
+  endpoint : Endpoint,
+  origin : String,
+) -> @skills.Source raise McpHttpClientError {
+  with_resources(fetch, endpoint, connection => {
+    @skills.Source::new(origin, capabilities=connection.capabilities, call=(
+      rpc,
+      params,
+    ) => with_http_errors(() => connection.request(rpc, params)))
+  })
+}
+
+///|
 pub async fn list_skills(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,

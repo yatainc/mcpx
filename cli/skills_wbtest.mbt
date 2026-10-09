@@ -40,9 +40,17 @@ test "retrieval arguments are positional, with no legacy verbs or flags" {
       ["resources", "server", "uri", "--directory"],
       ["skills", "server", "a", "b"],
       ["skills", "server", "--json", "--json"],
+      ["skills", "server", "--verify"],
+      ["skills", "server", "uri", "--verify", "--verify"],
+      ["resources", "server", "uri", "--verify"],
+      ["skills", "server", "uri", "--file", "file"],
     ] {
     assert_true(parse_mcpx_args(args) is Err(_))
   }
+  assert_true(
+    parse_mcpx_args(["skills", "server", "uri", "--verify", "--json"])
+    is Ok(Retrieve({ operation: Verify("uri"), json_output: true, .. })),
+  )
   assert_true(parse_mcpx_args(["skills"]) is Ok(SkillsHelp))
   assert_true(parse_mcpx_args(["resources", "--help"]) is Ok(ResourcesHelp))
 }

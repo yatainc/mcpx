@@ -6,6 +6,8 @@ import {
   "yatainc/mcpx/core/tools",
   "yatainc/mcpx/core/skills",
   "yatainc/mcpx/core/config",
+  "yatainc/mcpx/native/receive",
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {

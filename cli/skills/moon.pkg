@@ -5,6 +5,10 @@ import {
   "yatainc/mcpx/core/skills" @mcp_skills,
   "yatainc/mcpx/native/http" @mcp_http,
   "yatainc/mcpx/native/stdio" @mcp_stdio,
+  "yatainc/mcpx/native/receive",
+  "moonbitlang/x/crypto",
+  "moonbitlang/core/encoding/hex",
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {

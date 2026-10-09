@@ -80,13 +80,17 @@ pub async fn read(
   }
   require_directory(first)
   Directory(
-    collect_pages(first, cursor => {
-      let page = call("resources/directory/read", {
-        "uri": uri.to_json(),
-        "cursor": cursor.to_json(),
-      })
-      require_directory(page)
-      page
-    }),
+    collect_pages(
+      first,
+      cursor => {
+        let page = call("resources/directory/read", {
+          "uri": uri.to_json(),
+          "cursor": cursor.to_json(),
+        })
+        require_directory(page)
+        page
+      },
+      items_key="resources",
+    ),
   )
 }

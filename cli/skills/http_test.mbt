@@ -72,7 +72,10 @@ async test "HTTP CLI retrieval shares native exchange for get, directory and gen
       url~,
       headers~,
     )
-    assert_true(@json.parse(entry) is { "unknown": True, .. })
+    assert_true(
+      @json.parse(entry)
+      is { "origin": "config:srv", "result": { "unknown": True, .. }, .. },
+    )
     let directory = @skills.run_http(
       { target: "srv", operation: Read("opaque://demo"), json_output: true, },
       url~,
@@ -195,4 +198,108 @@ async test "HTTP command deadline includes discovery, pagination and directory f
       })
     })
   }
+}
+
+///|
+async test "HTTP CLI root verification carries client origin and unknown result fields" {
+  let text = "---\nname: demo\ndescription: Demo\n---\nHello 😀"
+  let bytes = @utf8.encode(text)
+  @async.with_task_group(group => {
+    let server = @http.Server(@socket.Addr::parse("127.0.0.1:0"))
+    defer server.close()
+    let calls = Ref(0)
+    group.spawn_bg(no_wait=true, () => {
+      server.run_forever(allow_failure=true, (_, body, conn) => {
+        guard @json.parse(body.read_all().text())
+          is { "id": id, "method": String(rpc), .. } else {
+          fail("request")
+        }
+        calls.val += 1
+        let result : Json = match rpc {
+          "server/discover" =>
+            {
+              "resultType": "complete",
+              "supportedVersions": ["2026-07-28"],
+              "capabilities": {
+                "resources": {},
+                "extensions": { "io.modelcontextprotocol/skills": {} },
+              },
+              "serverInfo": { "name": "impostor" },
+            }
+          "skills/get" =>
+            {
+              "resultType": "complete",
+              "ttlMs": 0,
+              "cacheScope": "private",
+              "skill": {
+                "uri": "skill://demo/SKILL.md",
+                "frontmatter": { "name": "demo", "description": "Demo" },
+                "resources": [
+                  {
+                    "uri": "skill://demo/SKILL.md",
+                    "size": bytes.length().to_json(),
+                    "digest": ("sha256:" +
+                    @hex.encode(Bytes::from_array(@crypto.sha256(bytes)[:]))).to_json(),
+                  },
+                ],
+              },
+            }
+          "resources/read" =>
+            {
+              "resultType": "complete",
+              "ttlMs": 0,
+              "cacheScope": "private",
+              "contents": [
+                { "uri": "skill://demo/SKILL.md", "text": text.to_json() },
+              ],
+              "origin": "impostor",
+              "unknown": true,
+            }
+          _ => fail("prefetch")
+        }
+        conn.send_response(200, "OK", extra_headers={
+          "content-type": "application/json",
+        })
+        conn.write(
+          Json::object({ "jsonrpc": "2.0", "id": id, "result": result }).stringify(),
+        )
+        conn.end_response()
+      })
+    })
+    let origins = []
+    for
+      target in [
+        "srv", "https://srv", "https://user:secret@example.test/mcp?token=othersecret",
+      ] {
+      let output = @skills.run_http(
+        {
+          target,
+          operation: Verify("skill://demo/SKILL.md"),
+          json_output: true,
+        },
+        url="http://" + server.addr.to_string(),
+        headers=Map([]),
+      )
+      guard @json.parse(output)
+        is {
+          "origin": String(origin),
+          "verified": True,
+          "result": { "unknown": True, "origin": "impostor", .. },
+          ..
+        } else {
+        fail("expected client-bound verified result")
+      }
+      if target == "srv" {
+        assert_eq(origin, "config:srv")
+      } else {
+        assert_true(origin.has_prefix("url:sha256:"))
+        assert_false(origin.contains("secret"))
+        assert_false(origin.contains("example.test"))
+      }
+      origins.push(origin)
+    }
+    assert_true(origins[0] != origins[1])
+    assert_true(origins[1] != origins[2])
+    assert_eq(calls.val, 9)
+  })
 }

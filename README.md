@@ -25,7 +25,7 @@ mcpx info
 mcpx info <server|url> [tool]
 mcpx search <pattern>
 mcpx call <server|url> <tool> [arguments-json]
-mcpx skills <server|url> [uri] [--json]
+mcpx skills <server|url> [uri] [--verify] [--json]
 mcpx resources <server|url> <uri> [--json]
 mcpx auth <server> [--no-browser] [--json]
 mcpx auth <server> --code <code> --state <state>
@@ -57,6 +57,7 @@ remains JSON for copy/paste and automation handoff.
 ```sh
 mcpx skills docs-server
 mcpx skills docs-server custom://demo/SKILL.md --json
+mcpx skills docs-server custom://demo/SKILL.md --verify --json
 mcpx resources docs-server custom://demo
 mcpx resources docs-server custom://demo/references/guide.md --json
 ```
@@ -71,21 +72,52 @@ child listing. Only an initial JSON-RPC `-32602` selects content reading instead
 later-page failures, authentication errors and timeouts are errors. Directories
 are nonrecursive. URIs and pagination cursors are sent unchanged.
 
-`--json` returns the parsed result for get/content, or `{"pages":[...]}` for
-lists/directories, preserving per-page metadata and unknown fields. Normal lists
-show names and URIs; content reads print text and retain binary items as JSON.
-Entry get returns JSON in either mode. Parsing follows standard MoonBit JSON
-semantics, not exact source number spelling.
+Skills JSON uses `{"origin":...,"result":...}`; list results contain `pages`.
+The origin is client-assigned (`config:<name>` or a SHA-256 identity for a direct
+URL), never `serverInfo.name`, and does not expose URL credentials. Entries and
+pages preserve unknown fields. Human listings show origin, names and URIs; no
+name is used as an identifier. Generic Resources JSON remains the parsed content
+result or `{"pages":[...]}` for directories. Text reads print text and binary
+items remain JSON. Parsing uses standard MoonBit JSON numeric semantics.
 
 These commands require MCP `2026-07-28` and use modern discovery even when stdio
 protocol mode is omitted. Explicit `stateful` mode and keep-alive stdio targets
 are rejected. Each native CLI command has one 30-second deadline across discovery,
-pagination and fallback. They do not implement separate response-size or total
-receive-byte quotas.
+pagination, verification and fallback. Retrieval limits are 128 MiB per decoded
+HTTP body/stdio frame, 256 MiB cumulatively per CLI command, 1,000 pages and
+100,000 items. Cursors remain opaque; a repeated continuation cursor is an error.
+These are not total-wire/header or hard heap guarantees. HTTP framing and
+compression are handled by the standard client. Responses are buffered within
+these limits, not terminated early at the first final SSE event.
 
-Results are untrusted server data, not loaded or verified Skills. There is no
-YAML parsing, digest verification, file saving, cache, approval or execution of
-Skill instructions. Existing Tool cache and keep-alive behavior is unchanged.
+`--verify` requires a Skill URI. It gets and fixes one entry, checks its manifest
+(512 resources and 16 MiB total declared file size inclusive), then reads only
+root `SKILL.md`. Raw byte length, SHA-256, UTF-8 and the complete YAML frontmatter
+are checked. YAML parsing uses an external parser; graph-to-JSON conversion
+rejects cycles and limits depth to 128, visits to 1,000,000 and logical output to
+96 MiB. These additional complexity policies are not a claim that every valid
+16 MiB YAML document is accepted. Dynamic manifests cannot be verified.
+Verification confirms consistency with the same server's unsigned entry, not
+trust, authorship, user approval or activation. JSON verification output carries
+`origin`, `skillUri`, `verified`, `entry` and the original resource `result`.
+
+The library's `Source::hold(uri)` keeps an independent entry and a fixed RPC peer.
+`HeldSkill::read(uri)` refuses unlisted files before I/O; it verifies supporting
+bytes on demand without applying nested frontmatter. `same_content` compares
+origin, Skill URI and the complete URI/digest set; failures never refresh the
+entry silently. Native adapters provide `http_mcp_skill_source` and
+`StdioMcpClient::skill_source`. A shared receive budget is for one finite operation,
+not a reusable client's lifetime. Budget-bearing stdio connections require
+explicit `Stateless` mode; legacy modes and fallback are rejected before spawn.
+Custom transports own their I/O limits and serialization. The host must provide unique nonsecret origin labels, retain the
+snapshot for its acting window, preserve origin in model context, and explicitly
+handle approval/reapproval, cross-origin consent and execution permissions.
+`allowed-tools` and other content never grant permissions here. A manifest's
+hidden-file completeness remains a server assertion; unlisted reads are rejected.
+
+There is no file saving, Skill cache, approval store, activation or execution of
+Skill instructions. Ordinary `resources` is not a verified Skill-loading path.
+Existing Tool cache, keep-alive and legacy transport paths remain separate.
 
 ## Config
 

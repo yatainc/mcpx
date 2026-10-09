@@ -30,6 +30,8 @@ pub async fn list_tools_with_cache_hint(async (HttpRequest) -> HttpResponse, End
 
 pub async fn read_resource(async (HttpRequest) -> HttpResponse, Endpoint, uri~ : String) -> @skills.ReadResult raise McpHttpClientError
 
+pub async fn skill_source(async (HttpRequest) -> HttpResponse, Endpoint, String) -> @skills.Source raise McpHttpClientError
+
 // Errors
 pub suberror McpHttpClientError {
   HttpStatus(Int)

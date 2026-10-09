@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "yatainc/mcpx/native/receive"
+
+import {
+  "moonbitlang/async/io",
+}
+
+// Values
+pub async fn body(&@io.Reader, Budget, limit? : Int) -> Bytes
+
+// Errors
+pub suberror LimitExceeded {
+  LimitExceeded(String)
+}
+pub fn LimitExceeded::output(Self, &Logger) -> Unit
+pub fn LimitExceeded::to_string(Self) -> String
+pub impl Show for LimitExceeded
+
+// Types and methods
+pub struct Budget {
+  // private fields
+}
+pub fn Budget::new(limit? : Int) -> Self raise
+
+pub struct Lines {
+  // private fields
+}
+pub fn Lines::new(&@io.Reader) -> Self
+pub async fn Lines::next(Self, Budget, limit? : Int) -> Bytes?
+
+// Type aliases
+
+// Traits

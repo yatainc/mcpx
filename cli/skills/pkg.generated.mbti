@@ -27,6 +27,7 @@ pub fn Command::to_repr(Self) -> @debug.Repr
 pub(all) enum Operation {
   List
   Get(String)
+  Verify(String)
   Read(String)
 } derive(@debug.Debug)
 pub fn Operation::to_repr(Self) -> @debug.Repr

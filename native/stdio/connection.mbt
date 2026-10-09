@@ -24,6 +24,8 @@ priv struct StdioConnection {
   _stdin_handle : &@process.ProcessInput
   process : @process.Process
   mut state : StdioConnectionState
+  mut lines : @receive.Lines?
+  mut receive_budget : @receive.Budget?
 }
 
 ///|
@@ -92,6 +94,8 @@ async fn[X] spawn_stdio(
     _stdin_handle: stdin_handle,
     process,
     state: Open,
+    lines: None,
+    receive_budget: None,
   }
 }
 
@@ -109,8 +113,27 @@ async fn write_json_line(
 ///|
 async fn read_json_line(conn : StdioConnection) -> Json? raise McpStdioError {
   ensure_stdio_connection_usable(conn)
-  let line = conn.reader.read_until("\n") catch {
-    err => raise ReadFailed(err.to_string())
+  let line = if conn.lines is Some(lines) {
+    let read = async fn() -> String? {
+      let budget = match conn.receive_budget {
+        Some(budget) => budget
+        None => @receive.Budget::new()
+      }
+      match lines.next(budget) {
+        Some(bytes) => Some(@utf8.decode(bytes))
+        None => None
+      }
+    }
+    read() catch {
+      err => {
+        mark_stdio_poisoned(conn, "bounded receive failure")
+        raise ReadFailed(err.to_string())
+      }
+    }
+  } else {
+    conn.reader.read_until("\n") catch {
+      err => raise ReadFailed(err.to_string())
+    }
   }
   match line {
     None => None
@@ -276,7 +299,7 @@ fn decode_stdio_message_id(value : Json) -> Int? {
 
 ///|
 fn mark_stdio_poisoned(conn : StdioConnection, reason : String) -> Unit {
-  if conn.state != Closed {
+  if conn.state is Open {
     conn.state = Poisoned(reason)
   }
 }

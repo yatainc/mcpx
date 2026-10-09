@@ -88,7 +88,11 @@ pub async fn list(
     }
     result
   }
-  collect_pages(fetch_page(None), cursor => fetch_page(Some(cursor)))
+  collect_pages(
+    fetch_page(None),
+    cursor => fetch_page(Some(cursor)),
+    items_key="skills",
+  )
 }
 
 ///|

@@ -7,12 +7,13 @@ import {
   "yatainc/mcpx/core/config",
   "yatainc/mcpx/core/skills",
   "yatainc/mcpx/core/tools",
+  "yatainc/mcpx/native/receive",
 }
 
 // Values
 pub async fn stdio_mcp_call_tool(command~ : String, args~ : Array[String], env~ : Map[String, String], cwd~ : String?, tool_name~ : String, arguments~ : Json, mode? : @config.McpConnectionMode, probe_timeout_ms? : Int, response_timeout_ms? : Int) -> Json raise McpStdioError
 
-pub async fn[X] stdio_mcp_connect(@async.TaskGroup[X], command~ : String, args~ : Array[String], env~ : Map[String, String], cwd~ : String?, mode? : @config.McpConnectionMode, probe_timeout_ms? : Int, response_timeout_ms? : Int) -> StdioMcpClient raise McpStdioError
+pub async fn[X] stdio_mcp_connect(@async.TaskGroup[X], command~ : String, args~ : Array[String], env~ : Map[String, String], cwd~ : String?, mode? : @config.McpConnectionMode, probe_timeout_ms? : Int, response_timeout_ms? : Int, receive_budget? : @receive.Budget) -> StdioMcpClient raise McpStdioError
 
 pub async fn stdio_mcp_list_tools(command~ : String, args~ : Array[String], env~ : Map[String, String], cwd~ : String?, mode? : @config.McpConnectionMode, probe_timeout_ms? : Int, response_timeout_ms? : Int, max_pages? : Int, max_tools? : Int) -> Array[@tools.McpToolInfo] raise McpStdioError
 
@@ -38,6 +39,7 @@ pub async fn StdioMcpClient::get_skill(Self, uri~ : String) -> Json raise McpStd
 pub async fn StdioMcpClient::list_skills(Self) -> Array[Json] raise McpStdioError
 pub async fn StdioMcpClient::list_tools(Self, max_pages? : Int, max_tools? : Int) -> Array[@tools.McpToolInfo] raise McpStdioError
 pub async fn StdioMcpClient::read_resource(Self, uri~ : String) -> @skills.ReadResult raise McpStdioError
+pub fn StdioMcpClient::skill_source(Self, String) -> @skills.Source raise
 
 // Type aliases
 
