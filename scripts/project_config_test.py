@@ -87,7 +87,7 @@ def main():
             peer = project / sample['args'][0]
             peer.parent.mkdir(parents=True)
             peer.write_text(PEER)
-            write_config(project, {'foldkit-devtools': sample})
+            write_config(project, {'foldkit-devtools': sample, 'project-only': {'command': '/must/not/spawn'}})
             (project / 'nested').mkdir()
             (project / 'nested' / '.mcp.json').write_text('must not shadow root')
         a, b = projects
@@ -103,7 +103,7 @@ def main():
                      FOLDKIT_DEVTOOLS_RELAY_DIRECTORY='relay-B')
         env_b.pop('MCPX_TEST_DAEMON_ONLY', None)
         selected = run('info', cwd=a / 'nested')
-        assert str(a / '.mcp.json') in selected and str(config / 'mcp.jsonc') in selected
+        assert set(selected.splitlines()) == {'Servers:', '  foldkit-devtools', '  project-only', '  user-only'}, selected
         assert 'foldkit-devtools' in run('search', 'foldkit', cwd=a / 'nested')
         poisoned_git = dict(env_a, GIT_DIR=str(b / '.git'), GIT_WORK_TREE=str(b),
                             GIT_CEILING_DIRECTORIES=str(a / 'nested'))
@@ -113,17 +113,17 @@ def main():
         assert probe['gitDir'] == str(b / '.git'), 'Git cleanup must affect only the discovery child'
         # The original command-only shape works without user auth/filter inheritance.
         no_git = dict(env, PATH=str(root / 'bin-A'))
-        assert str(a / '.mcp.json') not in run('info', cwd=a, environment=no_git)
+        assert set(run('info', cwd=a, environment=no_git).splitlines()) == {'Servers:', '  foldkit-devtools', '  user-only'}
 
         git_run('commit', '--allow-empty', '-qm', 'fixture', cwd=b)
         worktree = root / 'worktree'
         git_run('worktree', 'add', '--detach', str(worktree), 'HEAD', cwd=b)
         write_config(worktree, {'worktree-only': {'command': '/must/not/spawn'}})
-        assert str(worktree / '.mcp.json') in run('info', cwd=worktree)
+        assert 'worktree-only' in run('info', cwd=worktree)
         git_run('-c', 'protocol.file.allow=always', 'submodule', 'add', '-q', str(b), 'sub', cwd=a)
         submodule = a / 'sub'
         write_config(submodule, {'sub-only': {'command': '/must/not/spawn'}})
-        assert str(submodule / '.mcp.json') in run('info', cwd=submodule)
+        assert 'sub-only' in run('info', cwd=submodule)
         bare = root / 'bare'
         git_run('init', '--bare', '-q', str(bare))
         assert 'user-only' in run('info', cwd=bare)

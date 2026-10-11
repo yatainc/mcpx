@@ -163,7 +163,7 @@ including when a daemon was started in another directory or shell.
 
 Project config is automatic and can select executable commands and credentials;
 use it only in projects you trust. There is no approval prompt or trust database.
-`mcpx info` shows the selected source paths without starting servers.
+`mcpx info` lists configured server names and descriptions without starting servers.
 
 Add `"$schema"` for editor autocompletion and validation:
 

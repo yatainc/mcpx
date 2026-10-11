@@ -141,16 +141,11 @@ async test "mcpx runtime: info without target lists configured servers" {
     ),
   )
   inspect(
-    execute_mcpx(["info"], home~).replace_all(
-      old=@async_fs.realpath(paths.config_dir),
-      new="<config>",
-    ),
+    execute_mcpx(["info"], home~),
     content=(
       #|Servers:
       #|  github                 GitHub Issues, PRs, and code search
-      #|    <config>/mcp.jsonc
       #|  very-long-server-name  This description is intentionally longer than sixty chara...
-      #|    <config>/mcp.jsonc
     ),
   )
 }

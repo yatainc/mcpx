@@ -30,7 +30,6 @@ fn servers_result(
         )
       None => lines.push("  " + name)
     }
-    lines.push("    " + binding.source_file)
   }
   lines.join("\n")
 }
