@@ -1,8 +1,61 @@
 ///|
+test "cached OAuth does not override any capitalization of an explicit Authorization header" {
+  for
+    name in ["Authorization", "authorization", "AUTHORIZATION", "aUtHoRiZaTiOn"] {
+    assert_true(has_authorization_header(Map([(name, "Bearer explicit")])))
+  }
+  assert_false(
+    has_authorization_header({ "X-Authorization": "not authorization" }),
+  )
+}
+
+///|
+async test "auth rejects stdio before resolving dotenv or launch templates" {
+  let home = @async_fs.tmpdir(prefix="mcpx-auth-admission-")
+  defer @async_fs.rmdir(home, recursive=true)
+  let paths = @app_paths.mcpx_app_paths(home)
+  @storage.save_mcpx_config_file(
+    paths.servers_config,
+    @config.put_server_config(
+      @config.empty_mcpx_config(),
+      @config.mcp_server_config(
+        name="local",
+        transport=Stdio,
+        command=Some("/must/not/spawn"),
+        env={ "VALUE": "${MCPX_AUTH_MUST_NOT_RESOLVE}" },
+      ),
+    ),
+  )
+  @async_fs.write_file(paths.env_file, "invalid dotenv line")
+  assert_eq(
+    execute_mcpx(["auth", "local"], home~),
+    "Error: OAuth requires an HTTP server: local",
+  )
+}
+
+///|
+async fn test_user_identity(
+  paths : @app_paths.McpxAppPaths,
+  name : String,
+) -> String {
+  @async_fs.mkdir(paths.config_dir, recursive=true, allow_exist=true)
+  let binding : ServerBinding = {
+    source_file: absolute_path(
+      @async_fs.realpath(paths.config_dir),
+      "mcp.jsonc",
+    ),
+    cwd_base: paths.config_dir,
+    server: @config.mcp_server_config(name~, transport=Http),
+  }
+  binding.identity()
+}
+
+///|
 #cfg(all(target="native", not(platform="windows")))
 async test "mcpx runtime: auth no-browser starts OAuth and replaces old pending flow" {
   let home = "/tmp/mcpx-runtime-auth-static-test/home"
   let paths = @app_paths.mcpx_app_paths(home)
+  let server_id = test_user_identity(paths, "github")
   @fs.remove_file(paths.servers_config) catch {
     _ => ()
   }
@@ -19,7 +72,7 @@ async test "mcpx runtime: auth no-browser starts OAuth and replaces old pending 
       @auth.put_pending_oauth_flow(
         @auth.empty_credentials_file(),
         @auth.pending_oauth_flow(
-          server_name="github",
+          server_name=server_id,
           server_url=Some("http://localhost:\{port}/mcp"),
           client_id="old-client",
           token_endpoint="http://localhost:\{port}/token",
@@ -90,7 +143,7 @@ async test "mcpx runtime: auth no-browser starts OAuth and replaces old pending 
     )
     let pending = @auth.find_pending_oauth_flow(
       credentials,
-      server_name="github",
+      server_name=server_id,
       state~,
     )
     @debug.debug_inspect(
@@ -484,6 +537,15 @@ async test "mcpx runtime: auth config is required before OAuth discovery" {
 async test "mcpx runtime: auth rejects mismatched RFC 9207 issuer before exchange" {
   let home = "/tmp/mcpx-runtime-auth-issuer-mismatch-test/home"
   let paths = @app_paths.mcpx_app_paths(home)
+  let server_id = test_user_identity(paths, "github")
+  @storage.save_mcpx_config_file(
+    paths.servers_config,
+    @config.put_remote_mcp_server(
+      @config.empty_mcpx_config(),
+      name="github",
+      url="https://example.test/mcp",
+    ),
+  )
   @fs.remove_file(paths.credentials_file) catch {
     _ => ()
   }
@@ -492,7 +554,8 @@ async test "mcpx runtime: auth rejects mismatched RFC 9207 issuer before exchang
     @auth.put_pending_oauth_flow(
       @auth.empty_credentials_file(),
       @auth.pending_oauth_flow(
-        server_name="github",
+        server_name=server_id,
+        server_url=Some("https://example.test/mcp"),
         client_id="client-1",
         token_endpoint="http://127.0.0.1:1/token",
         authorization_issuer=Some("https://auth.example"),
@@ -521,6 +584,7 @@ async test "mcpx runtime: auth rejects mismatched RFC 9207 issuer before exchang
 async test "mcpx runtime: auth code exchange stores credentials and removes pending flow" {
   let home = "/tmp/mcpx-runtime-auth-exchange-test/home"
   let paths = @app_paths.mcpx_app_paths(home)
+  let server_id = test_user_identity(paths, "github")
   @fs.remove_file(paths.credentials_file) catch {
     _ => ()
   }
@@ -529,6 +593,14 @@ async test "mcpx runtime: auth code exchange stores credentials and removes pend
     defer server.close()
     let port = server.addr.port()
     let token_endpoint = "http://localhost:\{port}/token"
+    @storage.save_mcpx_config_file(
+      paths.servers_config,
+      @config.put_remote_mcp_server(
+        @config.empty_mcpx_config(),
+        name="github",
+        url="http://localhost:\{port}/mcp",
+      ),
+    )
     @storage.save_credentials_file(
       paths.credentials_file,
       @auth.put_pending_oauth_flow(
@@ -537,7 +609,7 @@ async test "mcpx runtime: auth code exchange stores credentials and removes pend
             @auth.empty_credentials_file(),
             "github|old-client",
             @auth.credentials_entry(
-              server_name="github",
+              server_name=server_id,
               server_url=Some("http://localhost:\{port}/mcp"),
               client_id=Some("old-client"),
               access_token="old-token",
@@ -546,7 +618,7 @@ async test "mcpx runtime: auth code exchange stores credentials and removes pend
             ),
           ),
           @auth.pending_oauth_flow(
-            server_name="github",
+            server_name=server_id,
             server_url=Some("http://localhost:\{port}/mcp"),
             client_id="old-client",
             token_endpoint~,
@@ -557,7 +629,7 @@ async test "mcpx runtime: auth code exchange stores credentials and removes pend
           ),
         ),
         @auth.pending_oauth_flow(
-          server_name="github",
+          server_name=server_id,
           server_url=Some("http://localhost:\{port}/mcp"),
           client_id="client-1",
           token_endpoint~,
@@ -606,10 +678,13 @@ async test "mcpx runtime: auth code exchange stores credentials and removes pend
     )
     inspect(credentials.entries.length(), content="1")
     inspect(credentials.entries.contains("github|old-client"), content="false")
-    inspect(credentials.entries.contains("github|client-1"), content="true")
+    inspect(
+      credentials.entries.contains(server_id + "|client-1"),
+      content="true",
+    )
     let entry = @auth.find_credentials_entry(
       credentials,
-      server_name="github",
+      server_name=server_id,
       server_url=Some("http://localhost:\{port}/mcp"),
     )
     @debug.debug_inspect(

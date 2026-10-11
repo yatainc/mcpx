@@ -157,6 +157,7 @@
               pkgs.bash
               pkgs.curl
               pkgs.git
+              pkgs.python3
             ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
               pkgs.openssl
             ];

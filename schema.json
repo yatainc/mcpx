@@ -7,6 +7,7 @@
   "required": ["mcpServers"],
   "additionalProperties": false,
   "properties": {
+    "$schema": { "type": "string" },
     "mcpServers": {
       "type": "object",
       "description": "MCP server definitions keyed by server name.",
@@ -18,19 +19,32 @@
   "$defs": {
     "server": {
       "type": "object",
-      "required": ["transport"],
+      "oneOf": [
+        {
+          "required": ["url"],
+          "not": { "required": ["command"] },
+          "properties": { "transport": { "const": "http" } }
+        },
+        {
+          "required": ["command"],
+          "not": { "required": ["url"] },
+          "properties": { "transport": { "const": "stdio" } }
+        }
+      ],
       "properties": {
         "transport": {
           "type": "string",
           "enum": ["http", "stdio"],
-          "description": "Server transport type. 'http' for remote MCP endpoints, 'stdio' for local child-process servers."
+          "description": "Optional transport: inferred from url (http) or command (stdio). An explicit value must match the endpoint."
         },
         "url": {
           "type": "string",
+          "pattern": "\\S",
           "description": "MCP endpoint URL. Required for http transport. Supports ${VAR} interpolation."
         },
         "command": {
           "type": "string",
+          "pattern": "\\S",
           "description": "Executable to run. Required for stdio transport. Supports ${VAR} interpolation."
         },
         "args": {
@@ -45,7 +59,7 @@
         },
         "cwd": {
           "type": "string",
-          "description": "Working directory for stdio process. Supports ${VAR} interpolation."
+          "description": "Working directory for stdio process. Project entries default to the Git root and resolve relative paths there; user entries use the invoking cwd. Supports ${VAR} interpolation."
         },
         "headers": {
           "type": "object",

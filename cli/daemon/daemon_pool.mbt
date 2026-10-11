@@ -64,6 +64,7 @@ async fn create_entry(
     env=server.env,
     cwd=server.cwd,
     mode=@config.effective_connection_mode(server),
+    inherit_env=false,
   ) catch {
     _ => raise Stdio("mcp stdio error")
   }

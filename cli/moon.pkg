@@ -1,6 +1,12 @@
 import {
   "moonbitlang/async",
   "moonbitlang/async/http",
+  "moonbitlang/async/fs" @async_fs,
+  "moonbitlang/async/os_error",
+  "moonbitlang/async/process",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/x/crypto",
+  "moonbitlang/x/path",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
   "moonbitlang/x/fs",

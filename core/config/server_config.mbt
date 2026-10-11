@@ -96,6 +96,12 @@ suberror ConfigDecodeError {
 pub extend ConfigDecodeError with Debug::{to_repr}
 
 ///|
+impl Show for ConfigDecodeError with fn output(self, logger) {
+  let InvalidConfigJson(message) = self
+  logger.write_string(message)
+}
+
+///|
 pub fn mcp_server_config(
   name~ : String,
   transport~ : ServerTransport,

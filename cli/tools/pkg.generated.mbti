@@ -7,13 +7,13 @@ import {
 }
 
 // Values
-pub async fn call_daemon(CallCommand, @config.McpServerConfig, String, String?, stdin_json? : String?) -> String
+pub async fn call_daemon(CallCommand, @config.McpServerConfig, String, String?, server_id~ : String, stdin_json? : String?) -> String
 
 pub async fn call_http(CallCommand, url~ : String, headers~ : Map[String, String], server? : @config.McpServerConfig?, mode? : @config.McpConnectionMode, stdin_json? : String?) -> String
 
 pub async fn call_stdio(CallCommand, @config.McpServerConfig, stdin_json? : String?) -> String
 
-pub async fn info_daemon(String, @config.McpServerConfig, String, String?, String?) -> String
+pub async fn info_daemon(String, @config.McpServerConfig, String, String?, String?, server_id~ : String) -> String
 
 pub async fn info_http(server_name~ : String, url~ : String, headers~ : Map[String, String], tool~ : String?, filter_server~ : @config.McpServerConfig?, mode? : @config.McpConnectionMode) -> String
 

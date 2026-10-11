@@ -7,7 +7,6 @@ import {
   "yatainc/mcpx/native/stdio" @mcp_stdio,
   "yatainc/mcpx/native/receive",
   "moonbitlang/x/crypto",
-  "moonbitlang/core/encoding/hex",
   "moonbitlang/core/encoding/utf8",
 }
 

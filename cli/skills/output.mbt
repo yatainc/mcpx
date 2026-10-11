@@ -1,11 +1,6 @@
 ///|
-fn origin(target : String) -> String {
-  if target.has_prefix("https://") || target.has_prefix("http://") {
-    "url:sha256:" +
-    @hex.encode(Bytes::from_array(@crypto.sha256(@utf8.encode(target))[:]))
-  } else {
-    "config:" + target
-  }
+fn url_origin(url : String) -> String {
+  "url:sha256:" + @crypto.bytes_to_hex_string(@crypto.sha256(@utf8.encode(url)))
 }
 
 ///|

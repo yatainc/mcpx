@@ -46,6 +46,7 @@ async fn[X] spawn_stdio(
   args : Array[String],
   env : Map[String, String],
   cwd : String?,
+  inherit_env : Bool,
 ) -> StdioConnection raise McpStdioError {
   let (reader, stdout_handle) = @process.read_from_process() catch {
     err => raise SpawnFailed(err.to_string())
@@ -56,34 +57,19 @@ async fn[X] spawn_stdio(
   let (stderr_reader, stderr_handle) = @process.read_from_process() catch {
     err => raise SpawnFailed(err.to_string())
   }
-  let process = match cwd {
-    None =>
-      @process.spawn(
-        group,
-        command,
-        args,
-        extra_env=env,
-        inherit_env=true,
-        stdin=stdin_handle,
-        stdout=stdout_handle,
-        stderr=stderr_handle,
-      ) catch {
-        err => raise SpawnFailed(err.to_string())
-      }
-    Some(dir) =>
-      @process.spawn(
-        group,
-        command,
-        args,
-        extra_env=env,
-        inherit_env=true,
-        stdin=stdin_handle,
-        stdout=stdout_handle,
-        stderr=stderr_handle,
-        cwd=dir.to_string_view(),
-      ) catch {
-        err => raise SpawnFailed(err.to_string())
-      }
+  let cwd = cwd.map(String::to_string_view)
+  let process = @process.spawn(
+    group,
+    command,
+    args,
+    extra_env=env,
+    inherit_env~,
+    stdin=stdin_handle,
+    stdout=stdout_handle,
+    stderr=stderr_handle,
+    cwd?,
+  ) catch {
+    err => raise SpawnFailed(err.to_string())
   }
   group.spawn_bg(no_wait=true, () => drain_process_stderr(stderr_reader))
   {

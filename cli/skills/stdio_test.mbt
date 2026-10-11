@@ -35,6 +35,7 @@ async test "stdio CLI retrieval uses modern discovery, paginates and falls back 
     args=["-c", script],
   )
   let pages = @skills.run_stdio(
+    origin="config:srv",
     { target: "srv", operation: List, json_output: true, },
     server,
   )
@@ -43,6 +44,7 @@ async test "stdio CLI retrieval uses modern discovery, paginates and falls back 
     is { "origin": "config:srv", "result": { "pages": [_, _], .. }, .. },
   )
   let entry = @skills.run_stdio(
+    origin="config:srv",
     {
       target: "srv",
       operation: Get("opaque://demo/SKILL.md"),
@@ -55,6 +57,7 @@ async test "stdio CLI retrieval uses modern discovery, paginates and falls back 
     is { "origin": "config:srv", "result": { "extra": True, .. }, .. },
   )
   let result = @skills.run_stdio(
+    origin="config:srv",
     { target: "srv", operation: Read("opaque://file"), json_output: true, },
     server,
   )
@@ -62,6 +65,7 @@ async test "stdio CLI retrieval uses modern discovery, paginates and falls back 
     @json.parse(result) is { "status": "error", "contents": [_, _], .. },
   )
   let text = @skills.run_stdio(
+    origin="config:srv",
     { target: "srv", operation: Read("opaque://file"), json_output: false, },
     server,
   )
@@ -95,6 +99,7 @@ async test "stdio command deadline includes discovery and all list pages" {
   @async.with_timeout(6000, () => {
     try
       @skills.run_stdio(
+        origin="config:srv",
         { target: "srv", operation: List, json_output: true, },
         server,
         timeout_ms=1600,

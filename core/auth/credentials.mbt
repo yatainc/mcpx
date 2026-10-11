@@ -218,11 +218,7 @@ pub fn find_credentials_entry(
   server_url? : String? = None,
 ) -> CredentialsEntry? {
   match server_url {
-    Some(url) =>
-      match find_credentials_exact(file, server_name, url) {
-        Some(entry) => Some(entry)
-        None => find_credentials_by_name(file, server_name)
-      }
+    Some(url) => find_credentials_exact(file, server_name, url)
     None => find_credentials_by_name(file, server_name)
   }
 }

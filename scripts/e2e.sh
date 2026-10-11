@@ -4,8 +4,6 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
-PATH="$HOME/.moon/bin:$PATH"
-
 if [[ -n "${MCPX_BIN:-}" ]]; then
   mcpx="$MCPX_BIN"
 else
@@ -137,7 +135,7 @@ PY
 http_pid=$!
 
 port=""
-for _ in {1..50}; do
+for _ in {1..200}; do
   if [[ -s "$port_file" ]]; then
     port="$(cat "$port_file")"
     break
@@ -542,5 +540,7 @@ try:
 finally:
     server.shutdown(); server.server_close()
 PY
+
+python3 "$root/scripts/project_config_test.py" "$mcpx"
 
 echo "OK: e2e passed"

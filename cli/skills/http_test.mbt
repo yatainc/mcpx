@@ -64,6 +64,7 @@ async test "HTTP CLI retrieval shares native exchange for get, directory and gen
     let url = "http://127.0.0.1:\{server.addr.port()}/mcp"
     let headers = { "Authorization": "Bearer secret" }
     let entry = @skills.run_http(
+      origin="config:srv",
       {
         target: "srv",
         operation: Get("opaque://demo/SKILL.md"),
@@ -77,6 +78,7 @@ async test "HTTP CLI retrieval shares native exchange for get, directory and gen
       is { "origin": "config:srv", "result": { "unknown": True, .. }, .. },
     )
     let directory = @skills.run_http(
+      origin="config:srv",
       { target: "srv", operation: Read("opaque://demo"), json_output: true, },
       url~,
       headers~,
@@ -168,6 +170,7 @@ async test "HTTP command deadline includes discovery, pagination and directory f
         })
         try
           @skills.run_http(
+            origin="config:srv",
             {
               target: "srv",
               operation: if directory {
@@ -239,7 +242,7 @@ async test "HTTP CLI root verification carries client origin and unknown result 
                     "uri": "skill://demo/SKILL.md",
                     "size": bytes.length().to_json(),
                     "digest": ("sha256:" +
-                    @hex.encode(Bytes::from_array(@crypto.sha256(bytes)[:]))).to_json(),
+                    @crypto.bytes_to_hex_string(@crypto.sha256(bytes))).to_json(),
                   },
                 ],
               },
@@ -271,13 +274,21 @@ async test "HTTP CLI root verification carries client origin and unknown result 
       target in [
         "srv", "https://srv", "https://user:secret@example.test/mcp?token=othersecret",
       ] {
+      let path = if target.contains("secret") {
+        "/mcp?token=othersecret"
+      } else {
+        "/mcp"
+      }
+      let url = "http://" + server.addr.to_string() + path
+      let origin = if target == "srv" { Some("config:srv") } else { None }
       let output = @skills.run_http(
+        origin?,
         {
           target,
           operation: Verify("skill://demo/SKILL.md"),
           json_output: true,
         },
-        url="http://" + server.addr.to_string(),
+        url~,
         headers=Map([]),
       )
       guard @json.parse(output)
@@ -292,9 +303,13 @@ async test "HTTP CLI root verification carries client origin and unknown result 
       if target == "srv" {
         assert_eq(origin, "config:srv")
       } else {
-        assert_true(origin.has_prefix("url:sha256:"))
+        assert_eq(
+          origin,
+          "url:sha256:" +
+          @crypto.bytes_to_hex_string(@crypto.sha256(@utf8.encode(url))),
+        )
         assert_false(origin.contains("secret"))
-        assert_false(origin.contains("example.test"))
+        assert_false(origin.contains(server.addr.to_string()))
       }
       origins.push(origin)
     }

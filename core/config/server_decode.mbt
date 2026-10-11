@@ -4,13 +4,17 @@ fn decode_server_config(
   json : Json,
 ) -> McpServerConfig raise ConfigDecodeError {
   let obj = expect_object(json, "server")
+  let url = optional_string(obj.get("url"), "url")
+  let command = optional_string(obj.get("command"), "command")
   {
     name,
     transport: decode_transport(
       optional_string(obj.get("transport"), "transport"),
+      command,
+      url,
     ),
-    url: optional_string(obj.get("url"), "url"),
-    command: optional_string(obj.get("command"), "command"),
+    url,
+    command,
     args: optional_string_array(obj.get("args"), "args"),
     env: optional_string_map(obj.get("env"), "env"),
     cwd: optional_string(obj.get("cwd"), "cwd"),
@@ -31,11 +35,21 @@ fn decode_server_config(
 }
 
 ///|
-fn decode_transport(value : String?) -> ServerTransport raise ConfigDecodeError {
-  match value {
-    Some("stdio") => Stdio
-    Some("http") | None => Http
-    Some(other) => raise InvalidConfigJson("unsupported transport: " + other)
+fn decode_transport(
+  value : String?,
+  command : String?,
+  url : String?,
+) -> ServerTransport raise ConfigDecodeError {
+  match (value, command, url) {
+    (None | Some("stdio"), Some(command), None) if !command.trim().is_empty() =>
+      Stdio
+    (None | Some("http"), None, Some(url)) if !url.trim().is_empty() => Http
+    (Some(other), _, _) if other != "stdio" && other != "http" =>
+      raise InvalidConfigJson("unsupported transport: " + other)
+    _ =>
+      raise InvalidConfigJson(
+        "server requires exactly one matching command or url",
+      )
   }
 }
 

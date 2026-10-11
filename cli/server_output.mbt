@@ -1,6 +1,6 @@
 ///|
 fn servers_result(
-  servers : Map[String, @config.McpServerConfig],
+  servers : Map[String, ServerBinding],
   config_path : String,
 ) -> String {
   if servers.is_empty() {
@@ -13,8 +13,8 @@ fn servers_result(
       width = name.length()
     }
   }
-  for name, server in servers {
-    let summary = server.description.bind(text => {
+  for name, binding in servers {
+    let summary = binding.server.description.bind(text => {
       for line in text.split("\n") {
         let line = line.trim().to_owned()
         if !line.is_empty() {
@@ -30,6 +30,7 @@ fn servers_result(
         )
       None => lines.push("  " + name)
     }
+    lines.push("    " + binding.source_file)
   }
   lines.join("\n")
 }

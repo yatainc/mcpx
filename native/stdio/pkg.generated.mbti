@@ -13,7 +13,7 @@ import {
 // Values
 pub async fn stdio_mcp_call_tool(command~ : String, args~ : Array[String], env~ : Map[String, String], cwd~ : String?, tool_name~ : String, arguments~ : Json, mode? : @config.McpConnectionMode, probe_timeout_ms? : Int, response_timeout_ms? : Int) -> Json raise McpStdioError
 
-pub async fn[X] stdio_mcp_connect(@async.TaskGroup[X], command~ : String, args~ : Array[String], env~ : Map[String, String], cwd~ : String?, mode? : @config.McpConnectionMode, probe_timeout_ms? : Int, response_timeout_ms? : Int, receive_budget? : @receive.Budget) -> StdioMcpClient raise McpStdioError
+pub async fn[X] stdio_mcp_connect(@async.TaskGroup[X], command~ : String, args~ : Array[String], env~ : Map[String, String], cwd~ : String?, mode? : @config.McpConnectionMode, probe_timeout_ms? : Int, response_timeout_ms? : Int, receive_budget? : @receive.Budget, inherit_env? : Bool) -> StdioMcpClient raise McpStdioError
 
 pub async fn stdio_mcp_list_tools(command~ : String, args~ : Array[String], env~ : Map[String, String], cwd~ : String?, mode? : @config.McpConnectionMode, probe_timeout_ms? : Int, response_timeout_ms? : Int, max_pages? : Int, max_tools? : Int) -> Array[@tools.McpToolInfo] raise McpStdioError
 

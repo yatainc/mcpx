@@ -38,16 +38,17 @@ pub async fn[X] stdio_mcp_connect(
   probe_timeout_ms? : Int = 1000,
   response_timeout_ms? : Int = 30000,
   receive_budget? : @receive.Budget,
+  inherit_env? : Bool = true,
 ) -> StdioMcpClient raise McpStdioError {
   if receive_budget is Some(_) && mode != Stateless {
     raise Protocol("bounded retrieval requires stateless MCP")
   }
   if mode == Stateful {
-    let conn = spawn_stdio(group, command, args, env, cwd)
+    let conn = spawn_stdio(group, command, args, env, cwd, inherit_env)
     initialize_stdio(conn, response_timeout_ms)
     return new_stdio_mcp_client(conn, Initialize, response_timeout_ms)
   }
-  let probe_conn = spawn_stdio(group, command, args, env, cwd)
+  let probe_conn = spawn_stdio(group, command, args, env, cwd, inherit_env)
   if receive_budget is Some(budget) {
     probe_conn.lines = Some(@receive.Lines::new(probe_conn.reader))
     probe_conn.receive_budget = Some(budget)
@@ -93,7 +94,7 @@ pub async fn[X] stdio_mcp_connect(
       if mode == Stateless {
         raise Protocol("stateless MCP is not supported")
       }
-      let conn = spawn_stdio(group, command, args, env, cwd)
+      let conn = spawn_stdio(group, command, args, env, cwd, inherit_env)
       initialize_stdio(conn, response_timeout_ms)
       new_stdio_mcp_client(conn, Initialize, response_timeout_ms)
     }
