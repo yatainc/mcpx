@@ -1,4 +1,62 @@
 ///|
+test "server config: infers transport without changing arguments or protocol defaults" {
+  let config = @config.decode_mcpx_config({
+    "mcpServers": {
+      "local": {
+        "command": "node",
+        "args": ["./node_modules/devtools/server.js"],
+      },
+      "remote": { "url": "https://example.test/mcp" },
+    },
+  })
+  let server = config.servers["local"]
+  assert_true(server.transport is Stdio)
+  assert_eq(server.args, ["./node_modules/devtools/server.js"])
+  assert_eq(@config.effective_connection_mode(server), Stateful)
+  assert_true(config.servers["remote"].transport is Http)
+}
+
+///|
+test "server config: rejects missing ambiguous empty and mismatched endpoints" {
+  let invalid : Array[Json] = [
+    {},
+    { "command": "node", "url": "https://example.test" },
+    { "transport": "stdio", "url": "https://example.test" },
+    { "transport": "http", "command": "node" },
+    { "transport": "http" },
+    { "command": "" },
+    { "url": " " },
+    { "command": 1 },
+    { "transport": "sse", "url": "https://example.test" },
+  ]
+  for server in invalid {
+    try @config.decode_mcpx_config({ "mcpServers": { "bad": server } }) catch {
+      _ => ()
+    } noraise {
+      _ => fail("invalid server accepted")
+    }
+  }
+}
+
+///|
+test "server config: decode errors retain the actionable reason" {
+  try
+    @config.decode_mcpx_config({
+      "mcpServers": {
+        "bad": { "transport": "sse", "url": "https://example.test" },
+      },
+    })
+  catch {
+    error => {
+      let error : Error = error
+      assert_true(error.to_string().contains("unsupported transport: sse"))
+    }
+  } noraise {
+    _ => fail("invalid transport accepted")
+  }
+}
+
+///|
 test "server config: decodes remote OAuth server shape" {
   let text =
     #|{"mcpServers":{"github":{"transport":"http","url":"https://mcp.github.com/mcp","headers":{"Authorization":"Bearer ${GITHUB_TOKEN}"},"auth":{"type":"oauth","clientId":"${GITHUB_CLIENT_ID}","clientSecret":"${GITHUB_CLIENT_SECRET}","metadataUrl":"https://mcp.github.com/.well-known/oauth-authorization-server"}}}}
@@ -42,7 +100,7 @@ test "server config: decodes remote OAuth server shape" {
 ///|
 test "server config: decodes protocol connection modes" {
   let decode_mode = mode_text => {
-    let text = "{\"mcpServers\":{\"server\":{\"transport\":\"http\",\"protocol\":{\"mode\":\"" +
+    let text = "{\"mcpServers\":{\"server\":{\"url\":\"https://example.test/mcp\",\"transport\":\"http\",\"protocol\":{\"mode\":\"" +
       mode_text +
       "\"}}}}"
     @config.decode_mcpx_config(@json.parse(text)).servers.get("server").unwrap().protocol_mode
@@ -56,7 +114,7 @@ test "server config: decodes protocol connection modes" {
 test "server config: applies transport protocol mode defaults" {
   let config = @config.decode_mcpx_config(
     @json.parse(
-      "{\"mcpServers\":{\"remote\":{\"transport\":\"http\"},\"local\":{\"transport\":\"stdio\",\"command\":\"server\"}}}",
+      "{\"mcpServers\":{\"remote\":{\"transport\":\"http\",\"url\":\"https://example.test/mcp\"},\"local\":{\"transport\":\"stdio\",\"command\":\"server\"}}}",
     ),
   )
   inspect(
@@ -78,7 +136,7 @@ test "server config: rejects unsupported protocol connection mode" {
     ignore(
       @config.decode_mcpx_config(
         @json.parse(
-          "{\"mcpServers\":{\"server\":{\"transport\":\"http\",\"protocol\":{\"mode\":\"future\"}}}}",
+          "{\"mcpServers\":{\"server\":{\"transport\":\"http\",\"url\":\"https://example.test/mcp\",\"protocol\":{\"mode\":\"future\"}}}}",
         ),
       ),
     )

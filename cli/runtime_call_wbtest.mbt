@@ -283,6 +283,7 @@ async test "mcpx runtime: call rejects disabled configured tools before connect"
 async test "mcpx runtime: call uses cached OAuth bearer from credentials file" {
   let home = "/tmp/mcpx-runtime-call-credentials-test/home"
   let paths = @app_paths.mcpx_app_paths(home)
+  let server_id = test_user_identity(paths, "github")
   @fs.remove_file(paths.servers_config) catch {
     _ => ()
   }
@@ -314,7 +315,7 @@ async test "mcpx runtime: call uses cached OAuth bearer from credentials file" {
             @auth.empty_credentials_file(),
             "github|old-client",
             @auth.credentials_entry(
-              server_name="github",
+              server_name=server_id,
               server_url=Some(url),
               client_id=Some("old-client"),
               access_token="old-token",
@@ -324,7 +325,7 @@ async test "mcpx runtime: call uses cached OAuth bearer from credentials file" {
           ),
           "github|client-1",
           @auth.credentials_entry(
-            server_name="github",
+            server_name=server_id,
             server_url=Some(url),
             client_id=Some("client-1"),
             access_token="cached-token",
@@ -333,7 +334,7 @@ async test "mcpx runtime: call uses cached OAuth bearer from credentials file" {
           ),
         ),
         @auth.pending_oauth_flow(
-          server_name="github",
+          server_name=server_id,
           server_url=Some(url),
           client_id="active-client",
           token_endpoint="https://auth.example/token",
@@ -412,10 +413,13 @@ async test "mcpx runtime: call uses cached OAuth bearer from credentials file" {
     )
     inspect(credentials.entries.length(), content="1")
     inspect(credentials.entries.contains("github|old-client"), content="false")
-    inspect(credentials.entries.contains("github|client-1"), content="true")
+    inspect(
+      credentials.entries.contains(server_id + "|client-1"),
+      content="true",
+    )
     inspect(credentials.pending_oauth.length(), content="1")
     inspect(
-      credentials.pending_oauth.contains("github|active-state"),
+      credentials.pending_oauth.contains(server_id + "|active-state"),
       content="true",
     )
   })
@@ -548,6 +552,7 @@ async test "mcpx runtime: call reports MCP protocol errors" {
 async test "mcpx runtime: call refreshes near-expiry OAuth token before request" {
   let home = "/tmp/mcpx-runtime-call-refresh-test/home"
   let paths = @app_paths.mcpx_app_paths(home)
+  let server_id = test_user_identity(paths, "github")
   @fs.remove_file(paths.servers_config) catch {
     _ => ()
   }
@@ -585,7 +590,7 @@ async test "mcpx runtime: call refreshes near-expiry OAuth token before request"
           @auth.empty_credentials_file(),
           "github|client-1",
           @auth.credentials_entry(
-            server_name="github",
+            server_name=server_id,
             server_url=Some(mcp_url),
             client_id=Some("client-1"),
             access_token="expired-token",
@@ -595,7 +600,7 @@ async test "mcpx runtime: call refreshes near-expiry OAuth token before request"
           ),
         ),
         @auth.pending_oauth_flow(
-          server_name="github",
+          server_name=server_id,
           server_url=Some(mcp_url),
           client_id="active-client",
           token_endpoint="https://auth.example/token",
@@ -714,10 +719,13 @@ async test "mcpx runtime: call refreshes near-expiry OAuth token before request"
       paths.credentials_file,
     )
     inspect(credentials.entries.length(), content="1")
-    inspect(credentials.entries.contains("github|client-1"), content="true")
+    inspect(
+      credentials.entries.contains(server_id + "|client-1"),
+      content="true",
+    )
     inspect(credentials.pending_oauth.length(), content="1")
     inspect(
-      credentials.pending_oauth.contains("github|active-state"),
+      credentials.pending_oauth.contains(server_id + "|active-state"),
       content="true",
     )
   })

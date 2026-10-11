@@ -73,8 +73,9 @@ later-page failures, authentication errors and timeouts are errors. Directories
 are nonrecursive. URIs and pagination cursors are sent unchanged.
 
 Skills JSON uses `{"origin":...,"result":...}`; list results contain `pages`.
-The origin is client-assigned (`config:<name>` or a SHA-256 identity for a direct
-URL), never `serverInfo.name`, and does not expose URL credentials. Entries and
+The origin is client-assigned: `config:sha256:<hash>` identifies the selected
+config path and server name; `url:sha256:<hash>` identifies a direct URL. It is
+never `serverInfo.name` and does not expose URL credentials. Entries and
 pages preserve unknown fields. Human listings show origin, names and URIs; no
 name is used as an identifier. Generic Resources JSON remains the parsed content
 result or `{"pages":[...]}` for directories. Text reads print text and binary
@@ -121,9 +122,48 @@ Existing Tool cache, keep-alive and legacy transport paths remain separate.
 
 ## Config
 
-`mcpx` reads user config from `~/.config/mcpx/mcp.jsonc`.
-`~/.config/mcpx/mcp.json` is also supported when the JSONC file is not
-present, but `mcp.jsonc` wins when both exist.
+`mcpx` automatically reads configuration from two roots:
+
+- User: `$XDG_CONFIG_HOME/mcpx` when `XDG_CONFIG_HOME` is absolute, otherwise
+  `~/.config/mcpx`.
+- Project: the Git working-tree root containing the invoking directory.
+  Linked worktrees and submodules use their own roots.
+
+At **each root**, the first existing file wins, in this order:
+`mcp.jsonc`, `mcp.json`, `.mcp.jsonc`, `.mcp.json`. Only one file per root is read.
+JSONC comments and trailing commas are accepted for all four names. A selected
+unreadable or invalid file is an error, not a reason to try another file.
+
+Server maps are combined by name: **project replaces the whole user definition**.
+Missing project fields do not inherit user auth, env or tool filters. Nested
+configs do not shadow the Git-root config. Outside Git, or when Git is not
+installed, only user config is used; other Git discovery failures are errors.
+Direct URLs, help/version and daemon control do not load project config.
+
+For example, an existing project `.mcp.json` can be used unchanged:
+
+```json
+{
+  "mcpServers": {
+    "foldkit-devtools": {
+      "command": "node",
+      "args": ["./node_modules/@foldkit/devtools-mcp/dist/server.js"]
+    }
+  }
+}
+```
+
+`transport` is inferred from `command` (stdio) or `url` (HTTP); exactly one is
+required, and any explicit transport must agree. This is the shared
+`mcpServers` subset, not a promise of every editor's configuration dialect.
+Project stdio servers default to the Git root as cwd; relative `cwd` values
+resolve there after environment expansion. User entries use the invoking cwd.
+Arguments are not rewritten. Executables use the effective caller/server `PATH`,
+including when a daemon was started in another directory or shell.
+
+Project config is automatic and can select executable commands and credentials;
+use it only in projects you trust. There is no approval prompt or trust database.
+`mcpx info` shows the selected source paths without starting servers.
 
 Add `"$schema"` for editor autocompletion and validation:
 
@@ -133,7 +173,7 @@ Add `"$schema"` for editor autocompletion and validation:
   "mcpServers": {
     // Required: server name used by `mcpx info/call/search`.
     "github": {
-      // Required: "http" for remote MCP endpoints.
+      // Optional: inferred as "http" from url.
       "transport": "http",
       // Required for http: MCP endpoint URL.
       "url": "https://mcp.github.com/mcp",
@@ -159,7 +199,7 @@ Add `"$schema"` for editor autocompletion and validation:
 
     // Required: another server name.
     "local": {
-      // Required: "stdio" for child-process MCP servers.
+      // Optional: inferred as "stdio" from command.
       "transport": "stdio",
       // Required for stdio: executable.
       "command": "node",
@@ -189,6 +229,17 @@ Add `"$schema"` for editor autocompletion and validation:
 }
 ```
 
+Credentials remain in the user `credentials.json`, but are scoped to the selected
+config file and server name and are used only for the exact endpoint URL. Run
+`mcpx auth <server>` from the project whose server you intend to authenticate;
+manual code completion must use the same source and endpoint. Name-only
+credentials from earlier versions are not reused: authenticate again, and run
+`mcpx daemon stop` to replace any old daemon after upgrading.
+
+Keep-alive reuses only matching source and effective launch conditions, including
+environment values and protocol mode. It does not guarantee application readiness
+or retry failed tool calls; relay/server readiness remains the server's concern.
+
 ### MCP protocol modes
 
 `protocol.mode` controls the MCP connection lifecycle. Accepted values are `auto`,
@@ -208,7 +259,10 @@ Explicit `auto` tries `server/discover` and falls back on JSON-RPC method-not-fo
 
 ### Environment values
 
-`.env` uses simple `KEY=value` lines. Process environment wins over `.env`.
+Only the user config directory's `.env` is read, using simple `KEY=value` lines;
+there is no project `.env` discovery. Process environment wins over `.env` for
+interpolation. Child processes inherit the invoking environment plus resolved
+server `env`; the dotenv file is not exported wholesale.
 Only `${VAR}` interpolation is supported; fallback syntax such as
 `${VAR:-fallback}` is intentionally rejected.
 
@@ -229,9 +283,9 @@ mcpx daemon status
 mcpx daemon stop
 ```
 
-Keep-alive stdio servers start the daemon automatically when needed. If config or
-environment values change and an existing stdio process should be discarded, run
-`mcpx daemon stop`.
+Keep-alive stdio servers start the daemon automatically when needed. Changed
+launch conditions select a different process; old entries retain their configured
+idle lifetime. Run `mcpx daemon stop` to discard all retained processes.
 
 ## OAuth
 

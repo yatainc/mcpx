@@ -6,12 +6,21 @@ async fn execute_mcpx(
   home~ : String,
   config_home? : String? = None,
   stdin_json? : String? = None,
+  cwd? : String,
 ) -> String {
+  // Existing runtime fixtures must not pick up the checkout's project config.
+  let cwd = match cwd {
+    Some(cwd) => cwd
+    None => {
+      @async_fs.mkdir(home, recursive=true, allow_exist=true)
+      home
+    }
+  }
   let command = match parse_mcpx_args(args) {
     Ok(command) => command
     Err(error) => return error_result(format_mcpx_parse_error(error))
   }
-  match execute_command(command, home~, config_home~, stdin_json~) {
+  match execute_command(command, home~, config_home~, stdin_json~, cwd~) {
     Ok(text) | Err(text) => text
   }
 }
@@ -81,6 +90,7 @@ async test "retrieval admission rejects stateful and keep-alive before launch or
       execute_command(
         Retrieve({ target: "srv", operation: List, json_output: true, }),
         home~,
+        cwd=home,
       )
     catch {
       @skill_cli.RetrievalError(message) =>
@@ -124,6 +134,7 @@ async test "successful Resource text that resembles an error remains Ok" {
     let result = execute_command(
       Retrieve({ target: "srv", operation: Read("u"), json_output, }),
       home~,
+      cwd=home,
       stdin_json=Some("ignored"),
     )
     guard result is Ok(text) else { fail("ordinary data became an error") }

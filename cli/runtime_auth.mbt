@@ -9,36 +9,41 @@ async fn run_auth(
   command : AuthCommand,
   home : String,
   config_home : String?,
+  cwd : String,
 ) -> String {
   if command.issuer is Some(_) && command.code is None {
     return error_result("OAuth code is required")
   }
   match (command.code, command.state) {
-    (Some(code), Some(state)) =>
-      return complete_oauth_auth(
-        command.server,
-        code,
-        state,
-        command.issuer,
-        home,
-        config_home,
-      )
     (Some(_), None) => return error_result("OAuth state is required")
     (None, Some(_)) => return error_result("OAuth code is required")
-    (None, None) => ()
+    _ => ()
   }
   let paths = @app_paths.mcpx_app_paths(home, config_home~)
-  let config = @storage.load_mcpx_config_or_empty(paths.servers_config)
-  match config.servers.get(command.server) {
+  let servers = load_servers(paths, cwd)
+  match servers.get(command.server) {
     None => error_result("server not found: " + command.server)
-    Some(server) => {
-      let env = match load_mcpx_env(paths.env_file) {
+    Some(binding) => {
+      if binding.server.transport is Stdio {
+        return error_result("OAuth requires an HTTP server: " + command.server)
+      }
+      let server_id = binding.identity()
+      let resolved_server = match
+        resolve_runtime_server(binding.server, paths.env_file) {
         Ok(value) => value
         Err(message) => return error_result(message)
       }
-      let resolved_server = match @config.resolve_server_env(server, env) {
-        Ok(value) => value
-        Err(error) => return error_result(error.to_string())
+      if command.code is Some(code) && command.state is Some(state) {
+        return complete_oauth_auth(
+          command.server,
+          server_id,
+          resolved_server.url,
+          code,
+          state,
+          command.issuer,
+          home,
+          config_home,
+        )
       }
       let auth = match resolved_server.auth {
         Some(value) => value
@@ -84,7 +89,7 @@ async fn run_auth(
       )
       let save_result = save_pending_oauth_flow(
         paths.credentials_file,
-        server_name=command.server,
+        server_name=server_id,
         server_url=resolved_server.url,
         client_id~,
         client_secret~,
@@ -120,6 +125,8 @@ async fn run_auth(
         }
         complete_oauth_auth(
           command.server,
+          server_id,
+          resolved_server.url,
           callback.code,
           callback.state,
           callback.issuer,
@@ -133,7 +140,9 @@ async fn run_auth(
 
 ///|
 async fn complete_oauth_auth(
+  display_name : String,
   server_name : String,
+  server_url : String?,
   code : String,
   state : String,
   response_issuer : String?,
@@ -149,7 +158,10 @@ async fn complete_oauth_auth(
   let flow = match
     @auth.find_pending_oauth_flow(snapshot.file, server_name~, state~) {
     Some(value) => value
-    None => return error_result("pending OAuth flow not found: " + server_name)
+    None => return error_result("pending OAuth flow not found: " + display_name)
+  }
+  if flow.server_url != server_url {
+    return error_result("pending OAuth endpoint changed: " + display_name)
   }
   let issuer_metadata = @auth.oauth_metadata(
     authorization_endpoint="",
@@ -207,10 +219,12 @@ async fn complete_oauth_auth(
     @auth.find_pending_oauth_flow(latest_snapshot.file, server_name~, state~) {
     Some(latest_flow) =>
       if !same_pending_oauth_flow(latest_flow, flow) {
-        return error_result("pending OAuth flow was superseded: " + server_name)
+        return error_result(
+          "pending OAuth flow was superseded: " + display_name,
+        )
       }
     None =>
-      return error_result("pending OAuth flow was superseded: " + server_name)
+      return error_result("pending OAuth flow was superseded: " + display_name)
   }
   let without_pending = @auth.remove_server_pending_oauth_flows(
     latest_snapshot.file,
@@ -233,7 +247,7 @@ async fn complete_oauth_auth(
       return error_result("credentials changed during OAuth auth; retry")
     Err(message) => return error_result(message)
   }
-  auth_complete_result(server_name)
+  auth_complete_result(display_name)
 }
 
 ///|

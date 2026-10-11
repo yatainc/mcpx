@@ -92,6 +92,7 @@ pub async fn call_daemon(
   server : @config.McpServerConfig,
   home : String,
   config_home : String?,
+  server_id~ : String,
   stdin_json? : String? = None,
 ) -> String {
   if !@config.is_tool_allowed(server, command.tool) {
@@ -104,7 +105,7 @@ pub async fn call_daemon(
   let result = @mcpx_daemon.daemon_call_tool(
     home~,
     config_home~,
-    server_name=command.server,
+    server_name=server_id,
     server~,
     tool_name=command.tool,
     arguments~,

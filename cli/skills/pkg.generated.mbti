@@ -7,9 +7,9 @@ import {
 }
 
 // Values
-pub async fn run_http(Command, url~ : String, headers~ : Map[String, String], timeout_ms? : Int) -> String
+pub async fn run_http(Command, url~ : String, headers~ : Map[String, String], origin? : String, timeout_ms? : Int) -> String
 
-pub async fn run_stdio(Command, @config.McpServerConfig, timeout_ms? : Int) -> String
+pub async fn run_stdio(Command, @config.McpServerConfig, origin~ : String, timeout_ms? : Int) -> String
 
 // Errors
 pub(all) suberror RetrievalError {

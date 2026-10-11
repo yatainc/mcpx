@@ -1,16 +1,15 @@
 ///|
-fn run_search(
+async fn run_search(
   command : SearchCommand,
   home : String,
   config_home : String?,
+  cwd : String,
 ) -> String {
   let paths = @app_paths.mcpx_app_paths(home, config_home~)
-  let config = @storage.load_mcpx_config_or_empty(paths.servers_config) catch {
-    _ => @config.empty_mcpx_config()
-  }
+  let bindings = load_servers(paths, cwd)
   let servers : Array[(String, String?)] = []
-  for name, server in config.servers {
-    servers.push((name, server.description))
+  for name, binding in bindings {
+    servers.push((name, binding.server.description))
   }
   let (results, total) = @search.search_servers(command.pattern, servers)
   if total == 0 {

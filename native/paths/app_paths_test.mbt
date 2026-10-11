@@ -26,49 +26,30 @@ test "mcpx app paths: explicit config home wins over home" {
 }
 
 ///|
-test "mcpx app paths: servers config resolves json when jsonc is absent" {
-  let config_home = "/tmp/mcpx-app-paths-json-config"
-  let config_dir = config_home + "/mcpx"
-  @fs.create_dir(config_home) catch {
-    _ => ()
-  }
-  @fs.create_dir(config_dir) catch {
-    _ => ()
-  }
-  @fs.remove_file(config_dir + "/mcp.jsonc") catch {
-    _ => ()
-  }
-  @fs.remove_file(config_dir + "/mcp.json") catch {
-    _ => ()
-  }
-  @fs.write_string_to_file(config_dir + "/mcp.json", "{}")
+#cfg(not(platform="windows"))
+test "mcpx app paths: absolute means absolute on the actual platform" {
   inspect(
-    @paths.mcpx_app_paths("/Users/alice", config_home=Some(config_home)).servers_config,
-    content="/tmp/mcpx-app-paths-json-config/mcpx/mcp.json",
+    @paths.mcpx_app_paths(
+      "/Users/alice",
+      config_home=Some("C:/not-absolute-on-posix"),
+    ).config_dir,
+    content="/Users/alice/.config/mcpx",
   )
 }
 
 ///|
-test "mcpx app paths: servers config prefers jsonc over json" {
-  let config_home = "/tmp/mcpx-app-paths-jsonc-config"
-  let config_dir = config_home + "/mcpx"
-  @fs.create_dir(config_home) catch {
-    _ => ()
-  }
-  @fs.create_dir(config_dir) catch {
-    _ => ()
-  }
-  @fs.remove_file(config_dir + "/mcp.jsonc") catch {
-    _ => ()
-  }
-  @fs.remove_file(config_dir + "/mcp.json") catch {
-    _ => ()
-  }
-  @fs.write_string_to_file(config_dir + "/mcp.jsonc", "{}")
-  @fs.write_string_to_file(config_dir + "/mcp.json", "{}")
+#cfg(not(platform="windows"))
+test "mcpx app paths: a literal trailing backslash is not a POSIX separator" {
   inspect(
-    @paths.mcpx_app_paths("/Users/alice", config_home=Some(config_home)).servers_config,
-    content="/tmp/mcpx-app-paths-jsonc-config/mcpx/mcp.jsonc",
+    @paths.mcpx_app_paths("/Users/alice", config_home=Some("/tmp/config\\")).config_dir,
+    content="/tmp/config\\/mcpx",
+  )
+  inspect(
+    @paths.mcpx_app_paths(
+      "/Users/alice",
+      config_home=Some("/tmp/link/../config"),
+    ).config_dir,
+    content="/tmp/link/../config/mcpx",
   )
 }
 

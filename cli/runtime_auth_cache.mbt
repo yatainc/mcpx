@@ -40,6 +40,7 @@ async fn call_headers_with_cached_auth(
                 match
                   refresh_oauth_credentials(
                     server_name~,
+                    display_name=server.name,
                     server_url~,
                     auth~,
                     entry~,
@@ -53,10 +54,10 @@ async fn call_headers_with_cached_auth(
                   Err(message) => Err(message)
                 }
               None =>
-                Err("authentication required: run mcpx auth " + server_name)
+                Err("authentication required: run mcpx auth " + server.name)
             }
           ReauthRequired =>
-            Err("authentication required: run mcpx auth " + server_name)
+            Err("authentication required: run mcpx auth " + server.name)
         }
       }
     }
@@ -107,6 +108,7 @@ fn prune_cached_oauth_credentials(
 ///|
 async fn refresh_oauth_credentials(
   server_name~ : String,
+  display_name~ : String,
   server_url~ : String,
   auth~ : @config.ServerAuthConfig,
   entry~ : @auth.CredentialsEntry,
@@ -115,11 +117,11 @@ async fn refresh_oauth_credentials(
 ) -> Result[String, String] {
   let client_id = match oauth_client_id(auth, entry) {
     Some(value) => value
-    None => return Err("authentication required: run mcpx auth " + server_name)
+    None => return Err("authentication required: run mcpx auth " + display_name)
   }
   let metadata = match
     resolve_oauth_metadata(
-      server_name~,
+      server_name=display_name,
       server_url=Some(server_url),
       metadata_url=auth.metadata_url,
     ) {
@@ -284,5 +286,5 @@ fn credentials_cache_key(server_name : String, client_id : String) -> String {
 
 ///|
 fn has_authorization_header(headers : Map[String, String]) -> Bool {
-  headers.contains("Authorization") || headers.contains("authorization")
+  headers.keys().any(name => name.to_lower() == "authorization")
 }

@@ -4,6 +4,8 @@ import {
   "moonbitlang/async/socket",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/x/crypto",
   "moonbitlang/x/fs",
   "yatainc/mcpx/core/config",
   "yatainc/mcpx/core/tools",

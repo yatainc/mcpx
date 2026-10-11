@@ -4,8 +4,6 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
-PATH="$HOME/.moon/bin:$PATH"
-
 bench_packages=(
   core/tools
   core/http

@@ -42,11 +42,12 @@ pub async fn info_daemon(
   home : String,
   config_home : String?,
   tool : String?,
+  server_id~ : String,
 ) -> String {
   let tools = @mcpx_daemon.daemon_list_tools(
     home~,
     config_home~,
-    server_name~,
+    server_name=server_id,
     server~,
   ) catch {
     _ => return error_result("mcp daemon error")

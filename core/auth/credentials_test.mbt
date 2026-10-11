@@ -31,6 +31,30 @@ fn test_pending_flow(
 }
 
 ///|
+test "credentials: an endpoint lookup never falls back to another URL or an unbound entry" {
+  for server_url in [Some("https://old.example/mcp"), None] {
+    let file = @auth.put_credentials_entry(
+      @auth.empty_credentials_file(),
+      "old",
+      @auth.credentials_entry(
+        server_name="same-name",
+        server_url~,
+        access_token="must-not-leak",
+        updated_at="1",
+      ),
+    )
+    assert_true(
+      @auth.find_credentials_entry(
+        file,
+        server_name="same-name",
+        server_url=Some("https://new.example/mcp"),
+      )
+      is None,
+    )
+  }
+}
+
+///|
 test "credentials: empty file encodes version and entries" {
   inspect(
     @auth.empty_credentials_file().to_json().stringify(),
@@ -100,7 +124,7 @@ test "credentials: decodes encoded file roundtrip" {
 }
 
 ///|
-test "credentials: finds entry by server name and exact url before fallback" {
+test "credentials: finds entry by server name and exact url" {
   let file = @auth.put_credentials_entry(
     @auth.empty_credentials_file(),
     "github|old",
