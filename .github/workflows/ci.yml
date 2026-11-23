@@ -11,6 +11,7 @@ on:
       - "js/**"
       - "wasm/**"
       - "scripts/**"
+      - "nix/**"
       - "flake.nix"
       - "flake.lock"
       - "package.nix"
@@ -25,6 +26,7 @@ on:
       - "js/**"
       - "wasm/**"
       - "scripts/**"
+      - "nix/**"
       - "flake.nix"
       - "flake.lock"
       - "package.nix"
@@ -60,23 +62,25 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      - name: Update Moon registry
-        run: nix develop --command moon update
+      - name: Prepare locked Moon dependencies
+        run: |
+          deps=$(bash scripts/prepare-locked-moon.sh)
+          echo "MCPX_MOON_DEPS=$deps" >> "$GITHUB_ENV"
 
       - name: moon fmt
         run: nix develop --command moon fmt --check
 
       - name: moon check
-        run: nix develop --command moon check --target native --warn-list +73 --deny-warn
+        run: nix develop --command moon check --frozen --target native --warn-list +73 --deny-warn
 
       - name: moon test
-        run: nix develop --command moon test --target native --no-render
+        run: nix develop --command moon test --frozen --target native --no-render
 
       - name: wasm-gc check
-        run: nix develop --command moon check --target wasm-gc
+        run: nix develop --command moon check --frozen --target wasm-gc
 
       - name: js check
-        run: nix develop --command moon check --target js
+        run: nix develop --command moon check --frozen --target js
 
       - name: e2e test
         run: nix develop --command bash scripts/e2e.sh

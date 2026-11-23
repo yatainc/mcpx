@@ -33,6 +33,7 @@
           {
             mcpx = final.callPackage ./package.nix {
               moonHome = final.moonbit-bin.moonbit.latest or moonAttrs.moonbit-bin.moonbit.latest;
+              moonDependencies = final.callPackage ./nix/moon-dependencies.nix { };
               tinyccForMoonbit = if final.stdenv.hostPlatform.isLinux then final.tinycc else null;
             };
           };
@@ -45,8 +46,11 @@
             overlays = [ inputs.moonbit-overlay.overlays.default ];
           };
 
+          moonDependencies = pkgs.callPackage ./nix/moon-dependencies.nix { };
+
           mcpx = pkgs.callPackage ./package.nix {
-            moonHome = pkgs.moonbit-bin.moonbit.latest;
+            moonHome = baseMoonHome;
+            inherit moonDependencies;
             tinyccForMoonbit = if pkgs.stdenv.hostPlatform.isLinux then pkgs.tinycc else null;
           };
 
@@ -135,6 +139,7 @@
           packages = {
             default = mcpx;
             inherit mcpx;
+            moon-dependencies = moonDependencies;
           };
 
           apps = {
@@ -151,6 +156,9 @@
           devShells.default = pkgs.mkShell {
             shellHook = ''
               unset MOON_HOME
+              if [ -n "''${MCPX_MOON_DEPS:-}" ]; then
+                export MOON_HOME="$MCPX_MOON_DEPS"
+              fi
             '';
             packages = [
               moonHome

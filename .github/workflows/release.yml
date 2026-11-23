@@ -41,6 +41,11 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
+      - name: Prepare locked Moon dependencies
+        run: |
+          deps=$(bash scripts/prepare-locked-moon.sh)
+          echo "MCPX_MOON_DEPS=$deps" >> "$GITHUB_ENV"
+
       - name: Verify
         run: |
           set -euxo pipefail
@@ -48,14 +53,13 @@ jobs:
           manifest_version="$(sed -n 's/^version = "\([^"]*\)"$/\1/p' moon.mod)"
           test -n "$manifest_version"
           test "${GITHUB_REF_NAME}" = "v${manifest_version}"
-          nix develop --command moon update
           nix develop --command moon fmt --check
-          nix develop --command moon check --target native --warn-list +73 --deny-warn
-          nix develop --command moon check --target wasm-gc --warn-list +73 --deny-warn
-          nix develop --command moon check --target js --warn-list +73 --deny-warn
-          nix develop --command moon test --target native --no-render
-          nix develop --command moon test --target wasm-gc --no-render
-          nix develop --command moon test --target js --no-render
+          nix develop --command moon check --frozen --target native --warn-list +73 --deny-warn
+          nix develop --command moon check --frozen --target wasm-gc --warn-list +73 --deny-warn
+          nix develop --command moon check --frozen --target js --warn-list +73 --deny-warn
+          nix develop --command moon test --frozen --target native --no-render
+          nix develop --command moon test --frozen --target wasm-gc --no-render
+          nix develop --command moon test --frozen --target js --no-render
           nix develop --command bash scripts/e2e.sh
           nix develop --command env MCPX_BENCH_ENFORCE=1 MCPX_BENCH_CLI_RUNS=5 MCPX_BENCH_MEMORY_RUNS=3 bash scripts/benchmark.sh
 

@@ -18,13 +18,13 @@ bench_args=()
 for pkg in "${bench_packages[@]}"; do
   bench_args+=(--package "$pkg")
 done
-moon bench --target native --release "${bench_args[@]}"
+moon bench ${MCPX_MOON_DEPS:+--frozen} --target native --release "${bench_args[@]}"
 
 echo
 echo "[build] release artifacts"
-moon build --target native --release cli >/dev/null
-moon build --target js --release wasm >/dev/null
-moon build --target wasm-gc --release wasm >/dev/null
+moon build ${MCPX_MOON_DEPS:+--frozen} --target native --release cli >/dev/null
+moon build ${MCPX_MOON_DEPS:+--frozen} --target js --release wasm >/dev/null
+moon build ${MCPX_MOON_DEPS:+--frozen} --target wasm-gc --release wasm >/dev/null
 
 native_bin="$root/_build/native/release/build/cli/cli.exe"
 wasm_js="$root/_build/js/release/build/wasm/wasm.js"

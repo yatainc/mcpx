@@ -306,19 +306,22 @@ stored machine-managed and is not printed.
 
 ## Development
 
-Nix pins the development toolchain. Moon resolves library versions from
-`moon.mod`; there is no duplicate Nix manifest or checked-in registry snapshot.
-The first registry update/build requires network access to fetch missing dependencies.
+Nix pins the toolchain in `flake.lock`. `nix build`, CI, and release checks use
+`nix/moon-lock.json`, which records the resolved registry entries and archive
+checksums for all Moon dependencies. Nix fetches missing archives by checksum;
+normal builds never update the Moon registry.
 
-`nix build` fetches dependencies through Moon in a separate fixed-output step,
-then builds offline. When changing dependencies, update the single `outputHash`
-in `package.nix` (set it to `lib.fakeHash`, build, and use the reported hash).
-The Nix application package and binary cache remain available.
+After changing `moon.mod` or intentionally refreshing dependency resolution,
+run `nix develop --command bash scripts/update-moon-lock.sh` and commit the
+regenerated lock with the dependency changes. To use the same dependency set
+as CI locally, prepare the generated `.mooncakes` directory before entering
+`nix develop`:
 
 ```sh
+MCPX_MOON_DEPS=$(bash scripts/prepare-locked-moon.sh)
+export MCPX_MOON_DEPS
 nix develop
-moon update
-moon build --target native cli
+moon build --frozen --target native cli
 moon fmt
 moon check --target all --frozen --warn-list +73 --deny-warn
 bash scripts/update-api.sh

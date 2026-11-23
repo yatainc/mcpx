@@ -1,66 +1,11 @@
 {
   lib,
   stdenv,
-  stdenvNoCC,
   moonHome,
-  git,
-  cacert,
-  python3,
+  moonDependencies,
   tinyccForMoonbit ? null,
 }:
 
-let
-  # Moon resolves versions from moon.mod; Nix pins only the fetched result.
-  dependencies = stdenvNoCC.mkDerivation {
-    name = "mcpx-moon-dependencies";
-    nativeBuildInputs = [ moonHome git python3 ];
-    dontUnpack = true;
-    outputHashMode = "recursive";
-    outputHashAlgo = "sha256";
-    outputHash = "sha256-u27BOzB7ulnLXUiQpNgKsXHOtyTwP7smat7Lg4BXDbg=";
-    SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
-    GIT_SSL_CAINFO = "${cacert}/etc/ssl/certs/ca-bundle.crt";
-    buildCommand = ''
-      export HOME=$TMPDIR/home
-      unset MOON_HOME
-      mkdir -p "$HOME" project
-      cd project
-      cp ${./moon.mod} moon.mod
-      touch moon.pkg
-      moon update
-      moon check --target native
-      moon tree --json > graph.json
-      mkdir -p "$out"
-      cp -rL .mooncakes "$out/.mooncakes"
-
-      # Keep only Moon's resolved registry records, not the global checkout.
-      python3 - "$out" <<'PY'
-      import json
-      import os
-      from pathlib import Path
-      import sys
-
-      output = Path(sys.argv[1])
-      registry = Path(os.environ['HOME']) / '.moon/registry/index'
-      graph = json.loads(Path('graph.json').read_text())
-      assert graph['status'] == 'success'
-      for module in graph['modules']:
-          if module['source']['kind'] == 'local':
-              continue
-          assert module['source']['kind'] == 'registry', module
-          name = module['name']
-          version = module['version']
-          relative = Path('user') / (name + '.index')
-          records = [line for line in (registry / relative).read_text().splitlines()
-                     if json.loads(line)['version'] == version]
-          assert len(records) == 1, (name, version)
-          target = output / 'registry/index' / relative
-          target.parent.mkdir(parents=True, exist_ok=True)
-          target.write_text(records[0] + '\n')
-      PY
-    '';
-  };
-in
 stdenv.mkDerivation {
   name = "mcpx";
   src = ./.;
@@ -145,8 +90,8 @@ stdenv.mkDerivation {
       chmod +x "$writable_home/bin/internal/tcc"
     ''}
 
-    cp -rL ${dependencies}/registry "$writable_home/registry"
-    cp -rL ${dependencies}/.mooncakes .mooncakes
+    cp -rL ${moonDependencies}/registry "$writable_home/registry"
+    cp -rL ${moonDependencies}/.mooncakes .mooncakes
     chmod -R u+w "$writable_home/registry" .mooncakes
     export MOON_HOME=$writable_home
     export MOON_TOOLCHAIN_ROOT=$writable_home

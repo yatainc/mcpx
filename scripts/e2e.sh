@@ -7,7 +7,7 @@ cd "$root"
 if [[ -n "${MCPX_BIN:-}" ]]; then
   mcpx="$MCPX_BIN"
 else
-  moon build --target native --release cli
+  moon build ${MCPX_MOON_DEPS:+--frozen} --target native --release cli
   mcpx="$root/_build/native/release/build/cli/cli.exe"
 fi
 
