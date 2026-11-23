@@ -543,7 +543,10 @@ async test "mcpx runtime: call reports MCP protocol errors" {
       ["call", "github", "search", "{\"q\":\"moonbit\"}"],
       home~,
     )
-    inspect(result, content="Error: github MCP protocol error")
+    inspect(
+      result,
+      content="Error: github MCP protocol error: response jsonrpc must be 2.0",
+    )
   })
 }
 

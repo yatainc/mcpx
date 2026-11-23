@@ -4,6 +4,11 @@ fn error_result(message : String) -> String {
 }
 
 ///|
+fn mcp_error_detail(message : String) -> String {
+  message.escape(quote=false)
+}
+
+///|
 fn mcp_http_error_result(
   server_name : String,
   error : @core_http.McpHttpClientError,
@@ -31,7 +36,9 @@ fn mcp_http_error_result(
         }
         None => "returned HTTP " + status_code.to_string()
       }
-    Protocol(_) | RemoteError(_, _) => "MCP protocol error"
+    Protocol(reason) => "MCP protocol error: " + mcp_error_detail(reason)
+    RemoteError(code, message) =>
+      "MCP JSON-RPC error (\{code}): " + mcp_error_detail(message)
     HeaderMismatch(message) =>
       "MCP negotiation error: header mismatch: " + message
     MissingRequiredClientCapability(message) =>
