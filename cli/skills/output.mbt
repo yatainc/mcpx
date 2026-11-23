@@ -5,7 +5,7 @@ fn url_origin(url : String) -> String {
 
 ///|
 fn render_skill_result(origin : String, result : Json) -> String {
-  Json::object({ "origin": origin.to_json(), "result": result }).stringify()
+  Json::object({ "origin": Json(origin), "result": result }).stringify()
 }
 
 ///|
@@ -15,7 +15,7 @@ fn render_skill_pages(
   json_output : Bool,
 ) -> String {
   if json_output {
-    render_skill_result(origin, { "pages": pages.to_json() })
+    render_skill_result(origin, { "pages": Json(pages) })
   } else {
     "[" + origin + "]\n" + render_pages(pages, false, "skills")
   }
@@ -29,8 +29,8 @@ fn render_verified(
 ) -> String raise {
   if json_output {
     Json::object({
-      "origin": content.origin.to_json(),
-      "skillUri": content.skill_uri.to_json(),
+      "origin": Json(content.origin),
+      "skillUri": Json(content.skill_uri),
       "verified": true,
       "entry": held.entry(),
       "result": content.result,
@@ -52,7 +52,7 @@ fn render_pages(
   key : String,
 ) -> String {
   if json_output {
-    return Json::object({ "pages": pages.to_json() }).stringify()
+    return Json::object({ "pages": Json(pages) }).stringify()
   }
   let lines : Array[String] = []
   for page in pages {

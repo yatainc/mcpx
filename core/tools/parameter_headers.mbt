@@ -29,8 +29,8 @@ fn header_bindings(
 ///|
 fn validate_header_schema_bounds(
   value : Json,
-  depth~ : Int,
-  visited~ : Ref[Int],
+  depth~ : Int32,
+  visited~ : Ref[Int32],
 ) -> Unit raise @protocol.McpProtocolError {
   if depth > 64 {
     raise InvalidResponse("tool schema exceeds maximum nesting depth")

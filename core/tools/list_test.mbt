@@ -90,7 +90,7 @@ test "mcp response: ignores out-of-range cache TTL hints" {
       {
         "resultType": "complete",
         "tools": [],
-        "ttlMs": ttl.to_json(),
+        "ttlMs": Json(ttl),
         "cacheScope": "public",
       },
       modern=true,
@@ -118,5 +118,5 @@ test "tools: JSON roundtrip preserves schemas and omits absent fields" {
   let decoded = @tools.decode_list_result({
       "tools": [tool.to_json(), absent.to_json()],
     }).tools
-  json_inspect(decoded.to_json(), content=[tool.to_json(), absent.to_json()])
+  json_inspect(Json(decoded), content=[tool.to_json(), absent.to_json()])
 }

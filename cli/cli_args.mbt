@@ -1,4 +1,5 @@
 ///|
+#derive(Debug)
 enum McpxCommand {
   Help
   Version
@@ -13,14 +14,16 @@ enum McpxCommand {
   AuthHelp
   Auth(AuthCommand)
   Daemon(DaemonCommand)
-} derive(Debug)
+}
 
 ///|
+#derive(Debug)
 struct SearchCommand {
   pattern : String
-} derive(Debug)
+}
 
 ///|
+#derive(Debug)
 struct AuthCommand {
   server : String
   no_browser : Bool
@@ -28,27 +31,30 @@ struct AuthCommand {
   code : String?
   state : String?
   issuer : String?
-} derive(Debug)
+}
 
 ///|
+#derive(Debug)
 struct DaemonCommand {
   mode : DaemonMode
-} derive(Debug)
+}
 
 ///|
+#derive(Debug)
 enum DaemonMode {
   Help
   Status
   Stop
-} derive(Debug)
+}
 
 ///|
+#derive(Debug)
 enum CliParseError {
   MissingArgument(String)
   InvalidTarget(String)
   UnknownOption(String)
   UnknownCommand(String)
-} derive(Debug)
+}
 
 ///|
 fn parse_mcpx_args(args : Array[String]) -> Result[McpxCommand, CliParseError] {

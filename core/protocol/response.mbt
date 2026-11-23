@@ -1,8 +1,9 @@
 ///|
+#derive(Debug, Eq)
 pub(all) enum McpCacheScope {
   Public
   Private
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend McpCacheScope with Debug::{to_repr}
@@ -11,12 +12,13 @@ pub extend McpCacheScope with Debug::{to_repr}
 pub extend McpCacheScope with Eq::{not_equal, equal}
 
 ///|
+#derive(Debug)
 pub struct McpInitializeInfo {
   protocol_version : String
   server_name : String?
   server_version : String?
   capabilities : Json
-} derive(Debug)
+}
 
 ///|
 pub extend McpInitializeInfo with Debug::{to_repr}
@@ -54,8 +56,8 @@ pub fn decode_mcp_initialize_result(
 ///|
 pub fn require_complete_result(
   result : Json,
-  required? : Bool = true,
-  operation? : String = "",
+  required~ : Bool = true,
+  operation~ : String = "",
 ) -> Unit raise McpProtocolError {
   let result_type = match result {
     Object(obj) => obj.get("resultType")
@@ -78,7 +80,7 @@ pub fn require_complete_result(
 ///|
 pub fn decode_mcp_result(
   response : Json,
-  expected_id~ : Int,
+  expected_id~ : Int32,
 ) -> Json raise McpProtocolError {
   let obj = match response {
     Object(value) => value
@@ -101,7 +103,7 @@ pub fn decode_mcp_result(
 }
 
 ///|
-fn decode_response_id(json : Json?) -> Int? {
+fn decode_response_id(json : Json?) -> Int32? {
   match json {
     Some(Number(value, ..)) if value.trunc() == value &&
       value >= -2147483648.0 &&

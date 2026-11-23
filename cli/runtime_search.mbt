@@ -13,7 +13,7 @@ async fn run_search(
   }
   let (results, total) = @search.search_servers(command.pattern, servers)
   if total == 0 {
-    return "No servers matched " + command.pattern.to_json().stringify()
+    return "No servers matched " + Json(command.pattern).stringify()
   }
   let lines = []
   for result in results {

@@ -77,7 +77,7 @@ async fn create_entry(
 }
 
 ///|
-fn server_idle_timeout_ms(server : @config.McpServerConfig) -> Int? {
+fn server_idle_timeout_ms(server : @config.McpServerConfig) -> Int32? {
   match server.lifecycle {
     Some({ mode: KeepAlive, idle_timeout_ms, }) => idle_timeout_ms
     _ => None

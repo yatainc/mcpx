@@ -1,12 +1,14 @@
 ///|
+#derive(Debug)
 pub struct McpxConfig {
   servers : Map[String, McpServerConfig]
-} derive(Debug)
+}
 
 ///|
 pub extend McpxConfig with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub struct McpServerConfig {
   name : String
   transport : ServerTransport
@@ -22,34 +24,37 @@ pub struct McpServerConfig {
   allowed_tools : Array[String]
   disabled_tools : Array[String]
   description : String?
-} derive(Debug)
+}
 
 ///|
 pub extend McpServerConfig with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub(all) enum ServerTransport {
   Stdio
   Http
-} derive(Debug)
+}
 
 ///|
 pub extend ServerTransport with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub(all) enum ServerAuthKind {
   OAuth
-} derive(Debug)
+}
 
 ///|
 pub extend ServerAuthKind with Debug::{to_repr}
 
 ///|
+#derive(Debug, Eq)
 pub(all) enum McpConnectionMode {
   Auto
   Stateful
   Stateless
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend McpConnectionMode with Debug::{to_repr}
@@ -58,39 +63,43 @@ pub extend McpConnectionMode with Debug::{to_repr}
 pub extend McpConnectionMode with Eq::{not_equal, equal}
 
 ///|
+#derive(Debug)
 pub struct ServerAuthConfig {
   kind : ServerAuthKind
   client_id : String?
   client_secret : String?
   metadata_url : String?
   scopes : Array[String]
-} derive(Debug)
+}
 
 ///|
 pub extend ServerAuthConfig with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub(all) enum ServerLifecycleMode {
   KeepAlive
   Ephemeral
-} derive(Debug)
+}
 
 ///|
 pub extend ServerLifecycleMode with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub struct ServerLifecycle {
   mode : ServerLifecycleMode
-  idle_timeout_ms : Int?
-} derive(Debug)
+  idle_timeout_ms : Int32?
+}
 
 ///|
 pub extend ServerLifecycle with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 suberror ConfigDecodeError {
   InvalidConfigJson(String)
-} derive(Debug)
+}
 
 ///|
 pub extend ConfigDecodeError with Debug::{to_repr}
@@ -105,18 +114,18 @@ impl Show for ConfigDecodeError with fn output(self, logger) {
 pub fn mcp_server_config(
   name~ : String,
   transport~ : ServerTransport,
-  url? : String? = None,
-  command? : String? = None,
-  args? : Array[String] = [],
-  env? : Map[String, String] = Map([]),
-  cwd? : String? = None,
-  headers? : Map[String, String] = Map([]),
-  auth? : ServerAuthConfig? = None,
-  protocol_mode? : McpConnectionMode? = None,
-  lifecycle? : ServerLifecycle? = None,
-  allowed_tools? : Array[String] = [],
-  disabled_tools? : Array[String] = [],
-  description? : String? = None,
+  url~ : String? = None,
+  command~ : String? = None,
+  args~ : Array[String] = [],
+  env~ : Map[String, String] = Map([]),
+  cwd~ : String? = None,
+  headers~ : Map[String, String] = Map([]),
+  auth~ : ServerAuthConfig? = None,
+  protocol_mode~ : McpConnectionMode? = None,
+  lifecycle~ : ServerLifecycle? = None,
+  allowed_tools~ : Array[String] = [],
+  disabled_tools~ : Array[String] = [],
+  description~ : String? = None,
 ) -> McpServerConfig {
   {
     name,
@@ -139,17 +148,17 @@ pub fn mcp_server_config(
 ///|
 pub fn server_lifecycle(
   mode : ServerLifecycleMode,
-  idle_timeout_ms? : Int? = None,
+  idle_timeout_ms~ : Int32? = None,
 ) -> ServerLifecycle {
   { mode, idle_timeout_ms, }
 }
 
 ///|
 pub fn oauth_server_auth(
-  client_id? : String? = None,
-  client_secret? : String? = None,
-  metadata_url? : String? = None,
-  scopes? : Array[String] = [],
+  client_id~ : String? = None,
+  client_secret~ : String? = None,
+  metadata_url~ : String? = None,
+  scopes~ : Array[String] = [],
 ) -> ServerAuthConfig {
   { kind: OAuth, client_id, client_secret, metadata_url, scopes, }
 }
@@ -166,6 +175,7 @@ pub fn decode_mcpx_config(json : Json) -> McpxConfig raise ConfigDecodeError {
 }
 
 ///|
+#warnings("-78")
 pub fn resolve_server_env(
   server : McpServerConfig,
   env : Map[String, String],

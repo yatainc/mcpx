@@ -7,9 +7,9 @@ import {
 }
 
 // Values
-pub async fn run_http(Command, url~ : String, headers~ : Map[String, String], origin? : String, timeout_ms? : Int) -> String
+pub async fn run_http(Command, url~ : String, headers~ : Map[String, String], origin? : String, timeout_ms? : Int32) -> String
 
-pub async fn run_stdio(Command, @config.McpServerConfig, origin~ : String, timeout_ms? : Int) -> String
+pub async fn run_stdio(Command, @config.McpServerConfig, origin~ : String, timeout_ms? : Int32) -> String
 
 // Errors
 pub(all) suberror RetrievalError {
@@ -17,19 +17,21 @@ pub(all) suberror RetrievalError {
 }
 
 // Types and methods
+#derive(@debug.Debug)
 pub(all) struct Command {
   target : String
   operation : Operation
   json_output : Bool
-} derive(@debug.Debug)
+}
 pub fn Command::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) enum Operation {
   List
   Get(String)
   Verify(String)
   Read(String)
-} derive(@debug.Debug)
+}
 pub fn Operation::to_repr(Self) -> @debug.Repr
 
 // Type aliases

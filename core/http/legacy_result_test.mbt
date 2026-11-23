@@ -21,10 +21,7 @@ async test "core http: legacy calls preserve result data without modern result-t
               body=Json::object({
                 "jsonrpc": "2.0",
                 "id": 2,
-                "result": {
-                  "resultType": result_type.to_json(),
-                  "value": "kept",
-                },
+                "result": { "resultType": Json(result_type), "value": "kept" },
               }).stringify(),
             )
         }
@@ -34,7 +31,7 @@ async test "core http: legacy calls preserve result data without modern result-t
       arguments={},
     )
     json_inspect(result, content={
-      "resultType": result_type.to_json(),
+      "resultType": Json(result_type),
       "value": "kept",
     })
   }

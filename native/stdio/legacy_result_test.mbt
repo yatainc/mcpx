@@ -22,7 +22,7 @@ async test "mcp stdio: legacy calls preserve result data without modern result-t
       arguments={},
     )
     json_inspect(result, content={
-      "resultType": result_type.to_json(),
+      "resultType": Json(result_type),
       "value": "kept",
     })
   }

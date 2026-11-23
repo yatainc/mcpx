@@ -1,9 +1,10 @@
 ///|
+#derive(Debug)
 pub enum CachedAuthDecision {
   UseBearerHeader(String)
   RefreshWithToken(String)
   ReauthRequired
-} derive(Debug)
+}
 
 ///|
 pub extend CachedAuthDecision with Debug::{to_repr}
@@ -29,8 +30,8 @@ pub fn credentials_write_action(
 ///|
 pub fn decide_auth_cache(
   entry : CredentialsEntry?,
-  now_seconds~ : Int,
-  skew_seconds? : Int = 300,
+  now_seconds~ : Int32,
+  skew_seconds~ : Int32 = 300,
 ) -> CachedAuthDecision {
   match entry {
     None => ReauthRequired

@@ -2,17 +2,18 @@
 fn verified_file(uri : String, body : String) -> Json {
   let bytes = @utf8.encode(body)
   {
-    "uri": uri.to_json(),
-    "digest": ("sha256:" +
-    @hex.encode(Bytes::from_array(@crypto.sha256(bytes)[:]))).to_json(),
-    "size": bytes.length().to_json(),
+    "uri": Json(uri),
+    "digest": Json(
+      "sha256:" + @hex.encode(Bytes::from_array(@crypto.sha256(bytes)[:])),
+    ),
+    "size": Json(bytes.length()),
   }
 }
 
 ///|
 fn verified_entry(uri : String, body : String) -> Json {
   {
-    "uri": uri.to_json(),
+    "uri": Json(uri),
     "frontmatter": { "name": "demo", "description": "Demo", "extra": [1, true] },
     "resources": [verified_file(uri, body)],
     "unknown": 42,
@@ -28,7 +29,7 @@ fn verified_result(field : String, value : Json) -> Json {
     "unknown": true,
   }
   fields[field] = value
-  fields.to_json()
+  Json(fields)
 }
 
 ///|
@@ -43,16 +44,14 @@ async test "held source owns entry, rejects unlisted before IO and compares orig
     if rpc == "resources/read" {
       reads.val += 1
     }
-    assert_eq(params.get("uri"), Some(uri.to_json()))
+    assert_eq(params.get("uri"), Some(Json(uri)))
     match rpc {
       "skills/get" => {
         gets.val += 1
         verified_result("skill", entry)
       }
       "resources/read" =>
-        verified_result("contents", [
-          { "uri": uri.to_json(), "text": body.to_json() },
-        ])
+        verified_result("contents", [{ "uri": Json(uri), "text": Json(body) }])
       _ => fail("unexpected RPC")
     }
   })
@@ -96,9 +95,7 @@ async test "held source owns entry, rejects unlisted before IO and compares orig
 async test "held content mismatch does not refresh; root URI and multipart are checked" {
   let uri = "skill://demo/SKILL.md"
   let body = "---\nname: demo\ndescription: Demo\nextra: [1, true]\n---\nbody"
-  let contents = Ref(
-    Json::array([{ "uri": uri.to_json(), "text": body.to_json() }]),
-  )
+  let contents = Ref(Json::array([{ "uri": Json(uri), "text": Json(body) }]))
   let gets = Ref(0)
   let source = @skills.Source::new("A", capabilities=capabilities(), call=(
     rpc,
@@ -114,19 +111,16 @@ async test "held content mismatch does not refresh; root URI and multipart are c
   let held = source.hold(uri)
   for
     invalid in [
-      Json::array([{ "uri": uri.to_json(), "text": (body + "x").to_json() }]),
+      Json::array([{ "uri": Json(uri), "text": Json(body + "x") }]),
       Json::array([
-        {
-          "uri": uri.to_json(),
-          "text": (body[:body.length() - 4] + "evil").to_json(),
-        },
+        { "uri": Json(uri), "text": Json(body[:body.length() - 4] + "evil") },
       ]),
-      Json::array([{ "uri": "skill://other/SKILL.md", "text": body.to_json() }]),
+      Json::array([{ "uri": "skill://other/SKILL.md", "text": Json(body) }]),
       Json::array([
-        { "uri": uri.to_json(), "text": body.to_json() },
-        { "uri": uri.to_json(), "text": body.to_json() },
+        { "uri": Json(uri), "text": Json(body) },
+        { "uri": Json(uri), "text": Json(body) },
       ]),
-      Json::array([{ "uri": uri.to_json(), "blob": "not base64!" }]),
+      Json::array([{ "uri": Json(uri), "blob": "not base64!" }]),
     ] {
     contents.val = invalid
     let rejected = try {
@@ -140,10 +134,7 @@ async test "held content mismatch does not refresh; root URI and multipart are c
     assert_eq(gets.val, 1)
   }
   contents.val = [
-    {
-      "uri": uri.to_json(),
-      "blob": @base64.encode(@utf8.encode(body)).to_json(),
-    },
+    { "uri": Json(uri), "blob": Json(@base64.encode(@utf8.encode(body))) },
   ]
   assert_eq(held.read(uri).bytes, @utf8.encode(body))
 }
@@ -165,7 +156,7 @@ async test "text rejects before full encoding and Unicode uses raw byte lengths"
       verified_result("skill", entry)
     } else {
       verified_result("contents", [
-        { "uri": nested.to_json(), "text": text.val.to_json() },
+        { "uri": Json(nested), "text": Json(text.val) },
       ])
     }
   }).hold(uri)
@@ -181,7 +172,7 @@ async test "text rejects before full encoding and Unicode uses raw byte lengths"
         origin~,
         skill_uri~,
         uri=returned,
-        reason=actual
+        reason=actual,
       ) => {
         assert_eq(origin, "A")
         assert_eq(skill_uri, uri)
@@ -217,8 +208,8 @@ async test "root YAML must match every frontmatter field; nested root is ordinar
       verified_result("contents", [
         {
           "uri": requested,
-          "text": if requested == uri.to_json() {
-            body.to_json()
+          "text": if requested == Json(uri) {
+            Json(body)
           } else {
             "not YAML"
           },
@@ -300,15 +291,12 @@ async test "verified read supports a 16 MiB root in a 512-file Skill without pre
     params,
   ) => {
     calls.val += 1
-    assert_eq(params.get("uri"), Some(uri.to_json()))
+    assert_eq(params.get("uri"), Some(Json(uri)))
     if rpc == "skills/get" {
       verified_result("skill", entry)
     } else {
       verified_result("contents", [
-        {
-          "uri": uri.to_json(),
-          "blob": @base64.encode(@utf8.encode(body)).to_json(),
-        },
+        { "uri": Json(uri), "blob": Json(@base64.encode(@utf8.encode(body))) },
       ])
     }
   })
@@ -336,6 +324,6 @@ async test "held content comparison ignores ordering metadata and declared sizes
   file["size"] = 0
   fields["resources"] = [files[1], files[0]]
   assert_true(held.same_content(source.hold(uri)))
-  file["digest"] = ("sha256:" + "0".repeat(64)).to_json()
+  file["digest"] = Json("sha256:" + "0".repeat(64))
   assert_false(held.same_content(source.hold(uri)))
 }

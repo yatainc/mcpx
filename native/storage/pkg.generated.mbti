@@ -8,24 +8,25 @@ import {
 }
 
 // Values
-pub fn credentials_file_mode(String) -> Int raise
+pub fn credentials_file_mode(String) -> Int32 raise
 
 pub fn load_credentials_file_or_empty(String) -> @auth.CredentialsFile raise
 
 pub fn load_mcpx_config_or_empty(String) -> @config.McpxConfig raise
 
-pub fn mcpx_config_file_mode(String) -> Int raise
+pub fn mcpx_config_file_mode(String) -> Int32 raise
 
 pub fn save_credentials_file(String, @auth.CredentialsFile) -> Unit raise
 
 pub fn save_mcpx_config_file(String, @config.McpxConfig) -> Unit raise
 
-pub fn secure_file_mode(String) -> Int raise SecureFileError
+pub fn secure_file_mode(String) -> Int32 raise SecureFileError
 
 pub fn secure_write_private_atomic(String, String) -> Unit raise SecureFileError
 
 // Errors
-type SecureFileError derive(@debug.Debug)
+#derive(@debug.Debug)
+type SecureFileError
 pub fn SecureFileError::to_repr(Self) -> @debug.Repr
 
 // Types and methods

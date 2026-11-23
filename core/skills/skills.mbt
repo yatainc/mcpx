@@ -55,7 +55,7 @@ fn require_skill(entry : Json) -> String raise @protocol.McpProtocolError {
         }
         if digest.length() != 71 ||
           !digest.has_prefix("sha256:") ||
-          !digest[7:].iter().all(c => c is ('0'..='9' | 'a'..='f')) {
+          !digest[7:].iter().all(c => c is ('0'..<='9' | 'a'..<='f')) {
           raise InvalidResponse(
             "skill digest must be sha256: followed by 64 lowercase hex digits",
           )
@@ -76,7 +76,7 @@ pub async fn list(
   let fetch_page = async fn(cursor : String?) -> Json {
     let params = Map([])
     if cursor is Some(cursor) {
-      params["cursor"] = cursor.to_json()
+      params["cursor"] = Json(cursor)
     }
     let result = call("skills/list", params)
     require_cacheable(result)
@@ -103,7 +103,7 @@ pub async fn get(
   uri~ : String,
 ) -> Json {
   require_skills(capabilities)
-  let result = call("skills/get", { "uri": uri.to_json() })
+  let result = call("skills/get", { "uri": Json(uri) })
   require_cacheable(result)
   guard result is { "skill": entry, .. } else {
     raise @protocol.InvalidResponse("skills/get requires skill")

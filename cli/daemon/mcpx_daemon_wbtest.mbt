@@ -155,7 +155,7 @@ async test "mcpx daemon: stop closes keep-alive stdio pool" {
 }
 
 ///|
-async fn wait_for_daemon_port(home : String) -> Int {
+async fn wait_for_daemon_port(home : String) -> Int32 {
   for i in 0..<100 {
     ignore(i)
     match read_mcpx_daemon_port(home~) {
@@ -170,7 +170,7 @@ async fn wait_for_daemon_port(home : String) -> Int {
 ///|
 async fn wait_for_daemon_task_exit(
   task : @async.Task[Unit],
-  timeout_ms~ : Int,
+  timeout_ms~ : Int32,
 ) -> Bool {
   @async.with_timeout_opt(timeout_ms, () => task.wait()) is Some(_)
 }
@@ -181,7 +181,7 @@ fn daemon_state_absent(home : String) -> Bool {
 }
 
 ///|
-async fn wait_for_file(path : String, timeout_ms~ : Int) -> Bool {
+async fn wait_for_file(path : String, timeout_ms~ : Int32) -> Bool {
   let mut elapsed = 0
   while elapsed < timeout_ms {
     if @fs.path_exists(path) {

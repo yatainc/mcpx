@@ -1,17 +1,17 @@
 ///|
-fn capabilities(directory? : Bool = false) -> Json {
+fn capabilities(directory~ : Bool = false) -> Json {
   {
     "resources": {},
     "extensions": {
-      "io.modelcontextprotocol/skills": { "directoryRead": directory.to_json() },
+      "io.modelcontextprotocol/skills": { "directoryRead": Json(directory) },
     },
   }
 }
 
 ///|
-fn entry(uri? : String = "other://team/demo/SKILL.md") -> Json {
+fn entry(uri~ : String = "other://team/demo/SKILL.md") -> Json {
   {
-    "uri": uri.to_json(),
+    "uri": Json(uri),
     "frontmatter": { "name": "demo", "description": "Demo", "extra": [1, true] },
     "resources": "dynamic",
     "extra": {},
@@ -38,7 +38,7 @@ async test "Skills list preserves pages and opaque empty cursors; get is direct"
   }
   let pages = @skills.list(
     (rpc, params) => {
-      requests.push((rpc, params.to_json()))
+      requests.push((rpc, Json(params)))
       if params.get("cursor") is None {
         first
       } else {
@@ -74,7 +74,7 @@ async test "Skills list preserves pages and opaque empty cursors; get is direct"
     }
     let got = @skills.get(
       (rpc, params) => {
-        requests.push((rpc, params.to_json()))
+        requests.push((rpc, Json(params)))
         reply
       },
       capabilities=capabilities(),
@@ -197,7 +197,7 @@ async test "generic resources preserve text, blob, multiple contents and unknown
   let requests = []
   let read = @skills.read(
     (rpc, params) => {
-      requests.push((rpc, params.to_json()))
+      requests.push((rpc, Json(params)))
       result
     },
     capabilities={},
@@ -252,7 +252,7 @@ async test "directory pagination and empty directory need no caching hints" {
     }
     let result = @skills.read(
       (rpc, params) => {
-        calls.push((rpc, params.to_json()))
+        calls.push((rpc, Json(params)))
         if params.get("cursor") is None {
           first
         } else {

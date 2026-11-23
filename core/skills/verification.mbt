@@ -4,7 +4,7 @@ pub suberror VerificationError {
     origin~ : String,
     skill_uri~ : String,
     uri~ : String,
-    reason~ : String
+    reason~ : String,
   )
 }
 

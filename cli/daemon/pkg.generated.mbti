@@ -3,12 +3,13 @@ package "yatainc/mcpx/cli/daemon"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
   "yatainc/mcpx/core/config",
   "yatainc/mcpx/core/tools",
 }
 
 // Values
-pub async fn daemon_call_tool(home~ : String, config_home? : String?, server_name~ : String, server~ : @config.McpServerConfig, tool_name~ : String, arguments~ : Json) -> Json raise McpxDaemonError
+pub async fn daemon_call_tool(home~ : String, config_home? : String?, server_name~ : String, server~ : @config.McpServerConfig, tool_name~ : String, arguments~ : @json.Json) -> @json.Json raise McpxDaemonError
 
 pub async fn daemon_list_tools(home~ : String, config_home? : String?, server_name~ : String, server~ : @config.McpServerConfig) -> Array[@tools.McpToolInfo] raise McpxDaemonError
 
@@ -21,13 +22,14 @@ pub fn describe_mcpx_daemon_error(McpxDaemonError) -> String
 pub async fn run_mcpx_daemon_foreground(home~ : String, config_home? : String?) -> Unit
 
 // Errors
+#derive(@debug.Debug)
 pub suberror McpxDaemonError {
   Unavailable
   ConnectFailed(String)
   InvalidResponse(String)
   RemoteError(String)
   Stdio(String)
-} derive(@debug.Debug)
+}
 pub fn McpxDaemonError::to_repr(Self) -> @debug.Repr
 
 // Types and methods

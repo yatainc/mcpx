@@ -11,7 +11,7 @@ pub fn mcp_request_context(
   protocol~ : McpProtocolVersion,
   client_name~ : String,
   client_version~ : String,
-  client_capabilities? : Map[String, Json] = Map([]),
+  client_capabilities~ : Map[String, Json] = Map([]),
 ) -> McpRequestContext {
   { protocol, client_name, client_version, client_capabilities, }
 }

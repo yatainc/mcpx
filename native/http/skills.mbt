@@ -5,7 +5,7 @@ pub async fn http_mcp_skill_source(
   headers~ : Map[String, String],
   origin~ : String,
   budget? : @receive.Budget,
-  timeout_ms? : Int = 30000,
+  timeout_ms~ : Int32 = 30000,
 ) -> @skills.Source {
   @core_http.skill_source(
     request => {

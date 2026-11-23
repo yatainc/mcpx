@@ -1,43 +1,48 @@
 ///|
+#derive(Debug)
 pub struct CredentialsFile {
-  version : Int
+  version : Int32
   entries : Map[String, CredentialsEntry]
   pending_oauth : Map[String, PendingOAuthFlow]
-} derive(Debug)
+}
 
 ///|
 pub extend CredentialsFile with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub struct CredentialsEntry {
   server_name : String
   server_url : String?
   client_info : OAuthClientInfo?
   tokens : OAuthTokens
   updated_at : String
-} derive(Debug)
+}
 
 ///|
 pub extend CredentialsEntry with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub struct OAuthClientInfo {
   client_id : String
-} derive(Debug)
+}
 
 ///|
 pub extend OAuthClientInfo with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub struct OAuthClientSecretInfo {
   client_id : String
   client_secret : String?
-} derive(Debug)
+}
 
 ///|
 pub extend OAuthClientSecretInfo with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub struct PendingOAuthFlow {
   server_name : String
   server_url : String?
@@ -49,15 +54,16 @@ pub struct PendingOAuthFlow {
   code_verifier : String
   state : String
   created_at : String
-} derive(Debug)
+}
 
 ///|
 pub extend PendingOAuthFlow with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 suberror CredentialsError {
   InvalidCredentialsJson(String)
-} derive(Debug)
+}
 
 ///|
 pub extend CredentialsError with Debug::{to_repr}
@@ -70,11 +76,11 @@ pub fn empty_credentials_file() -> CredentialsFile {
 ///|
 pub fn credentials_entry(
   server_name~ : String,
-  server_url? : String? = None,
-  client_id? : String? = None,
+  server_url~ : String? = None,
+  client_id~ : String? = None,
   access_token~ : String,
-  refresh_token? : String? = None,
-  expires_at? : Int? = None,
+  refresh_token~ : String? = None,
+  expires_at~ : Int32? = None,
   updated_at~ : String,
 ) -> CredentialsEntry {
   {
@@ -121,12 +127,12 @@ pub fn credentials_file_json(file : CredentialsFile) -> String {
 ///|
 pub fn pending_oauth_flow(
   server_name~ : String,
-  server_url? : String? = None,
+  server_url~ : String? = None,
   client_id~ : String,
-  client_secret? : String? = None,
+  client_secret~ : String? = None,
   token_endpoint~ : String,
-  authorization_issuer? : String? = None,
-  require_authorization_issuer? : Bool = false,
+  authorization_issuer~ : String? = None,
+  require_authorization_issuer~ : Bool = false,
   redirect_uri~ : String,
   code_verifier~ : String,
   state~ : String,
@@ -215,7 +221,7 @@ fn pending_oauth_key(server_name : String, state : String) -> String {
 pub fn find_credentials_entry(
   file : CredentialsFile,
   server_name~ : String,
-  server_url? : String? = None,
+  server_url~ : String? = None,
 ) -> CredentialsEntry? {
   match server_url {
     Some(url) => find_credentials_exact(file, server_name, url)
@@ -300,7 +306,7 @@ fn is_decimal_timestamp(text : String) -> Bool {
 }
 
 ///|
-fn compare_decimal_timestamp(left : String, right : String) -> Int {
+fn compare_decimal_timestamp(left : String, right : String) -> Int32 {
   let left_chars = left.to_array()
   let right_chars = right.to_array()
   let left_start = first_significant_decimal_index(left_chars)
@@ -325,7 +331,7 @@ fn compare_decimal_timestamp(left : String, right : String) -> Int {
 }
 
 ///|
-fn first_significant_decimal_index(chars : Array[Char]) -> Int {
+fn first_significant_decimal_index(chars : Array[Char]) -> Int32 {
   let mut index = 0
   while index < chars.length() - 1 && chars[index] == '0' {
     index = index + 1
@@ -334,7 +340,7 @@ fn first_significant_decimal_index(chars : Array[Char]) -> Int {
 }
 
 ///|
-fn compare_text_timestamp(left : String, right : String) -> Int {
+fn compare_text_timestamp(left : String, right : String) -> Int32 {
   if left == right {
     0
   } else if left > right {
@@ -345,7 +351,7 @@ fn compare_text_timestamp(left : String, right : String) -> Int {
 }
 
 ///|
-fn compare_char(left : Char, right : Char) -> Int {
+fn compare_char(left : Char, right : Char) -> Int32 {
   if left == right {
     0
   } else if left > right {

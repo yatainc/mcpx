@@ -1,11 +1,12 @@
 ///|
+#derive(Debug)
 pub suberror McpxDaemonError {
   Unavailable
   ConnectFailed(String)
   InvalidResponse(String)
   RemoteError(String)
   Stdio(String)
-} derive(Debug)
+}
 
 ///|
 pub extend McpxDaemonError with Debug::{to_repr}
@@ -28,7 +29,7 @@ priv suberror McpxDaemonStop
 priv struct DaemonEntry {
   client : @mcp_stdio.StdioMcpClient
   mutex : @async.Semaphore
-  idle_timeout_ms : Int?
+  idle_timeout_ms : Int32?
   mut last_used_ms : Int64
 }
 
@@ -46,13 +47,16 @@ fn daemon_pool() -> DaemonPool {
 ///|
 fn mcpx_daemon_state_path(
   home~ : String,
-  config_home? : String? = None,
+  config_home~ : String? = None,
 ) -> String {
   @app_paths.mcpx_app_paths(home, config_home~).config_dir + "/daemon.json"
 }
 
 ///|
-fn read_mcpx_daemon_port(home~ : String, config_home? : String? = None) -> Int? {
+fn read_mcpx_daemon_port(
+  home~ : String,
+  config_home~ : String? = None,
+) -> Int32? {
   let path = mcpx_daemon_state_path(home~, config_home~)
   if !@fs.path_exists(path) {
     return None
@@ -73,7 +77,7 @@ fn read_mcpx_daemon_port(home~ : String, config_home? : String? = None) -> Int? 
 ///|
 pub async fn run_mcpx_daemon_foreground(
   home~ : String,
-  config_home? : String? = None,
+  config_home~ : String? = None,
 ) -> Unit {
   @async.with_task_group(group => {
     let pool = daemon_pool()
@@ -94,7 +98,7 @@ pub async fn run_mcpx_daemon_foreground(
 }
 
 ///|
-pub async fn daemon_ping(home~ : String, config_home? : String? = None) -> Bool {
+pub async fn daemon_ping(home~ : String, config_home~ : String? = None) -> Bool {
   let req = Json::object({ "op": Json::string("ping") })
   let result : Result[Json, _] = try
     request(home~, config_home~, req) |> Ok
@@ -110,7 +114,7 @@ pub async fn daemon_ping(home~ : String, config_home? : String? = None) -> Bool 
 ///|
 async fn ensure_mcpx_daemon_running(
   home~ : String,
-  config_home? : String? = None,
+  config_home~ : String? = None,
 ) -> Unit raise McpxDaemonError {
   if (daemon_ping(home~, config_home~) catch { _ => false }) {
     return
@@ -157,7 +161,7 @@ async fn start_daemon_process() -> Unit raise McpxDaemonError {
 ///|
 pub async fn daemon_call_tool(
   home~ : String,
-  config_home? : String? = None,
+  config_home~ : String? = None,
   server_name~ : String,
   server~ : @config.McpServerConfig,
   tool_name~ : String,
@@ -178,7 +182,7 @@ pub async fn daemon_call_tool(
 ///|
 pub async fn daemon_list_tools(
   home~ : String,
-  config_home? : String? = None,
+  config_home~ : String? = None,
   server_name~ : String,
   server~ : @config.McpServerConfig,
 ) -> Array[@tools.McpToolInfo] raise McpxDaemonError {
@@ -195,7 +199,7 @@ pub async fn daemon_list_tools(
 ///|
 pub async fn daemon_stop(
   home~ : String,
-  config_home? : String? = None,
+  config_home~ : String? = None,
 ) -> Bool raise McpxDaemonError {
   let req = Json::object({ "op": Json::string("stop") })
   let response = request(home~, config_home~, req)

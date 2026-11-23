@@ -35,8 +35,8 @@ fn servers_result(
 }
 
 ///|
-fn pad_right(text : String, width : Int) -> String {
-  let out = StringBuilder(size_hint=width)
+fn pad_right(text : String, width : Int32) -> String {
+  let out = StringBuilder(capacity=width)
   out.write_string(text)
   for _ in text.length()..<width {
     out.write_char(' ')
@@ -45,12 +45,12 @@ fn pad_right(text : String, width : Int) -> String {
 }
 
 ///|
-fn truncate_chars(text : String, max_chars : Int) -> String {
+fn truncate_chars(text : String, max_chars : Int32) -> String {
   let chars = text.to_array()
   if chars.length() <= max_chars {
     return text
   }
-  let out = StringBuilder(size_hint=max_chars)
+  let out = StringBuilder(capacity=max_chars)
   if max_chars <= 3 {
     for _ in 0..<max_chars {
       out.write_char('.')

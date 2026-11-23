@@ -80,8 +80,8 @@ test "bounded frontmatter refuses cycles malformed UTF8 and missing delimiters" 
 test "Agent frontmatter constraints count Unicode scalars and preserve future fields" {
   for name in ["demo", "日本語", "école", "١٢٣", "𐐨".repeat(64)] {
     require_frontmatter({
-      "name": name.to_json(),
-      "description": "😀".repeat(1024).to_json(),
+      "name": Json(name),
+      "description": Json("😀".repeat(1024)),
       "future": { "nested": [true, null] },
     })
   }
@@ -99,7 +99,7 @@ test "Agent frontmatter constraints count Unicode scalars and preserve future fi
     ] {
     assert_true(
       try {
-        require_frontmatter({ "name": name.to_json(), "description": "Demo" })
+        require_frontmatter({ "name": Json(name), "description": "Demo" })
         false
       } catch {
         _ => true
@@ -109,7 +109,7 @@ test "Agent frontmatter constraints count Unicode scalars and preserve future fi
   for
     extra in [
       Json::object({ "description": "" }),
-      Json::object({ "description": "😀".repeat(1025).to_json() }),
+      Json::object({ "description": Json("😀".repeat(1025)) }),
       Json::object({ "compatibility": "" }),
       Json::object({ "metadata": { "x": 1 } }),
       Json::object({ "allowed-tools": ["all"] }),
@@ -121,7 +121,7 @@ test "Agent frontmatter constraints count Unicode scalars and preserve future fi
     }
     assert_true(
       try {
-        require_frontmatter(fields.to_json())
+        require_frontmatter(Json(fields))
         false
       } catch {
         _ => true
@@ -147,12 +147,12 @@ test "manifest name matching supports Unicode escaped names and nonauthority sch
       ("urn:demo/SKILL.md", "demo"),
     ] {
     let entry : Json = {
-      "uri": uri.to_json(),
-      "frontmatter": { "name": name.to_json(), "description": "Demo" },
+      "uri": Json(uri),
+      "frontmatter": { "name": Json(name), "description": "Demo" },
       "resources": [
         {
-          "uri": uri.to_json(),
-          "digest": ("sha256:" + "0".repeat(64)).to_json(),
+          "uri": Json(uri),
+          "digest": Json("sha256:" + "0".repeat(64)),
           "size": 0,
         },
       ],
@@ -174,36 +174,36 @@ test "manifest supports 512 resources and 16 MiB inclusively" {
   let uri = "skill://demo/SKILL.md"
   let files : Array[Json] = [
     {
-      "uri": uri.to_json(),
-      "digest": ("sha256:" + "0".repeat(64)).to_json(),
+      "uri": Json(uri),
+      "digest": Json("sha256:" + "0".repeat(64)),
       "size": 16 * 1024 * 1024,
     },
   ]
   for i in 0..<511 {
     files.push({
-      "uri": ("skill://demo/f" + i.to_string()).to_json(),
-      "digest": ("sha256:" + "0".repeat(64)).to_json(),
+      "uri": Json("skill://demo/f" + i.to_string()),
+      "digest": Json("sha256:" + "0".repeat(64)),
       "size": 0,
     })
   }
   let entry : Json = {
-    "uri": uri.to_json(),
+    "uri": Json(uri),
     "frontmatter": { "name": "demo", "description": "Demo" },
-    "resources": files.to_json(),
+    "resources": Json(files),
   }
   assert_eq(hold_entry(source, entry).files.length(), 512)
   files.push({
     "uri": "skill://demo/excess",
-    "digest": ("sha256:" + "0".repeat(64)).to_json(),
+    "digest": Json("sha256:" + "0".repeat(64)),
     "size": 0,
   })
   assert_true(
     try {
       ignore(
         hold_entry(source, {
-          "uri": uri.to_json(),
+          "uri": Json(uri),
           "frontmatter": { "name": "demo", "description": "Demo" },
-          "resources": files.to_json(),
+          "resources": Json(files),
         }),
       )
       false
@@ -213,7 +213,7 @@ test "manifest supports 512 resources and 16 MiB inclusively" {
   )
   files.pop() |> ignore
   guard files[0] is Object(root) else { fail("fixture") }
-  root["size"] = (16 * 1024 * 1024 + 1).to_json()
+  root["size"] = Json(16 * 1024 * 1024 + 1)
   assert_true(
     try {
       ignore(hold_entry(source, entry))

@@ -1,8 +1,9 @@
 ///|
+#derive(Debug)
 suberror EnvTemplateError {
   MissingEnvVar(String)
   InvalidEnvVarSyntax(String)
-} derive(Debug)
+}
 
 ///|
 pub extend EnvTemplateError with Debug::{to_repr}
@@ -30,19 +31,17 @@ pub impl Show for EnvTemplateError with fn output(self, logger) {
 pub fn resolve_env_template(
   input : String,
   env : Map[String, String],
-  strict? : Bool = true,
+  strict~ : Bool = true,
 ) -> String raise EnvTemplateError {
   let view = input.to_string_view()
-  let out = StringBuilder(size_hint=view.length())
+  let out = StringBuilder(capacity=view.length())
   for i = 0; i < view.length(); {
     match (view.get_char(i), view.get_char(i + 1)) {
       (Some('$'), Some('{')) =>
         match find_closing_brace(view, i + 2) {
           None => raise InvalidEnvVarSyntax(input)
           Some(close) => {
-            let name = view
-              .view(start_offset=i + 2, end_offset=close)
-              .to_owned()
+            let name = view.exact_view(start=i + 2, end=close).to_owned()
             if !is_valid_env_name(name) {
               raise InvalidEnvVarSyntax(input)
             }
@@ -65,7 +64,7 @@ pub fn resolve_env_template(
 }
 
 ///|
-fn find_closing_brace(view : StringView, start : Int) -> Int? {
+fn find_closing_brace(view : StringView, start : Int32) -> Int32? {
   for i in start..<view.length() {
     if view.get_char(i) == Some('}') {
       break Some(i)

@@ -18,6 +18,6 @@ pub fn save_mcpx_config_file(
 }
 
 ///|
-pub fn mcpx_config_file_mode(path : String) -> Int raise {
+pub fn mcpx_config_file_mode(path : String) -> Int32 raise {
   secure_file_mode(path)
 }

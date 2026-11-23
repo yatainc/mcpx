@@ -30,7 +30,7 @@ async fn read_content(
   call : async (String, Map[String, Json]) -> Json,
   uri : String,
 ) -> Json {
-  let result = call("resources/read", { "uri": uri.to_json() })
+  let result = call("resources/read", { "uri": Json(uri) })
   require_cacheable(result)
   guard result is { "contents": Array(contents), .. } else {
     raise @protocol.InvalidResponse("resources/read requires contents array")
@@ -74,7 +74,7 @@ pub async fn read(
   if !directory_enabled(capabilities) {
     return Content(read_content(call, uri))
   }
-  let first = call("resources/directory/read", { "uri": uri.to_json() }) catch {
+  let first = call("resources/directory/read", { "uri": Json(uri) }) catch {
     @protocol.RemoteError(-32602, _) => return Content(read_content(call, uri))
     error => raise error
   }
@@ -84,8 +84,8 @@ pub async fn read(
       first,
       cursor => {
         let page = call("resources/directory/read", {
-          "uri": uri.to_json(),
-          "cursor": cursor.to_json(),
+          "uri": Json(uri),
+          "cursor": Json(cursor),
         })
         require_directory(page)
         page

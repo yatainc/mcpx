@@ -22,7 +22,7 @@ fn is_keep_alive_server(server : @config.McpServerConfig) -> Bool {
 }
 
 ///|
-fn current_time_seconds() -> Int {
+fn current_time_seconds() -> Int32 {
   (@env.now() / 1000UL).to_int()
 }
 

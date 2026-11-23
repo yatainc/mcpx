@@ -11,12 +11,12 @@ test "bench MCP initialize/list/call request sequence" (it : @bench.T) {
     let list = @protocol.mcp_request(
       2,
       "tools/list",
-      Some(@tools.list_params().to_json()),
+      Some(Json(@tools.list_params())),
     )
     let call = @protocol.mcp_request(
       3,
       "tools/call",
-      Some(@tools.call_params("search", arguments).to_json()),
+      Some(Json(@tools.call_params("search", arguments))),
     )
     it.keep(
       init.stringify().length() +

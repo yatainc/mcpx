@@ -3,6 +3,7 @@ package "yatainc/mcpx/core/protocol"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
 }
 
 // Values
@@ -12,85 +13,91 @@ pub const MCPX_CLIENT_VERSION : String = "0.2.0"
 
 pub const MCP_PROTOCOL_VERSION_LEGACY : String = "2025-11-25"
 
-pub fn decode_mcp_discover_response(Json, expected_id~ : Int) -> Result[McpDiscoverInfo, McpProtocolError]
+pub fn decode_mcp_discover_response(@json.Json, expected_id~ : Int32) -> Result[McpDiscoverInfo, McpProtocolError]
 
-pub fn decode_mcp_initialize_result(Json) -> McpInitializeInfo raise McpProtocolError
+pub fn decode_mcp_initialize_result(@json.Json) -> McpInitializeInfo raise McpProtocolError
 
-pub fn decode_mcp_result(Json, expected_id~ : Int) -> Json raise McpProtocolError
+pub fn decode_mcp_result(@json.Json, expected_id~ : Int32) -> @json.Json raise McpProtocolError
 
-pub fn mcp_discover_request(id~ : Int, McpRequestContext) -> Json
+pub fn mcp_discover_request(id~ : Int32, McpRequestContext) -> @json.Json
 
-pub fn mcp_initialize_request(id~ : Int, client_name~ : String, client_version~ : String, protocol_version? : String) -> Json
+pub fn mcp_initialize_request(id~ : Int32, client_name~ : String, client_version~ : String, protocol_version? : String) -> @json.Json
 
-pub fn mcp_initialized_notification() -> Json
+pub fn mcp_initialized_notification() -> @json.Json
 
 pub fn mcp_protocol_family(McpProtocolVersion) -> McpProtocolFamily
 
 pub fn mcp_protocol_version_to_string(McpProtocolVersion) -> String
 
-pub fn mcp_request(Int, String, Json?) -> Json
+pub fn mcp_request(Int32, String, @json.Json?) -> @json.Json
 
-pub fn mcp_request_context(protocol~ : McpProtocolVersion, client_name~ : String, client_version~ : String, client_capabilities? : Map[String, Json]) -> McpRequestContext
+pub fn mcp_request_context(protocol~ : McpProtocolVersion, client_name~ : String, client_version~ : String, client_capabilities? : Map[String, @json.Json]) -> McpRequestContext
 
 pub fn newest_compatible_mcp_protocol_version(Array[McpProtocolVersion], allow_stateless_core~ : Bool) -> McpProtocolVersion?
 
 pub fn parse_mcp_protocol_version(String) -> McpProtocolVersion
 
-pub fn require_complete_result(Json, required? : Bool, operation? : String) -> Unit raise McpProtocolError
+pub fn require_complete_result(@json.Json, required? : Bool, operation? : String) -> Unit raise McpProtocolError
 
-pub fn with_mcp_request_meta(Map[String, Json], McpRequestContext) -> Json
+pub fn with_mcp_request_meta(Map[String, @json.Json], McpRequestContext) -> @json.Json
 
 // Errors
+#derive(@debug.Debug)
 pub(all) suberror McpProtocolError {
   InvalidResponse(String)
   HeaderMismatch(String)
   MissingRequiredClientCapability(String)
   UnsupportedProtocolVersion(String?, Array[String])
-  RemoteError(Int, String)
-} derive(@debug.Debug)
+  RemoteError(Int32, String)
+}
 pub fn McpProtocolError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum McpCacheScope {
   Public
   Private
-} derive(Eq, @debug.Debug)
+}
 pub fn McpCacheScope::equal(Self, Self) -> Bool
 pub fn McpCacheScope::not_equal(Self, Self) -> Bool
 pub fn McpCacheScope::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub struct McpDiscoverInfo {
   protocol_versions : Array[McpProtocolVersion]
-  capabilities : Json
+  capabilities : @json.Json
   instructions : String?
   response_meta : McpResponseMeta
-} derive(@debug.Debug)
+}
 pub fn McpDiscoverInfo::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub struct McpInitializeInfo {
   protocol_version : String
   server_name : String?
   server_version : String?
-  capabilities : Json
-} derive(@debug.Debug)
+  capabilities : @json.Json
+}
 pub fn McpInitializeInfo::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum McpProtocolFamily {
   InitializeEra
   StatelessCore
   Unsupported
-} derive(Eq, @debug.Debug)
+}
 pub fn McpProtocolFamily::equal(Self, Self) -> Bool
 pub fn McpProtocolFamily::not_equal(Self, Self) -> Bool
 pub fn McpProtocolFamily::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum McpProtocolVersion {
   V2025_03_26
   V2025_06_18
   V2025_11_25
   V2026_07_28
   Unknown(String)
-} derive(Eq, @debug.Debug)
+}
 pub fn McpProtocolVersion::equal(Self, Self) -> Bool
 pub fn McpProtocolVersion::not_equal(Self, Self) -> Bool
 pub fn McpProtocolVersion::to_repr(Self) -> @debug.Repr
@@ -99,10 +106,11 @@ pub struct McpRequestContext {
   // private fields
 }
 
+#derive(@debug.Debug)
 pub struct McpResponseMeta {
-  server_info : Json?
-  raw : Json
-} derive(@debug.Debug)
+  server_info : @json.Json?
+  raw : @json.Json
+}
 pub fn McpResponseMeta::to_repr(Self) -> @debug.Repr
 
 // Type aliases

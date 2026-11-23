@@ -122,14 +122,14 @@ test "HTTP tool header schema inspection has resource bounds" {
   for i in 0..<80 {
     let properties = Map([])
     properties["level" + i.to_string()] = schema
-    schema = { "type": "object", "properties": properties.to_json() }
+    schema = { "type": "object", "properties": Json(properties) }
   }
   assert_invalid_schema(schema)
   let properties = Map([])
   for i in 0..<12000 {
     properties["p" + i.to_string()] = Json::object({ "type": "string" })
   }
-  assert_invalid_schema({ "type": "object", "properties": properties.to_json() })
+  assert_invalid_schema({ "type": "object", "properties": Json(properties) })
 }
 
 ///|

@@ -68,7 +68,7 @@ fn parse_www_authenticate_resource_metadata(header : String) -> String? {
     Some(pos) => pos + marker.length()
     None => return None
   }
-  let rest = header.to_string_view().view(start_offset=start)
+  let rest = header.to_string_view().exact_view(start~)
   let end = match rest.find("\"") {
     Some(pos) => pos
     None => return None
@@ -111,8 +111,8 @@ fn oauth_authorization_server_metadata_url(issuer : String) -> String {
     Some((scheme, rest)) =>
       match rest.find("/") {
         Some(path_start) => {
-          let host = rest.view(end_offset=path_start).to_owned()
-          let path = rest.view(start_offset=path_start).to_owned()
+          let host = rest.exact_view(end=path_start).to_owned()
+          let path = rest.exact_view(start=path_start).to_owned()
           scheme.to_owned() + "://" + host + well_known + path
         }
         None => normalized + well_known

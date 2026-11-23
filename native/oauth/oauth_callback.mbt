@@ -1,20 +1,22 @@
 ///|
+#derive(Debug)
 pub suberror OAuthCallbackError {
   Timeout
   StateMismatch
   MissingCode
   InvalidRequest
-} derive(Debug)
+}
 
 ///|
 pub extend OAuthCallbackError with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub struct OAuthCallbackCode {
   code : String
   state : String
   issuer : String?
-} derive(Debug)
+}
 
 ///|
 pub extend OAuthCallbackCode with Debug::{to_repr}
@@ -35,10 +37,10 @@ pub async fn open_authorization_url(url : String) -> Unit {
 
 ///|
 pub async fn wait_for_oauth_callback(
-  port~ : Int,
+  port~ : Int32,
   path~ : String,
   expected_state~ : String,
-  timeout_ms~ : Int,
+  timeout_ms~ : Int32,
   trigger~ : async (String) -> Unit,
 ) -> OAuthCallbackCode raise OAuthCallbackError {
   let captured : Ref[Result[OAuthCallbackCode, OAuthCallbackError]?] = Ref(None)
@@ -89,6 +91,7 @@ pub async fn wait_for_oauth_callback(
 }
 
 ///|
+#warnings("-78")
 fn parse_oauth_callback_path(
   request_path : String,
   path~ : String,
@@ -97,10 +100,7 @@ fn parse_oauth_callback_path(
   let query = if request_path == path {
     ""
   } else if request_path.has_prefix(path + "?") {
-    request_path
-    .to_string_view()
-    .view(start_offset=path.length() + 1)
-    .to_owned()
+    request_path.to_string_view().exact_view(start=path.length() + 1).to_owned()
   } else {
     return Err(InvalidRequest)
   }
@@ -138,7 +138,7 @@ fn percent_decode(value : String) -> String raise OAuthCallbackError {
       }
     }
     if chars[i] == '+' {
-      bytes.push((32 : Int).to_byte())
+      bytes.push((32 : Int32).to_byte())
     } else {
       let encoded = @encoding.encode(UTF8, chars[i].to_string())
       for byte in encoded {
@@ -154,11 +154,11 @@ fn percent_decode(value : String) -> String raise OAuthCallbackError {
 }
 
 ///|
-fn hex_value(value : Char) -> Int? {
+fn hex_value(value : Char) -> Int32? {
   match value {
-    '0'..='9' => Some(value.to_int() - '0'.to_int())
-    'a'..='f' => Some(value.to_int() - 'a'.to_int() + 10)
-    'A'..='F' => Some(value.to_int() - 'A'.to_int() + 10)
+    '0'..<='9' => Some(value.to_int() - '0'.to_int())
+    'a'..<='f' => Some(value.to_int() - 'a'.to_int() + 10)
+    'A'..<='F' => Some(value.to_int() - 'A'.to_int() + 10)
     _ => None
   }
 }
@@ -182,7 +182,7 @@ fn query_params(query : String) -> Map[String, String] {
 ///|
 async fn wait_for_callback_result(
   captured : Ref[Result[OAuthCallbackCode, OAuthCallbackError]?],
-  timeout_ms~ : Int,
+  timeout_ms~ : Int32,
 ) -> OAuthCallbackCode raise OAuthCallbackError {
   let deadline = @sys.now().reinterpret_as_int64() + timeout_ms.to_int64()
   for ;; {

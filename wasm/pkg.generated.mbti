@@ -13,7 +13,8 @@ pub fn mcpx_tool_run(String) -> String
 pub fn mcpx_tool_schema() -> String
 
 // Errors
-type EmbeddedError derive(@debug.Debug)
+#derive(@debug.Debug)
+type EmbeddedError
 pub fn EmbeddedError::to_repr(Self) -> @debug.Repr
 
 // Types and methods

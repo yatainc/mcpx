@@ -1,49 +1,54 @@
 ///|
+#derive(Debug)
 pub enum HostAction {
   ReadTextFile(HostReadTextFile)
   WriteTextFile(HostWriteTextFile)
   OpenBrowser(HostOpenBrowser)
   HttpRequest(HostHttpRequest)
-} derive(Debug)
+}
 
 ///|
 pub extend HostAction with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub struct HostReadTextFile {
   path : String
-} derive(Debug)
+}
 
 ///|
 pub extend HostReadTextFile with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub struct HostWriteTextFile {
   path : String
   contents : String
-  mode : Int
+  mode : Int32
   atomic_write : Bool
   create_parent_dirs : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend HostWriteTextFile with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub struct HostOpenBrowser {
   url : String
-} derive(Debug)
+}
 
 ///|
 pub extend HostOpenBrowser with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub struct HostHttpRequest {
   http_method : String
   url : String
   headers : Map[String, String]
   body : String?
-} derive(Debug)
+}
 
 ///|
 pub extend HostHttpRequest with Debug::{to_repr}
@@ -76,8 +81,8 @@ pub fn host_open_browser(url~ : String) -> HostAction {
 pub fn host_http_request(
   http_method~ : String,
   url~ : String,
-  headers? : Map[String, String] = Map([]),
-  body? : String? = None,
+  headers~ : Map[String, String] = Map([]),
+  body~ : String? = None,
 ) -> HostAction {
   HttpRequest({ http_method, url, headers, body, })
 }
@@ -133,8 +138,8 @@ pub impl ToJson for HostOpenBrowser with fn to_json(self) {
 }
 
 ///|
-fn json_int(value : Int) -> Json {
-  Json::number(Double::from_int(value), repr=value.to_string())
+fn json_int(value : Int32) -> Json {
+  Json::number(value.to_double(), repr=value.to_string())
 }
 
 ///|

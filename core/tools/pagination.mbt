@@ -1,15 +1,15 @@
 ///|
 priv struct ToolPagination {
-  max_pages : Int
-  max_tools : Int
+  max_pages : Int32
+  max_tools : Int32
   seen_cursors : @hashset.HashSet[String]
-  mut pages : Int
-  mut tool_count : Int
+  mut pages : Int32
+  mut tool_count : Int32
   mut next_cursor : String?
 }
 
 ///|
-fn tool_pagination(max_pages~ : Int, max_tools~ : Int) -> ToolPagination {
+fn tool_pagination(max_pages~ : Int32, max_tools~ : Int32) -> ToolPagination {
   {
     max_pages,
     max_tools,

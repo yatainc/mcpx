@@ -69,7 +69,7 @@ test "mcp response: validates complete result type" {
   for result_type in ["input_required", "extension/unknown"] {
     try
       @protocol.require_complete_result(
-        { "resultType": result_type.to_json() },
+        { "resultType": Json(result_type) },
         required=false,
       )
     catch {

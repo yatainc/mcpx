@@ -1,14 +1,15 @@
 ///|
+#derive(Debug)
 suberror OAuthPkceError {
   RandomBytesFailed
-} derive(Debug)
+}
 
 ///|
 pub extend OAuthPkceError with Debug::{to_repr}
 
 ///|
 #borrow(buf)
-extern "C" fn random_bytes_ffi(buf : FixedArray[Byte], len : Int) -> Int = "mcpx_oauth_random_bytes"
+extern "C" fn random_bytes_ffi(buf : FixedArray[Byte], len : Int32) -> Int32 = "mcpx_oauth_random_bytes"
 
 ///|
 pub fn pkce_s256_challenge(verifier : String) -> String {
@@ -18,7 +19,7 @@ pub fn pkce_s256_challenge(verifier : String) -> String {
 }
 
 ///|
-pub fn random_urlsafe_token(byte_length : Int) -> String raise OAuthPkceError {
+pub fn random_urlsafe_token(byte_length : Int32) -> String raise OAuthPkceError {
   let bytes = random_bytes(byte_length)
   base64url(bytes)
 }
@@ -31,7 +32,7 @@ pub fn base64url(data : BytesView) -> String {
 }
 
 ///|
-fn random_bytes(byte_length : Int) -> Bytes raise OAuthPkceError {
+fn random_bytes(byte_length : Int32) -> Bytes raise OAuthPkceError {
   let bytes = FixedArray::make(byte_length, b'\x00')
   guard random_bytes_ffi(bytes, byte_length) == 0 else {
     raise RandomBytesFailed

@@ -7,9 +7,9 @@ fn error_result(message : String) -> String {
 async fn execute_command(
   command : McpxCommand,
   home~ : String,
-  config_home? : String? = None,
-  stdin_json? : String? = None,
-  cwd? : String = @env.current_dir().unwrap_or("."),
+  config_home~ : String? = None,
+  stdin_json~ : String? = None,
+  cwd~ : String = @env.current_dir().unwrap_or("."),
 ) -> Result[String, String] {
   let output = match command {
     Help => mcpx_help_text()

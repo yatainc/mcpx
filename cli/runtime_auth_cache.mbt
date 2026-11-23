@@ -209,7 +209,7 @@ async fn refresh_oauth_credentials(
 ///|
 async fn fetch_oauth_metadata(
   metadata_url : String,
-  expected_issuer? : String? = None,
+  expected_issuer~ : String? = None,
 ) -> Result[@auth.OAuthMetadata, String] {
   let (response, data) = @http.get(metadata_url, headers={
     "accept": "application/json",

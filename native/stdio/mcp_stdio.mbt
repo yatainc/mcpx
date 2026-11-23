@@ -1,4 +1,5 @@
 ///|
+#derive(Debug)
 pub suberror McpStdioError {
   SpawnFailed(String)
   ReadFailed(String)
@@ -7,7 +8,7 @@ pub suberror McpStdioError {
   Protocol(String)
   Timeout
   UnexpectedEof
-} derive(Debug)
+}
 
 ///|
 pub extend McpStdioError with Debug::{to_repr}
@@ -22,8 +23,8 @@ priv enum StdioProtocolLifecycle {
 pub struct StdioMcpClient {
   priv conn : StdioConnection
   priv lifecycle : StdioProtocolLifecycle
-  priv mut next_request_id : Int
-  priv response_timeout_ms : Int
+  priv mut next_request_id : Int32
+  priv response_timeout_ms : Int32
   priv operation_lock : @async.Semaphore
 }
 
@@ -34,11 +35,11 @@ pub async fn[X] stdio_mcp_connect(
   args~ : Array[String],
   env~ : Map[String, String],
   cwd~ : String?,
-  mode? : @config.McpConnectionMode = Stateful,
-  probe_timeout_ms? : Int = 1000,
-  response_timeout_ms? : Int = 30000,
+  mode~ : @config.McpConnectionMode = Stateful,
+  probe_timeout_ms~ : Int32 = 1000,
+  response_timeout_ms~ : Int32 = 30000,
   receive_budget? : @receive.Budget,
-  inherit_env? : Bool = true,
+  inherit_env~ : Bool = true,
 ) -> StdioMcpClient raise McpStdioError {
   if receive_budget is Some(_) && mode != Stateless {
     raise Protocol("bounded retrieval requires stateless MCP")
@@ -105,7 +106,7 @@ pub async fn[X] stdio_mcp_connect(
 fn new_stdio_mcp_client(
   conn : StdioConnection,
   lifecycle : StdioProtocolLifecycle,
-  response_timeout_ms : Int,
+  response_timeout_ms : Int32,
 ) -> StdioMcpClient {
   {
     conn,
@@ -150,7 +151,7 @@ async fn StdioMcpClient::request(
   let id = self.next_request_id
   self.next_request_id += 1
   let params = match self.lifecycle {
-    Initialize => params.to_json()
+    Initialize => Json(params)
     Stateless(_) =>
       @protocol.with_mcp_request_meta(
         params,
@@ -193,8 +194,8 @@ pub async fn StdioMcpClient::call_tool(
 ///|
 pub async fn StdioMcpClient::list_tools(
   self : StdioMcpClient,
-  max_pages? : Int = @tools.MCP_TOOL_LIST_MAX_PAGES,
-  max_tools? : Int = @tools.MCP_TOOL_LIST_MAX_TOOLS,
+  max_pages~ : Int32 = @tools.MCP_TOOL_LIST_MAX_PAGES,
+  max_tools~ : Int32 = @tools.MCP_TOOL_LIST_MAX_TOOLS,
 ) -> Array[@tools.McpToolInfo] raise McpStdioError {
   self.with_operation(() => {
     match self.lifecycle {
@@ -225,8 +226,8 @@ async fn[T] with_client(
   env~ : Map[String, String],
   cwd~ : String?,
   mode~ : @config.McpConnectionMode,
-  probe_timeout_ms~ : Int,
-  response_timeout_ms~ : Int,
+  probe_timeout_ms~ : Int32,
+  response_timeout_ms~ : Int32,
 ) -> T raise McpStdioError {
   @async.with_task_group(group => {
     let client = stdio_mcp_connect(
@@ -254,9 +255,9 @@ pub async fn stdio_mcp_call_tool(
   cwd~ : String?,
   tool_name~ : String,
   arguments~ : Json,
-  mode? : @config.McpConnectionMode = Stateful,
-  probe_timeout_ms? : Int = 1000,
-  response_timeout_ms? : Int = 30000,
+  mode~ : @config.McpConnectionMode = Stateful,
+  probe_timeout_ms~ : Int32 = 1000,
+  response_timeout_ms~ : Int32 = 30000,
 ) -> Json raise McpStdioError {
   with_client(
     client => client.call_tool(tool_name~, arguments~),
@@ -276,11 +277,11 @@ pub async fn stdio_mcp_list_tools(
   args~ : Array[String],
   env~ : Map[String, String],
   cwd~ : String?,
-  mode? : @config.McpConnectionMode = Stateful,
-  probe_timeout_ms? : Int = 1000,
-  response_timeout_ms? : Int = 30000,
-  max_pages? : Int = @tools.MCP_TOOL_LIST_MAX_PAGES,
-  max_tools? : Int = @tools.MCP_TOOL_LIST_MAX_TOOLS,
+  mode~ : @config.McpConnectionMode = Stateful,
+  probe_timeout_ms~ : Int32 = 1000,
+  response_timeout_ms~ : Int32 = 30000,
+  max_pages~ : Int32 = @tools.MCP_TOOL_LIST_MAX_PAGES,
+  max_tools~ : Int32 = @tools.MCP_TOOL_LIST_MAX_TOOLS,
 ) -> Array[@tools.McpToolInfo] raise McpStdioError {
   with_client(
     client => client.list_tools(max_pages~, max_tools~),
@@ -321,7 +322,7 @@ fn protocol_error_to_stdio(error : Error) -> McpStdioError {
 ///|
 async fn initialize_stdio(
   conn : StdioConnection,
-  response_timeout_ms : Int,
+  response_timeout_ms : Int32,
 ) -> Unit raise McpStdioError {
   write_json_line(
     conn,

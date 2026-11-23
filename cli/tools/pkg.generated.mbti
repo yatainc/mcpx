@@ -22,19 +22,21 @@ pub async fn info_stdio(String, @config.McpServerConfig, String?) -> String
 // Errors
 
 // Types and methods
+#derive(@debug.Debug)
 pub(all) struct CallCommand {
   server : String
   url : String?
   tool : String
   arguments_json : String?
-} derive(@debug.Debug)
+}
 pub fn CallCommand::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct InfoCommand {
   server : String?
   url : String?
   tool : String?
-} derive(@debug.Debug)
+}
 pub fn InfoCommand::to_repr(Self) -> @debug.Repr
 
 // Type aliases

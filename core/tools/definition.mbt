@@ -1,10 +1,11 @@
 ///|
+#derive(Debug)
 pub struct McpToolInfo {
   name : String
   description : String?
   input_schema : Json
   output_schema : Json?
-} derive(Debug)
+}
 
 ///|
 pub extend McpToolInfo with Debug::{to_repr}
@@ -12,9 +13,9 @@ pub extend McpToolInfo with Debug::{to_repr}
 ///|
 pub fn mcp_tool_info(
   name~ : String,
-  description? : String? = None,
+  description~ : String? = None,
   input_schema~ : Json,
-  output_schema? : Json? = None,
+  output_schema~ : Json? = None,
 ) -> McpToolInfo {
   { name, description, input_schema, output_schema, }
 }
@@ -24,9 +25,9 @@ pub extend McpToolInfo with ToJson::{to_json}
 
 ///|
 pub impl ToJson for McpToolInfo with fn to_json(self) {
-  let obj : Map[String, Json] = { "name": self.name.to_json() }
+  let obj : Map[String, Json] = { "name": Json(self.name) }
   match self.description {
-    Some(value) => obj["description"] = value.to_json()
+    Some(value) => obj["description"] = Json(value)
     None => ()
   }
   obj["inputSchema"] = self.input_schema

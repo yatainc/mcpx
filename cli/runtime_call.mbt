@@ -4,7 +4,7 @@ async fn run_call(
   home : String,
   config_home : String?,
   cwd : String,
-  stdin_json? : String? = None,
+  stdin_json~ : String? = None,
 ) -> String {
   match command.url {
     Some(url) =>

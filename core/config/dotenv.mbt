@@ -1,7 +1,8 @@
 ///|
+#derive(Debug)
 pub(all) enum DotenvError {
-  InvalidDotenvLine(Int, String)
-} derive(Debug)
+  InvalidDotenvLine(Int32, String)
+}
 
 ///|
 pub extend DotenvError with Debug::{to_repr}
@@ -61,7 +62,7 @@ fn unquote_dotenv_value(value : String) -> String {
     ) {
     value
     .to_string_view()
-    .view(start_offset=1, end_offset=value.length() - 1)
+    .exact_view(start=1, end=value.length() - 1)
     .to_owned()
   } else {
     value

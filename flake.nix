@@ -13,7 +13,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    moonbit-overlay.url = "github:moonbit-community/moonbit-overlay/v0.10.14+7d59c7ec9+914d7da";
+    moonbit-overlay.url = "github:moonbit-community/moonbit-overlay/v0.10.22+124d61d05+738607b";
   };
 
   outputs = inputs:
@@ -32,7 +32,7 @@
           in
           {
             mcpx = final.callPackage ./package.nix {
-              moonHome = final.moonbit-bin.moonbit.latest or moonAttrs.moonbit-bin.moonbit.latest;
+              moonHome = moonAttrs.moonbit-bin.latest;
               moonDependencies = final.callPackage ./nix/moon-dependencies.nix { };
               tinyccForMoonbit = if final.stdenv.hostPlatform.isLinux then final.tinycc else null;
             };
@@ -54,7 +54,7 @@
             tinyccForMoonbit = if pkgs.stdenv.hostPlatform.isLinux then pkgs.tinycc else null;
           };
 
-          baseMoonHome = pkgs.moonbit-bin.moonbit.latest;
+          baseMoonHome = pkgs.moonbit-bin.latest;
 
           # moonbit-overlay replaces the upstream Linux internal/tcc with
           # nixpkgs tinycc. MoonBit native tests execute tcc in -run mode via

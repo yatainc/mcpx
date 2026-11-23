@@ -1,12 +1,13 @@
 ///|
+#derive(Debug)
 pub struct AuthHint {
   server_name : String
-  status_code : Int
+  status_code : Int32
   summary : String
   suggested_commands : Array[String]
   config_hint : String?
   opens_browser : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend AuthHint with Debug::{to_repr}
@@ -14,8 +15,8 @@ pub extend AuthHint with Debug::{to_repr}
 ///|
 pub fn auth_required_hint(
   server_name~ : String,
-  status_code~ : Int,
-  token_env_var? : String? = None,
+  status_code~ : Int32,
+  token_env_var~ : String? = None,
 ) -> AuthHint? {
   match status_code {
     401 =>
@@ -39,7 +40,7 @@ pub fn auth_required_hint(
 ///|
 fn auth_hint(
   server_name : String,
-  status_code : Int,
+  status_code : Int32,
   reason : String,
   detail : String,
   token_env_var : String?,
@@ -65,7 +66,7 @@ fn auth_hint(
 
 ///|
 fn auth_header_config_hint(env_var : String) -> String {
-  let out = StringBuilder(size_hint=env_var.length() + 36)
+  let out = StringBuilder(capacity=env_var.length() + 36)
   out.write_string("headers.Authorization = \"Bearer ")
   out.write_char('$')
   out.write_char('{')

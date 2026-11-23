@@ -30,14 +30,16 @@ async test "native HTTP source binds origin and cumulatively bounds streamed res
               "ttlMs": 0,
               "cacheScope": "private",
               "skill": {
-                "uri": uri.to_json(),
+                "uri": Json(uri),
                 "frontmatter": { "name": "demo", "description": "Demo" },
                 "resources": [
                   {
-                    "uri": uri.to_json(),
-                    "digest": ("sha256:" +
-                    @hex.encode(Bytes::from_array(@crypto.sha256(bytes)[:]))).to_json(),
-                    "size": bytes.length().to_json(),
+                    "uri": Json(uri),
+                    "digest": Json(
+                      "sha256:" +
+                      @hex.encode(Bytes::from_array(@crypto.sha256(bytes)[:])),
+                    ),
+                    "size": Json(bytes.length()),
                   },
                 ],
               },
@@ -47,7 +49,7 @@ async test "native HTTP source binds origin and cumulatively bounds streamed res
               "resultType": "complete",
               "ttlMs": 0,
               "cacheScope": "private",
-              "contents": [{ "uri": uri.to_json(), "text": text.to_json() }],
+              "contents": [{ "uri": Json(uri), "text": Json(text) }],
             }
         }
         conn.send_response(200, "OK", extra_headers={

@@ -38,7 +38,7 @@ pub async fn Source::hold(self : Source, uri : String) -> HeldSkill {
 ///|
 priv struct File {
   digest : String
-  size : Int
+  size : Int32
 }
 
 ///|

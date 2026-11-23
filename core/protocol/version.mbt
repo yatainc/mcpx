@@ -1,11 +1,12 @@
 ///|
+#derive(Debug, Eq)
 pub(all) enum McpProtocolVersion {
   V2025_03_26
   V2025_06_18
   V2025_11_25
   V2026_07_28
   Unknown(String)
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend McpProtocolVersion with Debug::{to_repr}
@@ -14,11 +15,12 @@ pub extend McpProtocolVersion with Debug::{to_repr}
 pub extend McpProtocolVersion with Eq::{not_equal, equal}
 
 ///|
+#derive(Debug, Eq)
 pub(all) enum McpProtocolFamily {
   InitializeEra
   StatelessCore
   Unsupported
-} derive(Debug, Eq)
+}
 
 ///|
 pub extend McpProtocolFamily with Debug::{to_repr}

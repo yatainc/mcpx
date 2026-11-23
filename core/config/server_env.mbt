@@ -1,4 +1,5 @@
 ///|
+#warnings("-78")
 fn resolve_auth_env(
   auth : ServerAuthConfig,
   env : Map[String, String],
@@ -25,6 +26,7 @@ fn resolve_auth_env(
 }
 
 ///|
+#warnings("-78")
 fn resolve_optional_template(
   value : String?,
   env : Map[String, String],
@@ -41,6 +43,7 @@ fn resolve_optional_template(
 }
 
 ///|
+#warnings("-78")
 fn resolve_string_array(
   values : Array[String],
   env : Map[String, String],
@@ -56,6 +59,7 @@ fn resolve_string_array(
 }
 
 ///|
+#warnings("-78")
 fn resolve_string_map(
   values : Map[String, String],
   env : Map[String, String],

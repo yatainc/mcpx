@@ -139,8 +139,8 @@ fn server_lifecycle_mode_to_string(mode : ServerLifecycleMode) -> String {
 }
 
 ///|
-fn json_int(value : Int) -> Json {
-  Json::number(Double::from_int(value), repr=value.to_string())
+fn json_int(value : Int32) -> Json {
+  Json::number(value.to_double(), repr=value.to_string())
 }
 
 ///|

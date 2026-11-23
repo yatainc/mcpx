@@ -1,8 +1,9 @@
 ///|
+#derive(Debug)
 pub enum Payload {
   JsonPayload(Json)
   AcceptedNoContent
-} derive(Debug)
+}
 
 ///|
 pub extend Payload with Debug::{to_repr}

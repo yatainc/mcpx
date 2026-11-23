@@ -3,8 +3,8 @@ pub async fn run_http(
   command : Command,
   url~ : String,
   headers~ : Map[String, String],
-  origin? : String = url_origin(url),
-  timeout_ms? : Int = 30000,
+  origin~ : String = url_origin(url),
+  timeout_ms~ : Int32 = 30000,
 ) -> String {
   @async.with_timeout(timeout_ms, () => {
     match command.operation {
@@ -58,7 +58,7 @@ pub async fn run_stdio(
   command : Command,
   server : @config.McpServerConfig,
   origin~ : String,
-  timeout_ms? : Int = 30000,
+  timeout_ms~ : Int32 = 30000,
 ) -> String {
   guard server.command is Some(executable) else {
     raise RetrievalError("server has no command: " + command.target)

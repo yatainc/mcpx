@@ -4,7 +4,7 @@ priv struct ModernHttp {
   endpoint : Endpoint
   version : @protocol.McpProtocolVersion
   capabilities : Json
-  mut next_id : Int
+  mut next_id : Int32
 }
 
 ///|
@@ -22,8 +22,8 @@ async fn ModernHttp::request(
   self : ModernHttp,
   rpc_method : String,
   params : Map[String, Json],
-  name? : String? = None,
-  parameter_values? : Map[String, String] = Map([]),
+  name~ : String? = None,
+  parameter_values~ : Map[String, String] = Map([]),
 ) -> Json {
   let id = self.next_id
   self.next_id += 1

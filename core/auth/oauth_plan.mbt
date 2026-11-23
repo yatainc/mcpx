@@ -1,4 +1,5 @@
 ///|
+#derive(Debug)
 pub struct OAuthMetadata {
   authorization_endpoint : String
   token_endpoint : String
@@ -6,7 +7,7 @@ pub struct OAuthMetadata {
   scopes_supported : Array[String]
   issuer : String?
   authorization_response_iss_parameter_supported : Bool
-} derive(Debug)
+}
 
 ///|
 pub extend OAuthMetadata with Debug::{to_repr}
@@ -15,10 +16,10 @@ pub extend OAuthMetadata with Debug::{to_repr}
 pub fn oauth_metadata(
   authorization_endpoint~ : String,
   token_endpoint~ : String,
-  registration_endpoint? : String? = None,
-  scopes_supported? : Array[String] = [],
-  issuer? : String? = None,
-  authorization_response_iss_parameter_supported? : Bool = false,
+  registration_endpoint~ : String? = None,
+  scopes_supported~ : Array[String] = [],
+  issuer~ : String? = None,
+  authorization_response_iss_parameter_supported~ : Bool = false,
 ) -> OAuthMetadata {
   {
     authorization_endpoint,
@@ -62,6 +63,7 @@ pub fn oauth_authorization_url(
 }
 
 ///|
+#warnings("-78")
 pub fn validate_authorization_response_issuer(
   metadata : OAuthMetadata,
   response_issuer : String?,
@@ -120,7 +122,7 @@ fn query_pair(key : String, value : String) -> String {
 
 ///|
 fn url_encode_component(value : String) -> String {
-  let out = StringBuilder(size_hint=value.length())
+  let out = StringBuilder(capacity=value.length())
   let bytes = @utf8.encode(value.to_string_view(), bom=false)
   for byte in bytes {
     let value = byte.to_int()
@@ -136,7 +138,7 @@ fn url_encode_component(value : String) -> String {
 }
 
 ///|
-fn is_unreserved_url_byte(value : Int) -> Bool {
+fn is_unreserved_url_byte(value : Int32) -> Bool {
   (value >= 0x61 && value <= 0x7a) ||
   (value >= 0x41 && value <= 0x5a) ||
   (value >= 0x30 && value <= 0x39) ||
@@ -147,30 +149,33 @@ fn is_unreserved_url_byte(value : Int) -> Bool {
 }
 
 ///|
-fn hex_digit(value : Int) -> Char {
+fn hex_digit(value : Int32) -> Char {
   "0123456789ABCDEF".to_string_view().get_char(value).unwrap()
 }
 
 ///|
+#derive(Debug)
 pub struct OAuthClientRegistration {
   client_id : String
   client_secret : String?
-} derive(Debug)
+}
 
 ///|
 pub extend OAuthClientRegistration with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 suberror OAuthPlanError {
   InvalidOAuthMetadata(String)
   InvalidClientRegistration(String)
   InvalidAuthorizationResponse(String)
-} derive(Debug)
+}
 
 ///|
 pub extend OAuthPlanError with Debug::{to_repr}
 
 ///|
+#warnings("-78")
 pub fn decode_oauth_metadata(
   json : Json,
 ) -> Result[OAuthMetadata, OAuthPlanError] {
@@ -237,6 +242,7 @@ pub fn decode_oauth_metadata(
 }
 
 ///|
+#warnings("-78")
 pub fn decode_client_registration_response(
   json : Json,
 ) -> Result[OAuthClientRegistration, OAuthPlanError] {
@@ -348,9 +354,10 @@ pub fn refresh_token_request_body(
 }
 
 ///|
+#warnings("-78")
 pub fn decode_oauth_token_response(
   json : Json,
-  issued_at~ : Int,
+  issued_at~ : Int32,
 ) -> Result[OAuthTokens, OAuthPlanError] {
   let obj = expect_oauth_object(json) catch {
     _ => return Err(InvalidOAuthMetadata("token response must be object"))
@@ -382,7 +389,7 @@ pub fn decode_oauth_token_response(
 fn optional_oauth_int(
   json : Json?,
   field : String,
-) -> Int? raise OAuthPlanError {
+) -> Int32? raise OAuthPlanError {
   match json {
     None | Some(Null) => None
     Some(Number(value, ..)) if value.trunc() == value => Some(value.to_int())

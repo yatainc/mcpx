@@ -1,16 +1,17 @@
 ///|
-const MCP_STDIO_MAX_SKIPPED_MESSAGES : Int = 1000
+const MCP_STDIO_MAX_SKIPPED_MESSAGES : Int32 = 1000
 
 ///|
+#derive(Eq)
 priv enum StdioConnectionState {
   Open
   Poisoned(String)
   Closed
-} derive(Eq)
+}
 
 ///|
 priv enum StdioInboundMessage {
-  Response(Int, Json)
+  Response(Int32, Json)
   RequestOrNotification
   Malformed
 }
@@ -135,7 +136,7 @@ async fn read_json_line(conn : StdioConnection) -> Json? raise McpStdioError {
 ///|
 async fn[T] run_stdio_operation_with_timeout(
   conn : StdioConnection,
-  timeout_ms : Int,
+  timeout_ms : Int32,
   operation : async () -> T,
 ) -> T raise McpStdioError {
   errdefer (if @async.is_being_cancelled() {
@@ -174,8 +175,8 @@ async fn[T] run_stdio_operation_with_timeout(
 ///|
 async fn read_response_for_id_with_timeout(
   conn : StdioConnection,
-  expected_id~ : Int,
-  timeout_ms~ : Int,
+  expected_id~ : Int32,
+  timeout_ms~ : Int32,
 ) -> Json raise McpStdioError {
   run_stdio_operation_with_timeout(conn, timeout_ms, () => {
     read_response_for_id(conn, expected_id~)
@@ -185,7 +186,7 @@ async fn read_response_for_id_with_timeout(
 ///|
 async fn read_response_for_id(
   conn : StdioConnection,
-  expected_id~ : Int,
+  expected_id~ : Int32,
 ) -> Json raise McpStdioError {
   read_response_for_id_with_skip_limit(
     conn,
@@ -197,8 +198,8 @@ async fn read_response_for_id(
 ///|
 async fn read_response_for_id_with_skip_limit(
   conn : StdioConnection,
-  expected_id~ : Int,
-  max_skipped_messages~ : Int,
+  expected_id~ : Int32,
+  max_skipped_messages~ : Int32,
 ) -> Json raise McpStdioError {
   let mut skipped = 0
   for ;; {
@@ -274,11 +275,11 @@ fn has_valid_stdio_message_params(value : Json?) -> Bool {
 }
 
 ///|
-fn decode_stdio_message_id(value : Json) -> Int? {
+fn decode_stdio_message_id(value : Json) -> Int32? {
   match value {
     Number(number, ..) if number.trunc() == number &&
       number >= (-2147483648).to_double() &&
-      number <= (2147483647 : Int).to_double() => Some(number.to_int())
+      number <= (2147483647 : Int32).to_double() => Some(number.to_int())
     _ => None
   }
 }

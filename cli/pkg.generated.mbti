@@ -10,17 +10,23 @@ import {
 // Errors
 
 // Types and methods
-type AuthCommand derive(@debug.Debug)
+#derive(@debug.Debug)
+type AuthCommand
 
-type CliParseError derive(@debug.Debug)
+#derive(@debug.Debug)
+type CliParseError
 
-type DaemonCommand derive(@debug.Debug)
+#derive(@debug.Debug)
+type DaemonCommand
 
-type DaemonMode derive(@debug.Debug)
+#derive(@debug.Debug)
+type DaemonMode
 
-type McpxCommand derive(@debug.Debug)
+#derive(@debug.Debug)
+type McpxCommand
 
-type SearchCommand derive(@debug.Debug)
+#derive(@debug.Debug)
+type SearchCommand
 
 // Type aliases
 

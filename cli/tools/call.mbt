@@ -1,7 +1,7 @@
 ///|
 fn resolve_call_arguments(
   command : CallCommand,
-  stdin_json? : String? = None,
+  stdin_json~ : String? = None,
 ) -> Result[Json, String] {
   match (command.arguments_json, stdin_json) {
     (None, None) => Ok(Json::empty_object())
@@ -30,9 +30,9 @@ pub async fn call_http(
   command : CallCommand,
   url~ : String,
   headers~ : Map[String, String],
-  server? : @config.McpServerConfig? = None,
-  mode? : @config.McpConnectionMode = Auto,
-  stdin_json? : String? = None,
+  server~ : @config.McpServerConfig? = None,
+  mode~ : @config.McpConnectionMode = Auto,
+  stdin_json~ : String? = None,
 ) -> String {
   match server {
     Some(server) if !@config.is_tool_allowed(server, command.tool) =>
@@ -59,7 +59,7 @@ pub async fn call_http(
 pub async fn call_stdio(
   command : CallCommand,
   server : @config.McpServerConfig,
-  stdin_json? : String? = None,
+  stdin_json~ : String? = None,
 ) -> String {
   let executable = match server.command {
     Some(value) => value
@@ -93,7 +93,7 @@ pub async fn call_daemon(
   home : String,
   config_home : String?,
   server_id~ : String,
-  stdin_json? : String? = None,
+  stdin_json~ : String? = None,
 ) -> String {
   if !@config.is_tool_allowed(server, command.tool) {
     return disabled_tool_result(command.server, command.tool)

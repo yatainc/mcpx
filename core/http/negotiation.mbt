@@ -167,7 +167,7 @@ fn decode_discover_http_response(
 ///|
 fn parse_discover_http_response(
   response : HttpResponse,
-  expected_id~ : Int,
+  expected_id~ : Int32,
 ) -> DiscoverHttpOutcome raise {
   let permits_legacy_signal = response.status_code == 400 ||
     response.status_code == 404 ||

@@ -10,8 +10,8 @@ pub async fn list_tools(
 pub async fn list_tools_with_cache_hint(
   fetch : async (HttpRequest) -> HttpResponse,
   endpoint : Endpoint,
-  max_pages? : Int = @tools.MCP_TOOL_LIST_MAX_PAGES,
-  max_tools? : Int = @tools.MCP_TOOL_LIST_MAX_TOOLS,
+  max_pages~ : Int32 = @tools.MCP_TOOL_LIST_MAX_PAGES,
+  max_tools~ : Int32 = @tools.MCP_TOOL_LIST_MAX_TOOLS,
 ) -> @tools.McpToolListResult raise McpHttpClientError {
   with_http_errors(() => {
     match negotiate(fetch, endpoint) {
@@ -39,8 +39,8 @@ pub async fn call_tool(
   endpoint : Endpoint,
   tool_name~ : String,
   arguments~ : Json,
-  tool_definition? : @tools.McpToolInfo? = None,
-  on_catalog_refresh? : (@tools.McpToolListResult) -> Unit = _ => (),
+  tool_definition~ : @tools.McpToolInfo? = None,
+  on_catalog_refresh~ : (@tools.McpToolListResult) -> Unit = _ => (),
 ) -> Json raise McpHttpClientError {
   with_http_errors(() => {
     match negotiate(fetch, endpoint) {

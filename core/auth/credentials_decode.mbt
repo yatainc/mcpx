@@ -153,7 +153,7 @@ fn optional_bool(json : Json?, field : String) -> Bool raise CredentialsError {
 }
 
 ///|
-fn expect_int(json : Json?, field : String) -> Int raise CredentialsError {
+fn expect_int(json : Json?, field : String) -> Int32 raise CredentialsError {
   match json {
     Some(Number(value, ..)) if value.trunc() == value => value.to_int()
     _ => raise InvalidCredentialsJson(field + " must be int")
@@ -161,7 +161,7 @@ fn expect_int(json : Json?, field : String) -> Int raise CredentialsError {
 }
 
 ///|
-fn optional_int(json : Json?, field : String) -> Int? raise CredentialsError {
+fn optional_int(json : Json?, field : String) -> Int32? raise CredentialsError {
   match json {
     None | Some(Null) => None
     Some(Number(value, ..)) if value.trunc() == value => Some(value.to_int())
@@ -170,6 +170,6 @@ fn optional_int(json : Json?, field : String) -> Int? raise CredentialsError {
 }
 
 ///|
-fn json_int(value : Int) -> Json {
-  Json::number(Double::from_int(value), repr=value.to_string())
+fn json_int(value : Int32) -> Json {
+  Json::number(value.to_double(), repr=value.to_string())
 }

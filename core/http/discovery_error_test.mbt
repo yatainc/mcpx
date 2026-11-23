@@ -13,10 +13,7 @@ async test "core http: discovery protocol errors are normalized at the public bo
               body=Json::object({
                 "jsonrpc": "2.0",
                 "id": 1,
-                "error": {
-                  "code": code.to_json(),
-                  "message": "discovery failure",
-                },
+                "error": { "code": Json(code), "message": "discovery failure" },
               }).stringify(),
             )
           },

@@ -1,25 +1,26 @@
 ///|
-pub const MCP_TOOL_LIST_MAX_PAGES : Int = 1000
+pub const MCP_TOOL_LIST_MAX_PAGES : Int32 = 1000
 
 ///|
-pub const MCP_TOOL_LIST_MAX_TOOLS : Int = 100000
+pub const MCP_TOOL_LIST_MAX_TOOLS : Int32 = 100000
 
 ///|
+#derive(Debug)
 pub struct McpToolListPage {
   tools : Array[McpToolInfo]
   next_cursor : String?
-  ttl_ms : Int
+  ttl_ms : Int32
   cache_scope : @protocol.McpCacheScope
-} derive(Debug)
+}
 
 ///|
 pub extend McpToolListPage with Debug::{to_repr}
 
 ///|
-pub fn list_params(cursor? : String? = None) -> Map[String, Json] {
+pub fn list_params(cursor~ : String? = None) -> Map[String, Json] {
   let params = Map([])
   match cursor {
-    Some(value) => params["cursor"] = value.to_json()
+    Some(value) => params["cursor"] = Json(value)
     None => ()
   }
   params
@@ -29,7 +30,7 @@ pub fn list_params(cursor? : String? = None) -> Map[String, Json] {
 // The RPC envelope is decoded by the transport, before validating this result.
 pub fn decode_list_result(
   result : Json,
-  modern? : Bool = false,
+  modern~ : Bool = false,
 ) -> McpToolListPage raise @protocol.McpProtocolError {
   let obj = match result {
     Object(value) => value
@@ -66,8 +67,8 @@ pub fn decode_list_result(
 // stdio lists do not impose the HTTP header-schema or cache-scope policy.
 pub async fn list(
   fetch_page : async (String?) -> Json,
-  max_pages? : Int = MCP_TOOL_LIST_MAX_PAGES,
-  max_tools? : Int = MCP_TOOL_LIST_MAX_TOOLS,
+  max_pages~ : Int32 = MCP_TOOL_LIST_MAX_PAGES,
+  max_tools~ : Int32 = MCP_TOOL_LIST_MAX_TOOLS,
 ) -> Array[McpToolInfo] {
   let pagination = tool_pagination(max_pages~, max_tools~)
   let tools = []

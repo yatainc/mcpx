@@ -1,8 +1,9 @@
 ///|
+#derive(Debug)
 suberror EmbeddedError {
   ExpectedObject
   ExpectedString(String)
-} derive(Debug)
+}
 
 ///|
 pub extend EmbeddedError with Debug::{to_repr}
@@ -42,7 +43,7 @@ fn expect_bool_field(
 fn expect_int_field(
   obj : Map[String, Json],
   field : String,
-) -> Int raise EmbeddedError {
+) -> Int32 raise EmbeddedError {
   match obj.get(field) {
     Some(Number(value, ..)) if value.trunc() == value => value.to_int()
     _ => raise ExpectedString(field)
@@ -91,8 +92,8 @@ fn mcp_host_result_json(host_result_json : String) -> Json raise EmbeddedError {
 fn optional_int_field(
   obj : Map[String, Json],
   field : String,
-  default~ : Int,
-) -> Int {
+  default~ : Int32,
+) -> Int32 {
   match obj.get(field) {
     Some(Number(value, ..)) if value.trunc() == value => value.to_int()
     _ => default
@@ -136,6 +137,6 @@ fn wasm_error(code : String, message : String) -> String {
 }
 
 ///|
-fn json_int(value : Int) -> Json {
-  Json::number(Double::from_int(value), repr=value.to_string())
+fn json_int(value : Int32) -> Json {
+  Json::number(value.to_double(), repr=value.to_string())
 }

@@ -19,6 +19,6 @@ pub fn save_credentials_file(
 }
 
 ///|
-pub fn credentials_file_mode(path : String) -> Int raise {
+pub fn credentials_file_mode(path : String) -> Int32 raise {
   secure_file_mode(path)
 }

@@ -1,7 +1,7 @@
 [
   {
-    "checksum": "84197a7cad6ae2ab9e167119a5354eff390ccc293e785d3b7738bde7c9ecc7c1",
-    "created_at": "2026-09-08T22:19:03.977625+00:00",
+    "checksum": "35aa38b56a78d92e8b5c5cdb95e2640f0bb4068a5ab705e5b560f9d726fd15a9",
+    "created_at": "2026-10-19T20:31:09.947735+00:00",
     "description": "A generic URI/IRI handling library compliant with RFC 3986/3987, ported from the Rust crate fluent-uri.",
     "keywords": [
       "uri",
@@ -14,13 +14,13 @@
     "name": "marianoguerra/uri",
     "readme": "README.mbt.md",
     "repository": "https://github.com/marianoguerra/uri-mb",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "yanked": false,
     "yanked_reason": null
   },
   {
-    "checksum": "1d847c3d4c5824700067f7679c23e43e6b160279b55ac010db126e52dcac99aa",
-    "created_at": "2026-10-01T07:40:58.231215+00:00",
+    "checksum": "8bf8e142a3e59cb1e4aee0ad83fef9e7772f4bb1e47b8d26b8610a7b38facbec",
+    "created_at": "2026-11-18T03:50:16.179062+00:00",
     "description": "A simple YAML parsing and stringifying library for MoonBit, support a simplified YAML subset which can be convert to JSON.",
     "keywords": [],
     "license": "MIT",
@@ -28,32 +28,29 @@
     "readme": "README.md",
     "repository": "https://github.com/moonbit-community/yaml.mbt",
     "source": "src",
-    "version": "0.0.7",
+    "version": "0.0.10",
     "yanked": false,
     "yanked_reason": null
   },
   {
-    "checksum": "2ffdb85cb229cfe9219161a7f2b959215a79a0d75b7e642cb346713f168a1457",
-    "created_at": "2026-09-24T07:08:17.578592+00:00",
+    "checksum": "33ff2a2478e1753b32caffdef1e2408a2af537fd523b74530de3075745e68b33",
+    "created_at": "2026-11-18T08:51:54.887845+00:00",
     "description": "Asynchronous programming library for MoonBit",
     "keywords": [],
     "license": "Apache-2.0",
     "name": "moonbitlang/async",
-    "preferred_target": "native",
+    "preferred-target": "native",
     "readme": "README.md",
     "repository": "https://github.com/moonbitlang/async",
     "source": "src",
-    "version": "0.22.4",
+    "version": "0.22.10",
     "yanked": false,
     "yanked_reason": null
   },
   {
-    "checksum": "cd2c81f0d73594f7dbc6728d6d11f96212c08a2b0e8755993a1e07ca91236372",
-    "created_at": "2026-01-30T06:57:50.050285+00:00",
+    "checksum": "533f0af3129ccbdb43900cd1f59d9bbb54284e0f08c410c8cf864051161958cc",
+    "created_at": "2026-10-30T14:12:18.990935+00:00",
     "description": "A regular expression engine for MoonBit based on VM execution designed for predictable time complexity",
-    "exclude": [
-      "prebuild"
-    ],
     "keywords": [
       "regexp"
     ],
@@ -61,13 +58,13 @@
     "name": "moonbitlang/regexp",
     "readme": "README.md",
     "repository": "https://github.com/moonbitlang/regexp.mbt",
-    "version": "0.3.5",
+    "version": "0.3.7",
     "yanked": false,
     "yanked_reason": null
   },
   {
-    "checksum": "eb7ddddea2c871ac823d210c4a9fdf5efc75d2c1fe9965292760669f15041dc4",
-    "created_at": "2026-09-11T07:30:15.145003+00:00",
+    "checksum": "5f123fe214fa48eea41721c117d4702f4e7f1db38323ac3c336f18d6eed87911",
+    "created_at": "2026-11-20T02:29:14.760544+00:00",
     "description": "experimental packages for moonbitlang/core",
     "keywords": [
       "experimental",
@@ -80,7 +77,7 @@
     "name": "moonbitlang/x",
     "readme": "README.md",
     "repository": "https://github.com/moonbitlang/x",
-    "version": "0.5.5",
+    "version": "0.5.8",
     "yanked": false,
     "yanked_reason": null
   }

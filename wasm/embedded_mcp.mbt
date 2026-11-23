@@ -18,17 +18,17 @@ fn run_mcp_http_operation(
   )
   let state : Map[String, Json] = {
     "phase": "mcp_http_initialize",
-    "url": url.to_json(),
+    "url": Json(url),
     "requestId": 1,
   }
   if operation != "initialize" {
-    state["operation"] = operation.to_json()
+    state["operation"] = Json(operation)
   }
   if operation == "call" {
     let tool_name = expect_string_field(obj, "toolName") catch {
       _ => return wasm_error("invalid_input", "toolName is required")
     }
-    state["toolName"] = tool_name.to_json()
+    state["toolName"] = Json(tool_name)
     state["arguments"] = obj.get("arguments").unwrap_or(Json::empty_object())
   }
   needs_host(Json::object(state), [
@@ -86,7 +86,7 @@ fn reduce_mcp_http_initialize(
   )
   let state : Map[String, Json] = {
     "phase": "mcp_http_initialized",
-    "url": url.to_json(),
+    "url": Json(url),
   }
   copy_optional_fields(source=state_obj, target=state, fields=[
     "operation", "toolName", "arguments",
@@ -131,18 +131,15 @@ fn reduce_mcp_http_initialized(
     _ =>
       return Json::object({ "status": "ready", "initialized": true }).stringify()
   }
-  let request = @protocol.mcp_request(2, rpc_method, Some(params.to_json()))
-  needs_host(
-    { "phase": phase.to_json(), "url": url.to_json(), "requestId": 2 },
-    [
-      @host.host_http_request(
-        http_method="POST",
-        url~,
-        headers=mcp_http_headers(),
-        body=Some(request.stringify()),
-      ),
-    ],
-  )
+  let request = @protocol.mcp_request(2, rpc_method, Some(Json(params)))
+  needs_host({ "phase": Json(phase), "url": Json(url), "requestId": 2 }, [
+    @host.host_http_request(
+      http_method="POST",
+      url~,
+      headers=mcp_http_headers(),
+      body=Some(request.stringify()),
+    ),
+  ])
 }
 
 ///|
@@ -161,7 +158,7 @@ fn reduce_mcp_http_list(
     ).tools catch {
       _ => return wasm_error("mcp_protocol_error", "invalid list response")
     }
-  Json::object({ "status": "ready", "tools": tools.to_json() }).stringify()
+  Json::object({ "status": "ready", "tools": Json(tools) }).stringify()
 }
 
 ///|

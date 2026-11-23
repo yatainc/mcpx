@@ -12,28 +12,31 @@ pub async fn open_authorization_url(String) -> Unit
 
 pub fn pkce_s256_challenge(String) -> String
 
-pub fn random_urlsafe_token(Int) -> String raise OAuthPkceError
+pub fn random_urlsafe_token(Int32) -> String raise OAuthPkceError
 
-pub async fn wait_for_oauth_callback(port~ : Int, path~ : String, expected_state~ : String, timeout_ms~ : Int, trigger~ : async (String) -> Unit) -> OAuthCallbackCode raise OAuthCallbackError
+pub async fn wait_for_oauth_callback(port~ : Int32, path~ : String, expected_state~ : String, timeout_ms~ : Int32, trigger~ : async (String) -> Unit) -> OAuthCallbackCode raise OAuthCallbackError
 
 // Errors
+#derive(@debug.Debug)
 pub suberror OAuthCallbackError {
   Timeout
   StateMismatch
   MissingCode
   InvalidRequest
-} derive(@debug.Debug)
+}
 pub fn OAuthCallbackError::to_repr(Self) -> @debug.Repr
 
-type OAuthPkceError derive(@debug.Debug)
+#derive(@debug.Debug)
+type OAuthPkceError
 pub fn OAuthPkceError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(@debug.Debug)
 pub struct OAuthCallbackCode {
   code : String
   state : String
   issuer : String?
-} derive(@debug.Debug)
+}
 pub fn OAuthCallbackCode::to_repr(Self) -> @debug.Repr
 
 // Type aliases

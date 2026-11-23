@@ -105,7 +105,7 @@ async fn handle_list_tools(
     error => Err(error)
   }
   match result {
-    Ok(tools) => ok_response(Json::object({ "tools": tools.to_json() }))
+    Ok(tools) => ok_response(Json::object({ "tools": Json(tools) }))
     Err(error) => error_response(error.to_string())
   }
 }

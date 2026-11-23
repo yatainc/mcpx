@@ -3,6 +3,7 @@ package "yatainc/mcpx/core/http"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
   "yatainc/mcpx/core/config",
   "yatainc/mcpx/core/protocol",
   "yatainc/mcpx/core/skills",
@@ -10,39 +11,40 @@ import {
 }
 
 // Values
-pub async fn call_tool(async (HttpRequest) -> HttpResponse, Endpoint, tool_name~ : String, arguments~ : Json, tool_definition? : @tools.McpToolInfo?, on_catalog_refresh? : (@tools.McpToolListResult) -> Unit) -> Json raise McpHttpClientError
+pub async fn call_tool(async (HttpRequest) -> HttpResponse, Endpoint, tool_name~ : String, arguments~ : @json.Json, tool_definition? : @tools.McpToolInfo?, on_catalog_refresh? : (@tools.McpToolListResult) -> Unit) -> @json.Json raise McpHttpClientError
 
 pub fn decode_payload(HttpResponse) -> Payload raise @protocol.McpProtocolError
 
-pub fn expect_json(Payload) -> Json raise @protocol.McpProtocolError
+pub fn expect_json(Payload) -> @json.Json raise @protocol.McpProtocolError
 
-pub async fn get_skill(async (HttpRequest) -> HttpResponse, Endpoint, uri~ : String) -> Json raise McpHttpClientError
+pub async fn get_skill(async (HttpRequest) -> HttpResponse, Endpoint, uri~ : String) -> @json.Json raise McpHttpClientError
 
 pub fn http_endpoint(url~ : String, headers? : Map[String, String], mode? : @config.McpConnectionMode) -> Endpoint
 
-pub fn http_response(status_code~ : Int, content_type? : String?, headers? : Map[String, String], body~ : String) -> HttpResponse
+pub fn http_response(status_code~ : Int32, content_type? : String?, headers? : Map[String, String], body~ : String) -> HttpResponse
 
-pub async fn list_skills(async (HttpRequest) -> HttpResponse, Endpoint) -> Array[Json] raise McpHttpClientError
+pub async fn list_skills(async (HttpRequest) -> HttpResponse, Endpoint) -> Array[@json.Json] raise McpHttpClientError
 
 pub async fn list_tools(async (HttpRequest) -> HttpResponse, Endpoint) -> Array[@tools.McpToolInfo] raise McpHttpClientError
 
-pub async fn list_tools_with_cache_hint(async (HttpRequest) -> HttpResponse, Endpoint, max_pages? : Int, max_tools? : Int) -> @tools.McpToolListResult raise McpHttpClientError
+pub async fn list_tools_with_cache_hint(async (HttpRequest) -> HttpResponse, Endpoint, max_pages? : Int32, max_tools? : Int32) -> @tools.McpToolListResult raise McpHttpClientError
 
 pub async fn read_resource(async (HttpRequest) -> HttpResponse, Endpoint, uri~ : String) -> @skills.ReadResult raise McpHttpClientError
 
 pub async fn skill_source(async (HttpRequest) -> HttpResponse, Endpoint, String) -> @skills.Source raise McpHttpClientError
 
 // Errors
+#derive(@debug.Debug)
 pub suberror McpHttpClientError {
-  HttpStatus(Int)
+  HttpStatus(Int32)
   Network(String)
   Protocol(String)
   HeaderMismatch(String)
   MissingRequiredClientCapability(String)
   UnsupportedProtocolVersion(Array[String])
   ModeProtocolIncompatible(String, String)
-  RemoteError(Int, String)
-} derive(@debug.Debug)
+  RemoteError(Int32, String)
+}
 pub fn McpHttpClientError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
@@ -60,16 +62,17 @@ pub struct HttpRequest {
 }
 
 pub struct HttpResponse {
-  status_code : Int
+  status_code : Int32
   content_type : String?
   headers : Map[String, String]
   body : String
 }
 
+#derive(@debug.Debug)
 pub enum Payload {
-  JsonPayload(Json)
+  JsonPayload(@json.Json)
   AcceptedNoContent
-} derive(@debug.Debug)
+}
 pub fn Payload::to_repr(Self) -> @debug.Repr
 
 // Type aliases

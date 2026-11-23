@@ -152,7 +152,7 @@ fn schema_required_args(schema : Json) -> Array[String] {
 }
 
 ///|
-fn schema_requires_complete_display(schema : Json, depth~ : Int) -> Bool {
+fn schema_requires_complete_display(schema : Json, depth~ : Int32) -> Bool {
   if depth > 64 {
     return true
   }

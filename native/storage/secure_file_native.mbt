@@ -1,8 +1,9 @@
 ///|
+#derive(Debug)
 suberror SecureFileError {
   SecureWriteFailed
   SecureStatFailed
-} derive(Debug)
+}
 
 ///|
 pub extend SecureFileError with Debug::{to_repr}
@@ -12,11 +13,11 @@ pub extend SecureFileError with Debug::{to_repr}
 extern "C" fn secure_write_private_atomic_ffi(
   path : String,
   contents : String,
-) -> Int = "mcpx_secure_write_private_atomic"
+) -> Int32 = "mcpx_secure_write_private_atomic"
 
 ///|
 #borrow(path)
-extern "C" fn secure_file_mode_ffi(path : String) -> Int = "mcpx_secure_file_mode"
+extern "C" fn secure_file_mode_ffi(path : String) -> Int32 = "mcpx_secure_file_mode"
 
 ///|
 pub fn secure_write_private_atomic(
@@ -29,7 +30,7 @@ pub fn secure_write_private_atomic(
 }
 
 ///|
-pub fn secure_file_mode(path : String) -> Int raise SecureFileError {
+pub fn secure_file_mode(path : String) -> Int32 raise SecureFileError {
   let mode = secure_file_mode_ffi(path)
   guard mode >= 0 else { raise SecureStatFailed }
   mode

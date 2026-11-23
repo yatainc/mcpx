@@ -40,12 +40,12 @@ fn parse_frontmatter(bytes : Bytes) -> Json raise {
 
 ///|
 priv struct YamlBudget {
-  mut nodes : Int
-  mut bytes : Int
+  mut nodes : Int32
+  mut bytes : Int32
 }
 
 ///|
-fn YamlBudget::spend(self : YamlBudget, bytes : Int) -> Unit raise {
+fn YamlBudget::spend(self : YamlBudget, bytes : Int32) -> Unit raise {
   self.nodes -= 1
   self.bytes -= bytes
   if self.nodes < 0 || self.bytes < 0 {
@@ -59,7 +59,7 @@ fn YamlBudget::spend(self : YamlBudget, bytes : Int) -> Unit raise {
 fn yaml_json(
   value : @yaml.Yaml,
   budget : YamlBudget,
-  depth : Int,
+  depth : Int32,
 ) -> Json raise {
   if depth > 128 {
     fail("YAML depth or cycle")
@@ -76,7 +76,7 @@ fn yaml_json(
     Map(fields) => {
       let out = Map([])
       for key, item in fields {
-        budget.spend(@utf8.encode(key.to_json().stringify()).length() + 1)
+        budget.spend(@utf8.encode(Json(key).stringify()).length() + 1)
         out[key] = yaml_json(item, budget, depth + 1)
       }
       Json::object(out)

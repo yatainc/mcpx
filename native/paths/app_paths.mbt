@@ -10,7 +10,7 @@ pub struct McpxAppPaths {
 ///|
 pub fn mcpx_app_paths(
   home : String,
-  config_home? : String? = None,
+  config_home~ : String? = None,
 ) -> McpxAppPaths {
   let base = match config_home {
     Some(path) if @path.Path(path).is_absolute() => path

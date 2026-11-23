@@ -240,9 +240,11 @@ async test "HTTP CLI root verification carries client origin and unknown result 
                 "resources": [
                   {
                     "uri": "skill://demo/SKILL.md",
-                    "size": bytes.length().to_json(),
-                    "digest": ("sha256:" +
-                    @crypto.bytes_to_hex_string(@crypto.sha256(bytes))).to_json(),
+                    "size": Json(bytes.length()),
+                    "digest": Json(
+                      "sha256:" +
+                      @crypto.bytes_to_hex_string(@crypto.sha256(bytes)),
+                    ),
                   },
                 ],
               },
@@ -253,7 +255,7 @@ async test "HTTP CLI root verification carries client origin and unknown result 
               "ttlMs": 0,
               "cacheScope": "private",
               "contents": [
-                { "uri": "skill://demo/SKILL.md", "text": text.to_json() },
+                { "uri": "skill://demo/SKILL.md", "text": Json(text) },
               ],
               "origin": "impostor",
               "unknown": true,

@@ -4,8 +4,8 @@
 async fn execute_mcpx(
   args : Array[String],
   home~ : String,
-  config_home? : String? = None,
-  stdin_json? : String? = None,
+  config_home~ : String? = None,
+  stdin_json~ : String? = None,
   cwd? : String,
 ) -> String {
   // Existing runtime fixtures must not pick up the checkout's project config.

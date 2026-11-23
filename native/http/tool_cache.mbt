@@ -9,12 +9,12 @@ priv struct ToolCacheEntry {
 priv struct ToolCatalogCache {
   entries : Map[String, ToolCacheEntry]
   order : Array[String]
-  max_entries : Int
+  max_entries : Int32
   clock : () -> Int64
 }
 
 ///|
-const MAX_TOOL_CACHE_ENTRIES : Int = 256
+const MAX_TOOL_CACHE_ENTRIES : Int32 = 256
 
 ///|
 let default_tool_catalog_cache : ToolCatalogCache = tool_catalog_cache(
@@ -24,7 +24,7 @@ let default_tool_catalog_cache : ToolCatalogCache = tool_catalog_cache(
 
 ///|
 fn tool_catalog_cache(
-  max_entries~ : Int,
+  max_entries~ : Int32,
   clock~ : () -> Int64,
 ) -> ToolCatalogCache {
   { entries: Map([]), order: [], max_entries, clock, }

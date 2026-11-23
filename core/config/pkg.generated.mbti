@@ -3,10 +3,11 @@ package "yatainc/mcpx/core/config"
 
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
 }
 
 // Values
-pub fn decode_mcpx_config(Json) -> McpxConfig raise ConfigDecodeError
+pub fn decode_mcpx_config(@json.Json) -> McpxConfig raise ConfigDecodeError
 
 pub fn effective_connection_mode(McpServerConfig) -> McpConnectionMode
 
@@ -36,36 +37,42 @@ pub fn resolve_env_template(String, Map[String, String], strict? : Bool) -> Stri
 
 pub fn resolve_server_env(McpServerConfig, Map[String, String]) -> Result[McpServerConfig, EnvTemplateError]
 
-pub fn server_lifecycle(ServerLifecycleMode, idle_timeout_ms? : Int?) -> ServerLifecycle
+pub fn server_lifecycle(ServerLifecycleMode, idle_timeout_ms? : Int32?) -> ServerLifecycle
 
 // Errors
-type ConfigDecodeError derive(@debug.Debug)
+#derive(@debug.Debug)
+type ConfigDecodeError
 pub fn ConfigDecodeError::to_repr(Self) -> @debug.Repr
 
-type EnvTemplateError derive(@debug.Debug)
+#derive(@debug.Debug)
+type EnvTemplateError
 pub fn EnvTemplateError::output(Self, &Logger) -> Unit
 pub fn EnvTemplateError::to_repr(Self) -> @debug.Repr
 pub fn EnvTemplateError::to_string(Self) -> String
 pub impl Show for EnvTemplateError
 
-type JsoncError derive(@debug.Debug)
+#derive(@debug.Debug)
+type JsoncError
 pub fn JsoncError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
+#derive(@debug.Debug)
 pub(all) enum DotenvError {
-  InvalidDotenvLine(Int, String)
-} derive(@debug.Debug)
+  InvalidDotenvLine(Int32, String)
+}
 pub fn DotenvError::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum McpConnectionMode {
   Auto
   Stateful
   Stateless
-} derive(Eq, @debug.Debug)
+}
 pub fn McpConnectionMode::equal(Self, Self) -> Bool
 pub fn McpConnectionMode::not_equal(Self, Self) -> Bool
 pub fn McpConnectionMode::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub struct McpServerConfig {
   name : String
   transport : ServerTransport
@@ -81,52 +88,58 @@ pub struct McpServerConfig {
   allowed_tools : Array[String]
   disabled_tools : Array[String]
   description : String?
-} derive(@debug.Debug)
-pub fn McpServerConfig::to_json(Self) -> Json
+}
+pub fn McpServerConfig::to_json(Self) -> @json.Json
 pub fn McpServerConfig::to_repr(Self) -> @debug.Repr
-pub impl ToJson for McpServerConfig
+pub impl @json.ToJson for McpServerConfig
 
+#derive(@debug.Debug)
 pub struct McpxConfig {
   servers : Map[String, McpServerConfig]
-} derive(@debug.Debug)
-pub fn McpxConfig::to_json(Self) -> Json
+}
+pub fn McpxConfig::to_json(Self) -> @json.Json
 pub fn McpxConfig::to_repr(Self) -> @debug.Repr
-pub impl ToJson for McpxConfig
+pub impl @json.ToJson for McpxConfig
 
+#derive(@debug.Debug)
 pub struct ServerAuthConfig {
   kind : ServerAuthKind
   client_id : String?
   client_secret : String?
   metadata_url : String?
   scopes : Array[String]
-} derive(@debug.Debug)
-pub fn ServerAuthConfig::to_json(Self) -> Json
+}
+pub fn ServerAuthConfig::to_json(Self) -> @json.Json
 pub fn ServerAuthConfig::to_repr(Self) -> @debug.Repr
-pub impl ToJson for ServerAuthConfig
+pub impl @json.ToJson for ServerAuthConfig
 
+#derive(@debug.Debug)
 pub(all) enum ServerAuthKind {
   OAuth
-} derive(@debug.Debug)
+}
 pub fn ServerAuthKind::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub struct ServerLifecycle {
   mode : ServerLifecycleMode
-  idle_timeout_ms : Int?
-} derive(@debug.Debug)
-pub fn ServerLifecycle::to_json(Self) -> Json
+  idle_timeout_ms : Int32?
+}
+pub fn ServerLifecycle::to_json(Self) -> @json.Json
 pub fn ServerLifecycle::to_repr(Self) -> @debug.Repr
-pub impl ToJson for ServerLifecycle
+pub impl @json.ToJson for ServerLifecycle
 
+#derive(@debug.Debug)
 pub(all) enum ServerLifecycleMode {
   KeepAlive
   Ephemeral
-} derive(@debug.Debug)
+}
 pub fn ServerLifecycleMode::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) enum ServerTransport {
   Stdio
   Http
-} derive(@debug.Debug)
+}
 pub fn ServerTransport::to_repr(Self) -> @debug.Repr
 
 // Type aliases

@@ -1,7 +1,7 @@
 ///|
 async fn request(
   home~ : String,
-  config_home? : String? = None,
+  config_home~ : String? = None,
   req : Json,
 ) -> Json raise McpxDaemonError {
   let port = match read_mcpx_daemon_port(home~, config_home~) {
@@ -109,12 +109,12 @@ fn string_field(obj : Map[String, Json], key : String) -> String? {
 ///|
 fn write_daemon_state(
   home~ : String,
-  config_home? : String? = None,
-  port~ : Int,
+  config_home~ : String? = None,
+  port~ : Int32,
 ) -> Unit raise McpxDaemonError {
   let path = mcpx_daemon_state_path(home~, config_home~)
   let body = Json::object({
-    "port": Json::number(Double::from_int(port), repr=port.to_string()),
+    "port": Json::number(port.to_double(), repr=port.to_string()),
   }).stringify()
   @storage.secure_write_private_atomic(path, body) catch {
     _ => raise Unavailable
@@ -122,7 +122,7 @@ fn write_daemon_state(
 }
 
 ///|
-fn remove_daemon_state(home~ : String, config_home? : String? = None) -> Unit {
+fn remove_daemon_state(home~ : String, config_home~ : String? = None) -> Unit {
   @fs.remove_file(mcpx_daemon_state_path(home~, config_home~)) catch {
     _ => ()
   }
@@ -131,7 +131,7 @@ fn remove_daemon_state(home~ : String, config_home? : String? = None) -> Unit {
 ///|
 async fn wait_for_daemon_state_removed(
   home~ : String,
-  config_home? : String? = None,
+  config_home~ : String? = None,
 ) -> Bool {
   let mut elapsed = 0
   while elapsed < 6000 {

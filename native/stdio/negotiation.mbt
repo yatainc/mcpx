@@ -41,7 +41,7 @@ async fn probe_modern_stdio(
 
 ///|
 fn classify_stdio_discovery_remote_error(
-  code : Int,
+  code : Int32,
   message : String,
 ) -> StdioProbeOutcome {
   if code == -32601 {

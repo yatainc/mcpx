@@ -1,9 +1,10 @@
 ///|
+#derive(Debug)
 pub struct McpToolListResult {
   tools : Array[McpToolInfo]
-  ttl_ms : Int
+  ttl_ms : Int32
   cache_scope : @protocol.McpCacheScope
-} derive(Debug)
+}
 
 ///|
 pub extend McpToolListResult with Debug::{to_repr}
@@ -11,8 +12,8 @@ pub extend McpToolListResult with Debug::{to_repr}
 ///|
 pub fn mcp_tool_list_result(
   tools~ : Array[McpToolInfo],
-  ttl_ms? : Int = 0,
-  cache_scope? : @protocol.McpCacheScope = Private,
+  ttl_ms~ : Int32 = 0,
+  cache_scope~ : @protocol.McpCacheScope = Private,
 ) -> McpToolListResult {
   { tools, ttl_ms, cache_scope, }
 }
@@ -40,8 +41,8 @@ fn validate_tool(
 // HTTP catalogs omit definitions with unusable parameter-header annotations.
 pub async fn list_catalog(
   fetch_page : async (String?) -> Json,
-  max_pages? : Int = MCP_TOOL_LIST_MAX_PAGES,
-  max_tools? : Int = MCP_TOOL_LIST_MAX_TOOLS,
+  max_pages~ : Int32 = MCP_TOOL_LIST_MAX_PAGES,
+  max_tools~ : Int32 = MCP_TOOL_LIST_MAX_TOOLS,
 ) -> McpToolListResult {
   fetch_catalog(fetch_page, max_pages~, max_tools~).result
 }
@@ -49,12 +50,12 @@ pub async fn list_catalog(
 ///|
 async fn fetch_catalog(
   fetch_page : async (String?) -> Json,
-  max_pages? : Int = MCP_TOOL_LIST_MAX_PAGES,
-  max_tools? : Int = MCP_TOOL_LIST_MAX_TOOLS,
+  max_pages~ : Int32 = MCP_TOOL_LIST_MAX_PAGES,
+  max_tools~ : Int32 = MCP_TOOL_LIST_MAX_TOOLS,
 ) -> ToolCatalog {
   let pagination = tool_pagination(max_pages~, max_tools~)
   let validated_tools : Array[ValidatedTool] = []
-  let mut ttl_ms : Int? = None
+  let mut ttl_ms : Int32? = None
   let mut cache_scope : @protocol.McpCacheScope? = None
   for ;; {
     let cursor = pagination.begin_page()

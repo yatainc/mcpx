@@ -1,14 +1,14 @@
 ///|
 test "tools request: builds legacy list and call parameters" {
   inspect(
-    @protocol.mcp_request(2, "tools/list", Some(@tools.list_params().to_json())).stringify(),
+    @protocol.mcp_request(2, "tools/list", Some(Json(@tools.list_params()))).stringify(),
     content="{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}",
   )
   inspect(
     @protocol.mcp_request(
       3,
       "tools/call",
-      Some(@tools.call_params("search", { "q": "moonbit" }).to_json()),
+      Some(Json(@tools.call_params("search", { "q": "moonbit" }))),
     ).stringify(),
     content=(
       #|{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search","arguments":{"q":"moonbit"}}}

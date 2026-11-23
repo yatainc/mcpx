@@ -1,12 +1,15 @@
 ///|
-fn response_json(response : HttpResponse, expected_id? : Int = 1) -> Json raise {
+fn response_json(
+  response : HttpResponse,
+  expected_id~ : Int32 = 1,
+) -> Json raise {
   expect_json(response_payload(response, expected_id~))
 }
 
 ///|
 fn response_payload(
   response : HttpResponse,
-  expected_id? : Int = 1,
+  expected_id~ : Int32 = 1,
 ) -> Payload raise {
   if response.status_code != 200 && response.status_code != 202 {
     let json = @json.parse(response.body) catch {
@@ -22,7 +25,7 @@ fn response_payload(
 }
 
 ///|
-fn jsonrpc_error_code(json : Json) -> Int? {
+fn jsonrpc_error_code(json : Json) -> Int32? {
   match json {
     Object(obj) =>
       match obj.get("error") {

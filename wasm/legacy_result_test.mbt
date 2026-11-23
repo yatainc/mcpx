@@ -1,14 +1,14 @@
 ///|
 test "wasm: legacy calls preserve result data without modern result-type admission" {
   for result_type in ["input_required", "extension"] {
-    let result : Json = { "resultType": result_type.to_json(), "value": "kept" }
+    let result : Json = { "resultType": Json(result_type), "value": "kept" }
     let host_result : Json = {
       "ok": true,
       "statusCode": 200,
       "contentType": "application/json",
-      "body": Json::object({ "jsonrpc": "2.0", "id": 2, "result": result })
-      .stringify()
-      .to_json(),
+      "body": Json(
+        Json::object({ "jsonrpc": "2.0", "id": 2, "result": result }).stringify(),
+      ),
     }
     inspect(
       @wasm.mcpx_tool_reduce(

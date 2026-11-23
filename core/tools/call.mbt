@@ -1,6 +1,6 @@
 ///|
 pub fn call_params(name : String, arguments : Json) -> Map[String, Json] {
-  { "name": name.to_json(), "arguments": arguments }
+  { "name": Json(name), "arguments": arguments }
 }
 
 ///|
@@ -11,8 +11,8 @@ pub async fn call(
   execute : async (Map[String, String]) -> Json,
   tool_name~ : String,
   arguments~ : Json,
-  tool_definition? : McpToolInfo? = None,
-  on_catalog_refresh? : (McpToolListResult) -> Unit = _ => (),
+  tool_definition~ : McpToolInfo? = None,
+  on_catalog_refresh~ : (McpToolListResult) -> Unit = _ => (),
 ) -> Json {
   let tool = match tool_definition {
     Some(tool) if tool.name == tool_name => validate_tool(tool)

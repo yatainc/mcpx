@@ -10,7 +10,7 @@ async fn list_tools_legacy(
     fetch,
     endpoint,
     session_id,
-    @protocol.mcp_request(2, "tools/list", Some(@tools.list_params().to_json())),
+    @protocol.mcp_request(2, "tools/list", Some(Json(@tools.list_params()))),
     expected_id=2,
   )
   let result = @protocol.decode_mcp_result(expect_json(payload), expected_id=2)
@@ -34,7 +34,7 @@ async fn call_tool_legacy(
     @protocol.mcp_request(
       2,
       "tools/call",
-      Some(@tools.call_params(tool_name, arguments).to_json()),
+      Some(Json(@tools.call_params(tool_name, arguments))),
     ),
     expected_id=2,
   )
@@ -81,7 +81,7 @@ async fn send_json_legacy(
   endpoint : Endpoint,
   session_id : Ref[String?],
   message : Json,
-  expected_id? : Int = 1,
+  expected_id~ : Int32 = 1,
 ) -> Payload {
   let response = post_json(
     fetch,

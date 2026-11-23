@@ -58,7 +58,7 @@ pub fn mcpx_js_list_tools(
 ) -> @js_async.Promise[String] {
   @js_async.Promise::from_async(() => {
     let tools = list_tools_js(fetch, url~)
-    Json::object({ "status": "ok", "tools": tools.to_json() }).stringify()
+    Json::object({ "status": "ok", "tools": Json(tools) }).stringify()
   })
 }
 
@@ -98,7 +98,7 @@ fn decode_js_http_response(text : String) -> @core_http.HttpResponse {
 }
 
 ///|
-fn int_field(obj : Map[String, Json], key : String) -> Int? {
+fn int_field(obj : Map[String, Json], key : String) -> Int32? {
   match obj.get(key) {
     Some(Number(value, ..)) if value.trunc() == value => Some(value.to_int())
     _ => None

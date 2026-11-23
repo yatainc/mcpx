@@ -13,9 +13,9 @@ fn decode_sse_data(text : String) -> Array[String] {
         data_lines.clear()
       }
     } else if line.has_prefix("data:") {
-      let mut rest = line.view(start_offset=5).to_owned()
+      let mut rest = line.exact_view(start=5).to_owned()
       if rest.has_prefix(" ") {
-        rest = rest.view(start_offset=1).to_owned()
+        rest = rest.exact_view(start=1).to_owned()
       }
       data_lines.push(rest)
     }

@@ -17,7 +17,7 @@ async fn run() -> Unit {
     Ok(command) => command
     Err(error) => {
       println(error_result(format_mcpx_parse_error(error)))
-      @sys.exit(2)
+      @env.exit(2)
       return
     }
   }
@@ -34,7 +34,7 @@ async fn run() -> Unit {
     Ok(output) => println(output)
     Err(message) => {
       println(message)
-      @sys.exit(2)
+      @env.exit(2)
     }
   }
 }

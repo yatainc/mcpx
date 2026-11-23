@@ -1,25 +1,27 @@
 ///|
+#derive(Debug)
 pub struct McpResponseMeta {
   server_info : Json?
   raw : Json
-} derive(Debug)
+}
 
 ///|
 pub extend McpResponseMeta with Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub struct McpDiscoverInfo {
   protocol_versions : Array[McpProtocolVersion]
   capabilities : Json
   instructions : String?
   response_meta : McpResponseMeta
-} derive(Debug)
+}
 
 ///|
 pub extend McpDiscoverInfo with Debug::{to_repr}
 
 ///|
-pub fn mcp_discover_request(id~ : Int, context : McpRequestContext) -> Json {
+pub fn mcp_discover_request(id~ : Int32, context : McpRequestContext) -> Json {
   mcp_request(
     id,
     "server/discover",
@@ -28,9 +30,10 @@ pub fn mcp_discover_request(id~ : Int, context : McpRequestContext) -> Json {
 }
 
 ///|
+#warnings("-78")
 pub fn decode_mcp_discover_response(
   response : Json,
-  expected_id~ : Int,
+  expected_id~ : Int32,
 ) -> Result[McpDiscoverInfo, McpProtocolError] {
   let result = decode_mcp_result(response, expected_id~) catch {
     error => return Err(error)

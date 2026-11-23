@@ -4,7 +4,7 @@ pub async fn http_mcp_call_tool(
   headers~ : Map[String, String],
   tool_name~ : String,
   arguments~ : Json,
-  mode? : @config.McpConnectionMode = Auto,
+  mode~ : @config.McpConnectionMode = Auto,
 ) -> Json raise @core_http.McpHttpClientError {
   let tool_definition = default_tool_catalog_cache.find_tool(
     url, headers, mode, tool_name,
@@ -25,7 +25,7 @@ pub async fn http_mcp_call_tool(
 pub async fn http_mcp_list_tools(
   url~ : String,
   headers~ : Map[String, String],
-  mode? : @config.McpConnectionMode = Auto,
+  mode~ : @config.McpConnectionMode = Auto,
 ) -> Array[@tools.McpToolInfo] raise @core_http.McpHttpClientError {
   match default_tool_catalog_cache.get(url, headers, mode) {
     Some(value) => return value

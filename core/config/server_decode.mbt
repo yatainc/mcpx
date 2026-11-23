@@ -119,7 +119,7 @@ fn decode_lifecycle_mode(
 fn optional_positive_int(
   json : Json?,
   field : String,
-) -> Int? raise ConfigDecodeError {
+) -> Int32? raise ConfigDecodeError {
   match json {
     None | Some(Null) => None
     Some(Number(value, ..)) if value.trunc() == value && value > 0.0 =>

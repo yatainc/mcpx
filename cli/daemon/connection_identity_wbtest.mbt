@@ -1,11 +1,11 @@
 ///|
 fn identity_fixture(
-  env? : Map[String, String] = { "TOKEN": "secret-a", "PATH": "/bin" },
-  command? : String = "/bin/sh",
-  args? : Array[String] = ["arg-secret"],
-  cwd? : String = "/project/a",
-  mode? : @config.McpConnectionMode = Stateful,
-  timeout? : Int = 300000,
+  env~ : Map[String, String] = { "TOKEN": "secret-a", "PATH": "/bin" },
+  command~ : String = "/bin/sh",
+  args~ : Array[String] = ["arg-secret"],
+  cwd~ : String = "/project/a",
+  mode~ : @config.McpConnectionMode = Stateful,
+  timeout~ : Int32 = 300000,
 ) -> @config.McpServerConfig {
   @config.mcp_server_config(
     name="local",

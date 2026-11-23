@@ -1,9 +1,10 @@
 ///|
+#derive(Debug, Eq, Hash)
 pub struct SearchResult {
   name : String
   description : String
-  score : Int
-} derive(Debug, Eq, Hash)
+  score : Int32
+}
 
 ///|
 pub extend SearchResult with Debug::{to_repr}
@@ -28,7 +29,7 @@ pub fn server_search_score(
   query : String,
   name : String,
   description : String?,
-) -> Int {
+) -> Int32 {
   let query_lower = query.to_lower()
   let name_lower = name.to_lower()
   let desc_lower = match description {
@@ -67,7 +68,7 @@ pub fn server_search_score(
 pub fn search_servers(
   query : String,
   servers : Array[(String, String?)],
-) -> (Array[SearchResult], Int) {
+) -> (Array[SearchResult], Int32) {
   let results = []
   for entry in servers {
     let (name, description) = entry
@@ -103,7 +104,7 @@ fn text_tokens(text : String) -> Array[String] {
 }
 
 ///|
-fn string_match_score(query_lower : String, text : String) -> Int {
+fn string_match_score(query_lower : String, text : String) -> Int32 {
   if text.length() == 0 {
     return 0
   }
@@ -119,7 +120,7 @@ fn string_match_score(query_lower : String, text : String) -> Int {
 }
 
 ///|
-fn token_match_score(q_token : String, t_tokens : Array[String]) -> Int {
+fn token_match_score(q_token : String, t_tokens : Array[String]) -> Int32 {
   let mut score = 0
   for t_token in t_tokens {
     if q_token == t_token {
@@ -132,7 +133,7 @@ fn token_match_score(q_token : String, t_tokens : Array[String]) -> Int {
 }
 
 ///|
-fn position_bonus(text : String, needle : String) -> Int {
+fn position_bonus(text : String, needle : String) -> Int32 {
   match text.find(needle) {
     Some(pos) => 10 - pos * 10 / text.length()
     None => 0

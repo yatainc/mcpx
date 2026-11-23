@@ -15,11 +15,11 @@ pub extend LimitExceeded with Show::{output, to_string}
 ///|
 /// Shared only for one finite operation; never a reusable client's lifetime.
 pub struct Budget {
-  priv mut remaining : Int
+  priv mut remaining : Int32
 }
 
 ///|
-pub fn Budget::new(limit? : Int = 256 * 1024 * 1024) -> Budget raise {
+pub fn Budget::new(limit~ : Int32 = 256 * 1024 * 1024) -> Budget raise {
   if limit < 0 {
     raise LimitExceeded("negative receive limit")
   }
@@ -27,7 +27,7 @@ pub fn Budget::new(limit? : Int = 256 * 1024 * 1024) -> Budget raise {
 }
 
 ///|
-fn Budget::spend(self : Budget, size : Int) -> Unit raise {
+fn Budget::spend(self : Budget, size : Int32) -> Unit raise {
   if size > self.remaining {
     raise LimitExceeded("cumulative receive limit")
   }
@@ -38,7 +38,7 @@ fn Budget::spend(self : Budget, size : Int) -> Unit raise {
 pub async fn body(
   reader : &@io.Reader,
   budget : Budget,
-  limit? : Int = 128 * 1024 * 1024,
+  limit~ : Int32 = 128 * 1024 * 1024,
 ) -> Bytes {
   if limit < 0 || budget.remaining < 0 {
     raise LimitExceeded("negative receive limit")
@@ -63,7 +63,7 @@ pub async fn body(
 pub struct Lines {
   priv reader : &@io.Reader
   priv mut pending : Bytes
-  priv mut start : Int
+  priv mut start : Int32
 }
 
 ///|
@@ -75,7 +75,7 @@ pub fn Lines::new(reader : &@io.Reader) -> Lines {
 pub async fn Lines::next(
   self : Lines,
   budget : Budget,
-  limit? : Int = 128 * 1024 * 1024,
+  limit~ : Int32 = 128 * 1024 * 1024,
 ) -> Bytes? {
   if limit < 0 || budget.remaining < 0 {
     raise LimitExceeded("negative receive limit")

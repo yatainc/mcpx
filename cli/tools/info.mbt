@@ -5,7 +5,7 @@ pub async fn info_http(
   headers~ : Map[String, String],
   tool~ : String?,
   filter_server~ : @config.McpServerConfig?,
-  mode? : @config.McpConnectionMode = Auto,
+  mode~ : @config.McpConnectionMode = Auto,
 ) -> String {
   let tools = @mcp_http.http_mcp_list_tools(url~, headers~, mode~) catch {
     error => return mcp_http_error_result(server_name, error)

@@ -8,13 +8,13 @@ async test "pagination accepts inclusive page and aggregate item boundaries" {
       if calls.val == 999 {
         { "skills": [] }
       } else {
-        { "skills": [], "nextCursor": calls.val.to_string().to_json() }
+        { "skills": [], "nextCursor": Json(calls.val.to_string()) }
       }
     },
     items_key="skills",
   )
   assert_eq(pages.length(), 1000)
-  let items = Array::make(50000, Json::null()).to_json()
+  let items = Json(Array::make(50000, Json::null()))
   let pages = collect_pages(
     { "resources": items, "nextCursor": "" },
     cursor => {
@@ -55,7 +55,7 @@ async test "pagination counters and nonadjacent opaque cursor loops reject befor
           { "skills": [], "nextCursor": "0" },
           _ => {
             calls.val += 1
-            { "skills": [], "nextCursor": calls.val.to_string().to_json() }
+            { "skills": [], "nextCursor": Json(calls.val.to_string()) }
           },
           items_key="skills",
         ),
@@ -71,7 +71,7 @@ async test "pagination counters and nonadjacent opaque cursor loops reject befor
     try {
       ignore(
         collect_pages(
-          { "resources": items.to_json() },
+          { "resources": Json(items) },
           _ => fail("no IO"),
           items_key="resources",
         ),

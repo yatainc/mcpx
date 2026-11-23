@@ -18,7 +18,7 @@ impl Show for RuntimeConfigError with fn output(self, logger) {
 
 ///|
 fn ServerBinding::identity(self : ServerBinding) -> String {
-  let text = [self.source_file, self.server.name].to_json().stringify()
+  let text = Json([self.source_file, self.server.name]).stringify()
   "config:sha256:" +
   @crypto.bytes_to_hex_string(@crypto.sha256(@utf8.encode(text)))
 }
@@ -42,12 +42,20 @@ async fn git_root(cwd : String) -> String? {
     }
   }
   env["LC_ALL"] = "C"
-  let (code, out, err) = @async.with_timeout(3000, () => {
-    @process.collect_output(
-      "git",
-      ["-C", cwd, "rev-parse", "--show-toplevel"],
-      extra_env=env,
-      inherit_env=false,
+  let response = @async.with_timeout(3000, () => {
+    // A missing command may be reported as a child exit, not a spawn error.
+    let command = if @path.delimiter == ';' { "git.exe" } else { "git" }
+    guard env.get("PATH") is Some(path) &&
+      find_executable_on_path(command, cwd, path) is Some(git) else {
+      return None
+    }
+    Some(
+      @process.collect_output(
+        git,
+        ["-C", cwd, "rev-parse", "--show-toplevel"],
+        extra_env=env,
+        inherit_env=false,
+      ),
     )
   }) catch {
     @os_error.OSError(_) as error if error.is_ENOENT() => return None
@@ -55,6 +63,7 @@ async fn git_root(cwd : String) -> String? {
       raise RuntimeConfigError("Git root discovery timed out")
     error => raise error
   }
+  guard response is Some((code, out, err)) else { return None }
   if code != 0 {
     let message = err.text()
     if message.has_prefix("fatal: not a git repository (or any") ||
@@ -140,6 +149,18 @@ async fn resolve_executable(
       "PATH is not set; use an executable path: " + command,
     )
   }
+  guard find_executable_on_path(command, cwd, path) is Some(executable) else {
+    raise RuntimeConfigError("executable not found: " + command)
+  }
+  executable
+}
+
+///|
+async fn find_executable_on_path(
+  command : String,
+  cwd : String,
+  path : String,
+) -> String? {
   for directory in path.split(@path.delimiter.to_string()) {
     let candidate = absolute_path(
       absolute_path(cwd, directory.to_owned()),
@@ -150,10 +171,10 @@ async fn resolve_executable(
       error => raise error
     }
     if executable && @async_fs.kind(candidate) is Regular {
-      return candidate
+      return Some(candidate)
     }
   }
-  raise RuntimeConfigError("executable not found: " + command)
+  None
 }
 
 ///|
