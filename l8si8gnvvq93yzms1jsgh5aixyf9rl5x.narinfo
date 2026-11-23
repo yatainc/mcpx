@@ -1,0 +1,12 @@
+StorePath: /nix/store/l8si8gnvvq93yzms1jsgh5aixyf9rl5x-glibc-2.42-67
+URL: nar/10wz13scjv47x5kwr2grmfib029spddhbfwwpv2jc2srpff9c3n2.nar.zst
+Compression: zstd
+FileHash: sha256:10wz13scjv47x5kwr2grmfib029spddhbfwwpv2jc2srpff9c3n2
+FileSize: 10261871
+NarHash: sha256:0grsc979x275l55h9rc510lrx92ahmz0qn2v0njzmlywvhkfkfms
+NarSize: 35073096
+References: 1zpz45w7k0i1j6b4m2z1cc12kbnv1m6y-libidn2-2.3.8 i9hdf87r1r8xkc26gj3h9cp08hx0iqbs-xgcc-15.3.0-libgcc l8si8gnvvq93yzms1jsgh5aixyf9rl5x-glibc-2.42-67
+Deriver: 7w3l9cbl4hx5gcdzx2hgf54fkr67xm70-glibc-2.42-67.drv
+Sig: cache.nixos.org-1:+sL1jctLgM0SG5aVfuA+kF3ozMlBagwZy9Ec1Zmoy7nVsObWTCUWUjGKbLgp6wbcp4HSq5Io+b8I8nTu/kTSCA==
+Sig: yata-one-mcpx-1:pA60CYUXtZPSeijz9e3ELDTAIB1b0rWfOah9bcZZ8+Mo0N+S9AGywUADENmIvHv8rQT2ym7fLD33Nh9hji8SDQ==
+Sig: yatainc-mcpx-1:jMBA+AyTKrSrq46PVH89jflH3fkeGRo8ueSwwayiAv0Mi3CCOhawSdZJ+wejqfQgxmkYY/Uq6w/1yF4ZnwOwCQ==
