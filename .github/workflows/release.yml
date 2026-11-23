@@ -23,7 +23,7 @@ jobs:
         include:
           - runner: ubuntu-22.04
             asset_suffix: linux-x64
-          - runner: macos-14
+          - runner: macos-26
             asset_suffix: macos-arm64
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 40
